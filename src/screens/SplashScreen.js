@@ -1,54 +1,131 @@
 import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
-  View,
-  Text,
   SafeAreaView,
   Platform,
   StatusBar,
   Animated,
   TouchableOpacity,
+  Text,
+  View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../theme/colors';
+import Svg, { Ellipse, Path } from 'react-native-svg';
 
 const SplashScreen = ({ navigation }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Entrance Animation Values
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoTranslateY = useRef(new Animated.Value(25)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const textTranslateY = useRef(new Animated.Value(20)).current;
+  const footerOpacity = useRef(new Animated.Value(0)).current;
+
+  // Continuous Loops Anim Values
+  const haloScale = useRef(new Animated.Value(1)).current;
+  const haloOpacity = useRef(new Animated.Value(0.85)).current;
+  const symbolOpacities = useRef([
+    new Animated.Value(0.25),
+    new Animated.Value(0.25),
+    new Animated.Value(0.25),
+    new Animated.Value(0.25),
+    new Animated.Value(0.25),
+  ]).current;
 
   useEffect(() => {
-    // Fade in animation
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1000,
-      useNativeDriver: true,
-    }).start();
-
-    // Subtle pulse animation for golden halo
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.08,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
+    // --- 1. Entrance Cascade sequence ---
+    Animated.sequence([
+      Animated.delay(100),
+      Animated.parallel([
+        Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 1500,
+          duration: 900,
           useNativeDriver: true,
         }),
+        Animated.timing(logoTranslateY, {
+          toValue: 0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(textOpacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(textTranslateY, {
+          toValue: 0,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(footerOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // --- 2. Continuous Halo breathing loop ---
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(haloScale, {
+            toValue: 1.1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(haloScale, {
+            toValue: 1.0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(haloOpacity, {
+            toValue: 1.0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(haloOpacity, {
+            toValue: 0.75,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
       ])
     ).start();
 
-    // Auto-navigate to AuraScanner after 3 seconds
+    // --- 3. Continuous Footer wave sequence ---
+    const createWaveAnimation = () => {
+      return Animated.stagger(
+        140,
+        symbolOpacities.map((anim) =>
+          Animated.sequence([
+            Animated.timing(anim, {
+              toValue: 1.0,
+              duration: 220,
+              useNativeDriver: true,
+            }),
+            Animated.timing(anim, {
+              toValue: 0.25,
+              duration: 350,
+              useNativeDriver: true,
+            }),
+          ])
+        )
+      );
+    };
+    Animated.loop(createWaveAnimation()).start();
+
+    // --- 4. Auto Navigation Timer ---
     const timer = setTimeout(() => {
       if (navigation && navigation.navigate) {
         navigation.navigate('AuraScanner');
       }
-    }, 3000);
+    }, 4500);
 
     return () => clearTimeout(timer);
-  }, [navigation, fadeAnim, pulseAnim]);
+  }, [navigation, logoOpacity, logoTranslateY, textOpacity, textTranslateY, footerOpacity, haloScale, haloOpacity, symbolOpacities]);
 
   const handlePress = () => {
     if (navigation && navigation.navigate) {
@@ -58,46 +135,115 @@ const SplashScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a1a" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       <TouchableOpacity
-        activeOpacity={0.95}
+        activeOpacity={1}
         style={styles.touchableContainer}
         onPress={handlePress}
       >
-        <Animated.View style={[styles.centeredContent, { opacity: fadeAnim }]}>
-          {/* Golden glowing halo/ring at top */}
-          <Animated.View
-            style={[
-              styles.haloRing,
-              { transform: [{ scale: pulseAnim }] },
-            ]}
-          >
-            <View style={styles.innerHaloGlow} />
+        <View style={styles.centeredContent}>
+          {/* Main Logo & Typography Group */}
+          <Animated.View style={[
+            styles.logoContainer, 
+            { 
+              opacity: logoOpacity, 
+              transform: [{ translateY: logoTranslateY }] 
+            }
+          ]}>
+            {/* Animated Halo Wrapper */}
+            <Animated.View style={[
+              styles.haloWrapper, 
+              { 
+                opacity: haloOpacity, 
+                transform: [{ scale: haloScale }] 
+              }
+            ]}>
+              <Svg height="90" width="240" viewBox="0 0 240 90">
+                {/* Outer Glow Ellipse */}
+                <Ellipse
+                  cx="120"
+                  cy="45"
+                  rx="70"
+                  ry="20"
+                  fill="none"
+                  stroke="#FF9900"
+                  strokeWidth="16"
+                  opacity="0.45"
+                />
+                {/* Inner Bright Ellipse */}
+                <Ellipse
+                  cx="120"
+                  cy="45"
+                  rx="62"
+                  ry="17"
+                  fill="none"
+                  stroke="#FFE57F"
+                  strokeWidth="3.5"
+                  opacity="0.95"
+                />
+              </Svg>
+            </Animated.View>
+            {/* AI Text overlay */}
+            <Text style={styles.aiText}>AI</Text>
+            {/* Smile Arc Path */}
+            <View style={styles.smileArcContainer}>
+              <Svg height="40" width="160" viewBox="0 0 160 40">
+                <Path
+                  d="M 22 10 Q 80 32 138 10"
+                  fill="none"
+                  stroke="#FFFFFF"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+              </Svg>
+            </View>
           </Animated.View>
-
-          {/* Large 'AI' text in white below halo */}
-          <Text style={styles.aiText}>AI</Text>
-
-          {/* Small smile/curve below AI text (>‿<) using a curved border view */}
-          <View style={styles.smileContainer}>
-            <Text style={styles.bracketText}>&gt;</Text>
-            <View style={styles.curvedSmileView} />
-            <Text style={styles.bracketText}>&lt;</Text>
-          </View>
-
-          {/* Text 'SPIRITUALIZE AI' in white, fontSize 20, letterSpacing 3 */}
-          <Text style={styles.titleText}>SPIRITUALIZE AI</Text>
-
-          {/* Text 'Thought Realisation' in italic, gold color (#d4a017), fontSize 16 */}
-          <Text style={styles.subtitleText}>Thought Realisation</Text>
-        </Animated.View>
-
-        {/* Bottom branding and footer */}
-        <View style={styles.footerContainer}>
-          <Text style={styles.brandingText}>&gt;&gt;&lt; / &gt;</Text>
-          <Text style={styles.footerText}>
-            CONFIDENTIAL. 2024 Next Archer &gt;&gt;/&lt;
-          </Text>
+          {/* Title and Subtitle Text Group */}
+          <Animated.View style={[
+            styles.textContainer, 
+            { 
+              opacity: textOpacity, 
+              transform: [{ translateY: textTranslateY }] 
+            }
+          ]}>
+            <Text style={styles.titleText}>SPIRITUALIZE AI</Text>
+            <Text style={styles.subtitleText}>Thought Realisation</Text>
+          </Animated.View>
+          {/* Staggered Wave Loading Indicator */}
+          <Animated.View style={[styles.footerContainer, { opacity: footerOpacity }]}>
+            <View style={styles.waveRow}>
+              {/* > */}
+              <Animated.View style={{ opacity: symbolOpacities[0] }}>
+                <Svg height="35" width="28" viewBox="0 0 28 35">
+                  <Path d="M 6 8 L 20 17.5 L 6 27" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+              {/* > */}
+              <Animated.View style={{ opacity: symbolOpacities[1] }}>
+                <Svg height="35" width="28" viewBox="0 0 28 35">
+                  <Path d="M 6 8 L 20 17.5 L 6 27" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+              {/* < */}
+              <Animated.View style={{ opacity: symbolOpacities[2] }}>
+                <Svg height="35" width="28" viewBox="0 0 28 35">
+                  <Path d="M 22 8 L 8 17.5 L 22 27" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+              {/* ] */}
+              <Animated.View style={{ opacity: symbolOpacities[3] }}>
+                <Svg height="35" width="24" viewBox="0 0 24 35">
+                  <Path d="M 4 6 H 18 V 29 H 4" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+              {/* > */}
+              <Animated.View style={{ opacity: symbolOpacities[4] }}>
+                <Svg height="35" width="28" viewBox="0 0 28 35">
+                  <Path d="M 6 8 L 20 17.5 L 6 27" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </Svg>
+              </Animated.View>
+            </View>
+          </Animated.View>
         </View>
       </TouchableOpacity>
     </SafeAreaView>
@@ -107,102 +253,77 @@ const SplashScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.backgroundDark || '#0a0a1a',
+    backgroundColor: '#000000',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   touchableContainer: {
     flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 36,
+    width: '100%',
   },
   centeredContent: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
+    paddingVertical: 50,
   },
-  haloRing: {
-    width: 120,
-    height: 60,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: Colors.gold || '#d4a017',
-    shadowColor: Colors.gold || '#d4a017',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 16,
-    elevation: 10,
-    justifyContent: 'center',
+  logoContainer: {
+    marginTop: 60,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  innerHaloGlow: {
-    width: 100,
-    height: 44,
-    borderRadius: 40,
-    backgroundColor: 'rgba(212, 160, 23, 0.15)',
+  haloWrapper: {
+    marginBottom: -20,
+    zIndex: 1,
   },
   aiText: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: Colors.textWhite || '#ffffff',
-    letterSpacing: 4,
+    color: '#FFFFFF',
+    fontSize: 92,
+    fontWeight: '400',
+    letterSpacing: 2,
+    lineHeight: 92,
+    zIndex: 2,
     textAlign: 'center',
-    marginVertical: 4,
+    ...Platform.select({
+      ios: { fontFamily: 'System' },
+      android: { fontFamily: 'sans-serif-light' },
+      web: { fontFamily: 'Outfit, sans-serif' },
+    }),
   },
-  smileContainer: {
-    flexDirection: 'row',
+  smileArcContainer: {
+    marginTop: -10,
+    zIndex: 2,
+  },
+  textContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 10,
-  },
-  bracketText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.gold || '#d4a017',
-    marginHorizontal: 4,
-  },
-  curvedSmileView: {
-    width: 24,
-    height: 12,
-    borderBottomWidth: 3,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    borderColor: Colors.gold || '#d4a017',
-    marginHorizontal: 2,
   },
   titleText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.textWhite || '#ffffff',
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '400',
     letterSpacing: 3,
-    marginTop: 18,
+    marginBottom: 12,
     textAlign: 'center',
   },
   subtitleText: {
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 20,
     fontStyle: 'italic',
-    color: Colors.gold || '#d4a017',
-    marginTop: 8,
+    fontWeight: '300',
+    letterSpacing: 0.5,
     textAlign: 'center',
   },
   footerContainer: {
+    marginBottom: 40,
     alignItems: 'center',
-    marginBottom: 10,
+    justifyContent: 'center',
   },
-  brandingText: {
-    fontSize: 14,
-    color: Colors.textWhite || '#ffffff',
-    letterSpacing: 2,
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-  footerText: {
-    fontSize: 11,
-    color: Colors.textGray || '#a0a0b0',
-    letterSpacing: 1,
-    textAlign: 'center',
+  waveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
 });
 
