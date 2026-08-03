@@ -1,5 +1,5 @@
 /* ---------------------------------------------------------------------
-   Next Archer — ambient chat background & global styles
+   Next Archer — ambient background & global styles
    Import once globally (e.g. App.js, globals.css, or root layout).
    All motion uses transform/opacity only — cheap on mobile GPUs, no
    layout thrash, and respects prefers-reduced-motion.
@@ -13,27 +13,7 @@ body, input, textarea, select, button, [dir] {
 
 
 
-.chat-bg {
-  transition: background 1000ms ease-in-out, background-color 1000ms ease-in-out;
-  background-size: 200% 200%;
-}
 
-/* Day 06:00–16:59 — soft ambient daylight, kept dark-app-friendly (Next
-   Archer's base UI is near-black), so this leans muted dawn/haze rather
-   than a bright white app background. */
-.chat-bg--day {
-  background-image: radial-gradient(120% 120% at 20% 0%, #2b2f45 0%, #14151f 55%, #0a0a0f 100%);
-}
-
-/* Evening 17:00–19:59 — dusk purple / warm twilight */
-.chat-bg--evening {
-  background-image: radial-gradient(120% 120% at 80% 0%, #3d1f52 0%, #23163f 45%, #0d0912 100%);
-}
-
-/* Night 20:00–05:59 — midnight blue / obsidian / cosmic */
-.chat-bg--night {
-  background-image: radial-gradient(130% 130% at 50% -10%, #10142b 0%, #0a0a12 50%, #050507 100%);
-}
 
 /* -------------------- Aurora blobs -------------------- */
 
@@ -88,9 +68,6 @@ body, input, textarea, select, button, [dir] {
 @media (prefers-reduced-motion: reduce) {
   .aurora-blob {
     animation: none;
-  }
-  .chat-bg {
-    transition: none;
   }
 }
 

@@ -13,8 +13,10 @@ import {
   Image,
   Modal,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/colors';
 import databaseService from '../services/databaseService';
 
@@ -70,6 +72,8 @@ const AuraScannerScreen = ({ navigation }) => {
   const [stickerTheme, setStickerTheme] = useState('violet'); // 'violet', 'indigo', 'gold', 'emerald', 'rose'
   const [stickerUsername, setStickerUsername] = useState('@username');
   const [toastMsg, setToastMsg] = useState(null);
+  const [photoScale, setPhotoScale] = useState(1.0);
+  const [photoFrameSize, setPhotoFrameSize] = useState(130);
   const stickerCanvasRef = useRef(null);
 
   const stickerThemes = {
@@ -79,9 +83,10 @@ const AuraScannerScreen = ({ navigation }) => {
       title: 'TRANSCENDENT AURA',
       archetype: 'Cosmic Visionary',
       bgGradient: ['#8b5cf6', '#3b82f6', '#0f172a'],
+      primary: '#8b5cf6',
       border: '#c084fc',
       glow: 'rgba(192, 132, 252, 0.7)',
-      badgeBg: 'rgba(139, 92, 246, 0.25)',
+      badgeBg: 'rgba(139, 92, 246, 0.15)',
       accent: '#e9d5ff',
       icon: 'sparkles',
     },
@@ -91,9 +96,10 @@ const AuraScannerScreen = ({ navigation }) => {
       title: 'QUANTUM HARMONY',
       archetype: 'Deep Resonance',
       bgGradient: ['#6366f1', '#06b6d4', '#0284c7'],
+      primary: '#6366f1',
       border: '#818cf8',
       glow: 'rgba(129, 140, 248, 0.7)',
-      badgeBg: 'rgba(99, 102, 241, 0.25)',
+      badgeBg: 'rgba(99, 102, 241, 0.15)',
       accent: '#c7d2fe',
       icon: 'planet-outline',
     },
@@ -103,9 +109,10 @@ const AuraScannerScreen = ({ navigation }) => {
       title: 'SOLFEGGIO GOLD',
       archetype: 'Abundance Matrix',
       bgGradient: ['#f59e0b', '#d97706', '#78350f'],
+      primary: '#f59e0b',
       border: '#fbbf24',
       glow: 'rgba(251, 191, 36, 0.7)',
-      badgeBg: 'rgba(245, 158, 11, 0.25)',
+      badgeBg: 'rgba(245, 158, 11, 0.15)',
       accent: '#fef3c7',
       icon: 'sunny-outline',
     },
@@ -115,9 +122,10 @@ const AuraScannerScreen = ({ navigation }) => {
       title: 'EMERALD VITALITY',
       archetype: 'Life-Force Shield',
       bgGradient: ['#10b981', '#059669', '#064e3b'],
+      primary: '#10b981',
       border: '#34d399',
       glow: 'rgba(52, 211, 153, 0.7)',
-      badgeBg: 'rgba(16, 185, 129, 0.25)',
+      badgeBg: 'rgba(16, 185, 129, 0.15)',
       accent: '#d1fae5',
       icon: 'leaf-outline',
     },
@@ -127,9 +135,10 @@ const AuraScannerScreen = ({ navigation }) => {
       title: 'ASTRAL DEVOTION',
       archetype: 'High Frequency',
       bgGradient: ['#f43f5e', '#c084fc', '#4c0519'],
+      primary: '#f43f5e',
       border: '#fb7185',
       glow: 'rgba(251, 113, 133, 0.7)',
-      badgeBg: 'rgba(244, 63, 94, 0.25)',
+      badgeBg: 'rgba(244, 63, 94, 0.15)',
       accent: '#ffe4e6',
       icon: 'heart-outline',
     },
@@ -540,13 +549,13 @@ const AuraScannerScreen = ({ navigation }) => {
 
   const generateStickerCanvas = () => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+    const theme = stickerThemes[stickerTheme] || stickerThemes.violet;
     const canvas = stickerCanvasRef.current || document.createElement('canvas');
     canvas.width = 840;
     canvas.height = 1280;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // 1. Off-White Linen Canvas Background (#f6f5f1)
     ctx.clearRect(0, 0, 840, 1280);
 
     const pad = 20;
@@ -554,11 +563,12 @@ const AuraScannerScreen = ({ navigation }) => {
     const stickerH = 1280 - pad * 2;
     const stickerRx = 60;
 
+    // 1. Pristine Off-White Linen Canvas Background (#f7f6f2)
     ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
     ctx.shadowBlur = 40;
     ctx.shadowOffsetY = 16;
 
-    ctx.fillStyle = '#f6f5f1';
+    ctx.fillStyle = '#f7f6f2';
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(pad, pad, stickerW, stickerH, stickerRx);
     else ctx.rect(pad, pad, stickerW, stickerH);
@@ -571,9 +581,10 @@ const AuraScannerScreen = ({ navigation }) => {
     else ctx.rect(pad, pad, stickerW, stickerH);
     ctx.clip();
 
-    // 2. Decorative Side Swooping Lines in Sage Green (#6c8a89)
-    ctx.strokeStyle = '#6c8a89';
+    // 2. Decorative Side Swooping Lines in Aura Theme Border Color
+    ctx.strokeStyle = theme.border;
     ctx.lineWidth = 8;
+    ctx.globalAlpha = 0.8;
 
     // Left Line Arc & Bottom Hook
     ctx.beginPath();
@@ -593,24 +604,53 @@ const AuraScannerScreen = ({ navigation }) => {
     ctx.arc(pad + stickerW - 80, pad + 780, 140, Math.PI * 0.5, Math.PI, false);
     ctx.stroke();
 
-    // 3. Top Header: Title "Next Archer" Georgia Serif Text & Logo Icon
-    ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 76px Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Next Archer', 420, 180);
+    ctx.globalAlpha = 1.0;
 
-    // 4. Photo Frame Circle (Sage/Silver Gradient Ring & White Inner Border)
+    // 3. Top Header: Official App Logo Image + Title "Next Archer"
+    const logoImg = new window.Image();
+    logoImg.src = require('../../assets/logo.png');
+    try {
+      ctx.drawImage(logoImg, 180, 85, 78, 78);
+    } catch (e) {}
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 64px Georgia, serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Next Archer', 276, 146);
+
+    // 3b. Aura Energy Pill Badge
+    const badgeW = 480;
+    const badgeH = 50;
+    const badgeX = (840 - badgeW) / 2;
+    const badgeY = 195;
+
+    ctx.fillStyle = theme.badgeBg || 'rgba(139, 92, 246, 0.15)';
+    ctx.strokeStyle = theme.border;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 25);
+    else ctx.rect(badgeX, badgeY, badgeW, badgeH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = theme.primary || '#8b5cf6';
+    ctx.font = 'bold 22px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`✨ ${theme.name.toUpperCase()} • ${theme.title}`, 420, badgeY + 33);
+
+    // 4. Photo Frame Circle (Theme Glowing Aura Ring & White Inner Border)
+    const frameScaleMultiplier = photoFrameSize / 130;
     const pCenterX = 420;
     const pCenterY = 560;
-    const pRadius = 220;
+    const pRadius = 220 * frameScaleMultiplier;
 
     const ringGrad = ctx.createLinearGradient(pCenterX - pRadius, pCenterY - pRadius, pCenterX + pRadius, pCenterY + pRadius);
-    ringGrad.addColorStop(0, '#5d7f7d');
-    ringGrad.addColorStop(0.5, '#d5d5d5');
-    ringGrad.addColorStop(1, '#5d7f7d');
+    ringGrad.addColorStop(0, theme.border);
+    ringGrad.addColorStop(0.5, '#ffffff');
+    ringGrad.addColorStop(1, theme.primary);
 
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
-    ctx.shadowBlur = 30;
+    ctx.shadowColor = theme.border;
+    ctx.shadowBlur = 35;
     ctx.shadowOffsetY = 12;
     ctx.fillStyle = ringGrad;
     ctx.beginPath();
@@ -634,15 +674,20 @@ const AuraScannerScreen = ({ navigation }) => {
       const userImg = new window.Image();
       userImg.src = capturedImage;
       try {
-        ctx.drawImage(userImg, pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+        const drawRadius = pRadius - 10;
+        const drawW = drawRadius * 2 * photoScale;
+        const drawH = drawRadius * 2 * photoScale;
+        const drawX = pCenterX - drawW / 2;
+        const drawY = pCenterY - drawH / 2;
+        ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       } catch (e) {
-        ctx.fillStyle = '#5d7f7d';
+        ctx.fillStyle = '#e5e3dc';
         ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
       }
     } else {
       ctx.fillStyle = '#e5e3dc';
       ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
-      ctx.fillStyle = '#6c8a89';
+      ctx.fillStyle = theme.primary;
       ctx.font = 'bold 110px Georgia, serif';
       ctx.textAlign = 'center';
       ctx.fillText('👤', pCenterX, pCenterY + 38);
@@ -655,9 +700,9 @@ const AuraScannerScreen = ({ navigation }) => {
     const pillX = (840 - pillW) / 2;
     const pillY = 880;
 
-    ctx.strokeStyle = '#6b8787';
+    ctx.strokeStyle = theme.border;
     ctx.lineWidth = 6;
-    ctx.fillStyle = '#f6f5f1';
+    ctx.fillStyle = '#f7f6f2';
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(pillX, pillY, pillW, pillH, 45);
     else ctx.rect(pillX, pillY, pillW, pillH);
@@ -665,14 +710,14 @@ const AuraScannerScreen = ({ navigation }) => {
     ctx.stroke();
 
     ctx.fillStyle = '#1a1a1a';
-    ctx.font = '600 44px Georgia, serif';
+    ctx.font = '600 42px Georgia, serif';
     ctx.textAlign = 'center';
     const displayUsername = stickerUsername || (loginEmail ? `@${loginEmail.split('@')[0]}` : '@username');
-    ctx.fillText(displayUsername, 420, pillY + 60);
+    ctx.fillText(displayUsername, 420, pillY + 58);
 
     // 6. Hashtags Footer Text
     ctx.fillStyle = '#222222';
-    ctx.font = '34px Arial, sans-serif';
+    ctx.font = '30px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('#AuraFarming #ConsciousComputing #Ideawarfare', 420, 1180);
 
@@ -683,19 +728,21 @@ const AuraScannerScreen = ({ navigation }) => {
 
   const generateStoryCanvas = (platformName = 'Instagram') => {
     if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+    const theme = stickerThemes[stickerTheme] || stickerThemes.violet;
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
     canvas.height = 1920;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // 1. Off-White Linen Background (#f6f5f1)
-    ctx.fillStyle = '#f6f5f1';
+    // 1. Pristine Linen Background (#f7f6f2)
+    ctx.fillStyle = '#f7f6f2';
     ctx.fillRect(0, 0, 1080, 1920);
 
-    // 2. Decorative Side Swooping Lines in Sage Green (#6c8a89)
-    ctx.strokeStyle = '#6c8a89';
+    // 2. Decorative Side Swooping Lines in Aura Theme Border Color
+    ctx.strokeStyle = theme.border;
     ctx.lineWidth = 12;
+    ctx.globalAlpha = 0.8;
 
     ctx.beginPath();
     ctx.arc(-140, 750, 420, -Math.PI * 0.45, Math.PI * 0.45, false);
@@ -705,27 +752,38 @@ const AuraScannerScreen = ({ navigation }) => {
     ctx.arc(1080 + 140, 750, 420, Math.PI * 0.55, Math.PI * 1.45, false);
     ctx.stroke();
 
-    // 3. Top Header: Title "Next Archer" Georgia Serif Text
+    ctx.globalAlpha = 1.0;
+
+    // 3. Top Header: Official App Logo Image + Title "Next Archer"
+    const logoImg = new window.Image();
+    logoImg.src = require('../../assets/logo.png');
+    try {
+      ctx.drawImage(logoImg, 220, 150, 110, 110);
+    } catch (e) {}
+
     ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 105px Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Next Archer', 540, 260);
+    ctx.font = 'bold 90px Georgia, serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Next Archer', 355, 235);
 
-    ctx.fillStyle = '#6c8a89';
+    // 3b. Badge
+    ctx.fillStyle = theme.primary;
     ctx.font = 'bold 36px Georgia, serif';
-    ctx.fillText(`OFFICIAL ${platformName.toUpperCase()} STORY STICKER`, 540, 330);
+    ctx.textAlign = 'center';
+    ctx.fillText(`OFFICIAL ${platformName.toUpperCase()} STORY STICKER • ${theme.name.toUpperCase()}`, 540, 320);
 
-    // 4. Circular Photo Frame with Sage/Silver Ring & White Border
+    // 4. Circular Photo Frame with Theme Metallic Ring & White Border
+    const frameScaleMultiplier = photoFrameSize / 130;
     const pCenterX = 540;
     const pCenterY = 860;
-    const pRadius = 340;
+    const pRadius = 340 * frameScaleMultiplier;
 
     const ringGrad = ctx.createLinearGradient(pCenterX - pRadius, pCenterY - pRadius, pCenterX + pRadius, pCenterY + pRadius);
-    ringGrad.addColorStop(0, '#5d7f7d');
-    ringGrad.addColorStop(0.5, '#d5d5d5');
-    ringGrad.addColorStop(1, '#5d7f7d');
+    ringGrad.addColorStop(0, theme.border);
+    ringGrad.addColorStop(0.5, '#ffffff');
+    ringGrad.addColorStop(1, theme.primary);
 
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowColor = theme.border;
     ctx.shadowBlur = 45;
     ctx.shadowOffsetY = 18;
     ctx.fillStyle = ringGrad;
@@ -748,15 +806,20 @@ const AuraScannerScreen = ({ navigation }) => {
       const userImg = new window.Image();
       userImg.src = capturedImage;
       try {
-        ctx.drawImage(userImg, pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+        const drawRadius = pRadius - 14;
+        const drawW = drawRadius * 2 * photoScale;
+        const drawH = drawRadius * 2 * photoScale;
+        const drawX = pCenterX - drawW / 2;
+        const drawY = pCenterY - drawH / 2;
+        ctx.drawImage(userImg, drawX, drawY, drawW, drawH);
       } catch (e) {
-        ctx.fillStyle = '#5d7f7d';
+        ctx.fillStyle = '#e5e3dc';
         ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
       }
     } else {
       ctx.fillStyle = '#e5e3dc';
       ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
-      ctx.fillStyle = '#6c8a89';
+      ctx.fillStyle = theme.primary;
       ctx.font = 'bold 160px Georgia, serif';
       ctx.textAlign = 'center';
       ctx.fillText('👤', pCenterX, pCenterY + 55);
@@ -769,9 +832,9 @@ const AuraScannerScreen = ({ navigation }) => {
     const pillX = (1080 - pillW) / 2;
     const pillY = 1320;
 
-    ctx.strokeStyle = '#6b8787';
+    ctx.strokeStyle = theme.border;
     ctx.lineWidth = 8;
-    ctx.fillStyle = '#f6f5f1';
+    ctx.fillStyle = '#f7f6f2';
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(pillX, pillY, pillW, pillH, 65);
     else ctx.rect(pillX, pillY, pillW, pillH);
@@ -779,16 +842,16 @@ const AuraScannerScreen = ({ navigation }) => {
     ctx.stroke();
 
     ctx.fillStyle = '#1a1a1a';
-    ctx.font = '600 64px Georgia, serif';
+    ctx.font = '600 58px Georgia, serif';
     ctx.textAlign = 'center';
     const displayUsername = stickerUsername || (loginEmail ? `@${loginEmail.split('@')[0]}` : '@username');
-    ctx.fillText(displayUsername, 540, pillY + 88);
+    ctx.fillText(displayUsername, 540, pillY + 84);
 
-    // 6. Hashtags Footer
+    // 6. Hashtags Footer Text
     ctx.fillStyle = '#222222';
-    ctx.font = '48px Arial, sans-serif';
+    ctx.font = '36px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('#AuraFarming #ConsciousComputing #Ideawarfare', 540, 1740);
+    ctx.fillText('#AuraFarming #ConsciousComputing #Ideawarfare', 540, 1750);
 
     return canvas;
   };
@@ -940,6 +1003,8 @@ const AuraScannerScreen = ({ navigation }) => {
       showToast(`Opening ${platform.toUpperCase()} share...`);
     }
   };
+
+  const activeTheme = stickerThemes[stickerTheme] || stickerThemes.violet;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -1270,174 +1335,245 @@ const AuraScannerScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.stickerModalSubtitle}>
-              Generate your collectible holographic sticker and share your aura resonance on social media!
-            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScrollContent}>
+              <Text style={styles.stickerModalSubtitle}>
+                Generate your collectible holographic sticker and share your aura resonance on social media!
+              </Text>
 
-            {/* Minimalist Vintage Linen Aesthetic Sticker Card */}
-            <View style={styles.aestheticStickerCardContainer}>
-              {/* Decorative Swooping Side Lines */}
-              <View style={styles.aestheticLeftLine} />
-              <View style={styles.aestheticRightLine} />
+              {/* Elegant Vintage Linen Aesthetic Sticker Card with Dynamic Aura Accent Glow */}
+              <View style={[styles.aestheticStickerCardContainer, { borderColor: activeTheme.border, borderWidth: 1.5 }]}>
+                {/* Decorative Swooping Side Lines in Theme Border Color */}
+                <View style={[styles.aestheticLeftLine, { borderLeftColor: activeTheme.border }]} />
+                <View style={[styles.aestheticRightLine, { borderRightColor: activeTheme.border }]} />
 
-              {/* Logo & Header Title */}
-              <View style={styles.aestheticTopHeader}>
-                <Image
-                  source={require('../../assets/logo.png')}
-                  style={styles.aestheticLogo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.aestheticTitle}>Next Archer</Text>
-              </View>
-
-              {/* User Photo Frame with Metallic Gradient & White Border - Tap to Upload */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleUploadPhoto}
-                style={styles.aestheticPhotoFrameGradient}
-              >
-                <View style={styles.aestheticPhotoFrameInner}>
-                  {capturedImage ? (
-                    <Image source={{ uri: capturedImage }} style={styles.aestheticPhotoImg} />
-                  ) : (
-                    <View style={styles.aestheticPhotoPlaceholder}>
-                      <Ionicons name="camera-outline" size={38} color="#5d7f7d" />
-                      <Text style={{ fontSize: 10, color: '#5d7f7d', fontWeight: 'bold', marginTop: 4 }}>Tap to Add Photo</Text>
-                    </View>
-                  )}
+                {/* Top Header: Logo Image + Title */}
+                <View style={styles.aestheticTopHeader}>
+                  <Image
+                    source={require('../../assets/logo.png')}
+                    style={styles.aestheticLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.aestheticTitle}>Next Archer</Text>
                 </View>
-              </TouchableOpacity>
 
-              {/* Editable Username Pill */}
-              <View style={styles.aestheticNamePill}>
-                <TextInput
-                  style={styles.aestheticNameInput}
-                  value={stickerUsername}
-                  onChangeText={(txt) => {
-                    let formatted = txt;
-                    if (formatted && !formatted.startsWith('@')) {
-                      formatted = '@' + formatted;
-                    }
-                    setStickerUsername(formatted);
-                  }}
-                  placeholder="@username"
-                  placeholderTextColor="#6b8787"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                {/* Aura Energy Pill Badge */}
+                <View style={[styles.aestheticAuraBadgePill, { backgroundColor: activeTheme.badgeBg, borderColor: activeTheme.border }]}>
+                  <Ionicons name={activeTheme.icon} size={10} color={activeTheme.primary} style={{ marginRight: 4 }} />
+                  <Text style={[styles.aestheticAuraBadgeText, { color: activeTheme.primary }]}>
+                    {activeTheme.name.toUpperCase()} • {activeTheme.title}
+                  </Text>
+                </View>
+
+                {/* User Photo Frame with Glowing Aura Halo & White Border */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleUploadPhoto}
+                  style={[
+                    styles.aestheticPhotoFrameGradient,
+                    {
+                      width: photoFrameSize,
+                      height: photoFrameSize,
+                      borderRadius: photoFrameSize / 2,
+                      backgroundColor: activeTheme.border,
+                      shadowColor: activeTheme.border,
+                      borderColor: activeTheme.primary,
+                    },
+                  ]}
+                >
+                  <View style={[styles.aestheticPhotoFrameInner, { borderRadius: (photoFrameSize - 8) / 2 }]}>
+                    {capturedImage ? (
+                      <Image
+                        source={{ uri: capturedImage }}
+                        style={[styles.aestheticPhotoImg, { transform: [{ scale: photoScale }] }]}
+                      />
+                    ) : (
+                      <View style={styles.aestheticPhotoPlaceholder}>
+                        <Ionicons name="camera-outline" size={photoFrameSize * 0.22} color={activeTheme.primary} />
+                        <Text style={{ fontSize: 9, color: '#666666', fontWeight: 'bold', marginTop: 2 }}>Tap to Add Photo</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                {/* Editable Username Pill */}
+                <View style={[styles.aestheticNamePill, { borderColor: activeTheme.border }]}>
+                  <TextInput
+                    style={styles.aestheticNameInput}
+                    value={stickerUsername}
+                    onChangeText={(txt) => {
+                      let formatted = txt;
+                      if (formatted && !formatted.startsWith('@')) {
+                        formatted = '@' + formatted;
+                      }
+                      setStickerUsername(formatted);
+                    }}
+                    placeholder="@username"
+                    placeholderTextColor="#6b8787"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
+
+                {/* Hashtags Footer */}
+                <View style={styles.aestheticTagsContainer}>
+                  <Text style={styles.aestheticTagsText}>
+                    #AuraFarming #ConsciousComputing #Ideawarfare
+                  </Text>
+                </View>
               </View>
 
-              {/* Hashtags Footer */}
-              <View style={styles.aestheticTagsContainer}>
-                <Text style={styles.aestheticTagsText}>
-                  #AuraFarming #ConsciousComputing #Ideawarfare
-                </Text>
-              </View>
-            </View>
-
-            {/* Theme Selector Section */}
-            <Text style={styles.themeSelectorLabel}>Select Aura Energy Theme:</Text>
-            <View style={styles.themePillsRow}>
-              {Object.keys(stickerThemes).map((key) => {
-                const theme = stickerThemes[key];
-                const isSelected = stickerTheme === key;
-                return (
+              {/* Interactive Photo Resize & Zoom Controls Bar */}
+              <View style={styles.photoControlsRow}>
+                <Text style={styles.photoControlLabel}>Resize / Zoom Photo:</Text>
+                <View style={styles.photoControlButtonsRow}>
                   <TouchableOpacity
-                    key={key}
-                    style={[
-                      styles.themePill,
-                      { backgroundColor: theme.bgGradient[0] },
-                      isSelected && styles.themePillSelected,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => setStickerTheme(key)}
+                    style={styles.photoCtrlBtn}
+                    onPress={() => setPhotoFrameSize((prev) => Math.max(100, prev - 10))}
                   >
-                    <Ionicons name={theme.icon} size={12} color="#ffffff" style={{ marginRight: 4 }} />
-                    <Text style={styles.themePillText}>{theme.name}</Text>
+                    <Ionicons name="contract-outline" size={12} color="#ffffff" style={{ marginRight: 3 }} />
+                    <Text style={styles.photoCtrlBtnText}>Frame -</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
 
-            {/* Instagram & Snapchat Story Action Row */}
-            <View style={styles.storyButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.photoCtrlBtn}
+                    onPress={() => setPhotoFrameSize((prev) => Math.min(160, prev + 10))}
+                  >
+                    <Ionicons name="expand-outline" size={12} color="#ffffff" style={{ marginRight: 3 }} />
+                    <Text style={styles.photoCtrlBtnText}>Frame +</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.photoCtrlBtn}
+                    onPress={() => setPhotoScale((prev) => Math.max(0.6, parseFloat((prev - 0.1).toFixed(1))))}
+                  >
+                    <Ionicons name="remove-circle-outline" size={12} color="#ffffff" style={{ marginRight: 3 }} />
+                    <Text style={styles.photoCtrlBtnText}>Zoom -</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.photoCtrlBtn}
+                    onPress={() => setPhotoScale((prev) => Math.min(2.5, parseFloat((prev + 0.1).toFixed(1))))}
+                  >
+                    <Ionicons name="add-circle-outline" size={12} color="#ffffff" style={{ marginRight: 3 }} />
+                    <Text style={styles.photoCtrlBtnText}>Zoom +</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.photoCtrlBtn, { backgroundColor: 'rgba(255, 255, 255, 0.15)', paddingHorizontal: 8 }]}
+                    onPress={() => {
+                      setPhotoScale(1.0);
+                      setPhotoFrameSize(130);
+                    }}
+                  >
+                    <Ionicons name="refresh-outline" size={13} color="#ffffff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Theme Selector Section */}
+              <Text style={styles.themeSelectorLabel}>Select Aura Energy Theme:</Text>
+              <View style={styles.themePillsRow}>
+                {Object.keys(stickerThemes).map((key) => {
+                  const theme = stickerThemes[key];
+                  const isSelected = stickerTheme === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.themePill,
+                        { backgroundColor: theme.bgGradient[0] },
+                        isSelected && styles.themePillSelected,
+                      ]}
+                      activeOpacity={0.8}
+                      onPress={() => setStickerTheme(key)}
+                    >
+                      <Ionicons name={theme.icon} size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                      <Text style={styles.themePillText}>{theme.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Instagram & Snapchat Story Action Row */}
+              <View style={styles.storyButtonsRow}>
+                <TouchableOpacity
+                  style={styles.instagramStoryBtn}
+                  activeOpacity={0.85}
+                  onPress={handleInstagramShare}
+                >
+                  <Ionicons name="logo-instagram" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.storyBtnText}>Instagram Story</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.snapchatStoryBtn}
+                  activeOpacity={0.85}
+                  onPress={handleSnapchatShare}
+                >
+                  <Ionicons name="logo-snapchat" size={16} color="#000000" style={{ marginRight: 6 }} />
+                  <Text style={styles.snapchatBtnText}>Snapchat Story</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Main Action Buttons */}
               <TouchableOpacity
-                style={styles.instagramStoryBtn}
-                activeOpacity={0.85}
-                onPress={handleInstagramShare}
+                style={styles.primaryShareBtn}
+                activeOpacity={0.8}
+                onPress={handleShareSticker}
               >
-                <Ionicons name="logo-instagram" size={18} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.storyBtnText}>Instagram Story</Text>
+                <Ionicons name="share-social" size={16} color="#000000" style={{ marginRight: 6 }} />
+                <Text style={styles.primaryShareBtnText}>Share Aura Sticker Card</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.snapchatStoryBtn}
-                activeOpacity={0.85}
-                onPress={handleSnapchatShare}
+                style={styles.secondaryDownloadBtn}
+                activeOpacity={0.8}
+                onPress={handleDownloadSticker}
               >
-                <Ionicons name="logo-snapchat" size={18} color="#000000" style={{ marginRight: 6 }} />
-                <Text style={styles.snapchatBtnText}>Snapchat Story</Text>
+                <Ionicons name="download-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.secondaryDownloadBtnText}>Download PNG Sticker</Text>
               </TouchableOpacity>
-            </View>
 
-            {/* Main Action Buttons */}
-            <TouchableOpacity
-              style={styles.primaryShareBtn}
-              activeOpacity={0.8}
-              onPress={handleShareSticker}
-            >
-              <Ionicons name="share-social" size={18} color="#000000" style={{ marginRight: 8 }} />
-              <Text style={styles.primaryShareBtnText}>Share Aura Sticker Card</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.secondaryDownloadBtn}
-              activeOpacity={0.8}
-              onPress={handleDownloadSticker}
-            >
-              <Ionicons name="download-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
-              <Text style={styles.secondaryDownloadBtnText}>Download PNG Sticker</Text>
-            </TouchableOpacity>
-
-            {/* Direct Social Shortcuts Row */}
-            <View style={styles.socialShortcutsRow}>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: '#E1306C' }]}
-                onPress={() => handleSocialDirectShare('instagram')}
-              >
-                <Ionicons name="logo-instagram" size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: '#FFFC00' }]}
-                onPress={() => handleSocialDirectShare('snapchat')}
-              >
-                <Ionicons name="logo-snapchat" size={18} color="#000000" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: '#25D366' }]}
-                onPress={() => handleSocialDirectShare('whatsapp')}
-              >
-                <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: '#1DA1F2' }]}
-                onPress={() => handleSocialDirectShare('twitter')}
-              >
-                <Ionicons name="logo-twitter" size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: '#0088cc' }]}
-                onPress={() => handleSocialDirectShare('telegram')}
-              >
-                <Ionicons name="paper-plane" size={18} color="#ffffff" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.socialIconBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
-                onPress={handleCopyLink}
-              >
-                <Ionicons name="copy-outline" size={18} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
+              {/* Direct Social Shortcuts Row */}
+              <View style={styles.socialShortcutsRow}>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: '#E1306C' }]}
+                  onPress={() => handleSocialDirectShare('instagram')}
+                >
+                  <Ionicons name="logo-instagram" size={16} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: '#FFFC00' }]}
+                  onPress={() => handleSocialDirectShare('snapchat')}
+                >
+                  <Ionicons name="logo-snapchat" size={16} color="#000000" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: '#25D366' }]}
+                  onPress={() => handleSocialDirectShare('whatsapp')}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: '#1DA1F2' }]}
+                  onPress={() => handleSocialDirectShare('twitter')}
+                >
+                  <Ionicons name="logo-twitter" size={16} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: '#0088cc' }]}
+                  onPress={() => handleSocialDirectShare('telegram')}
+                >
+                  <Ionicons name="paper-plane" size={16} color="#ffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.socialIconBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                  onPress={handleCopyLink}
+                >
+                  <Ionicons name="copy-outline" size={16} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </Animated.View>
         </View>
       </Modal>
@@ -1447,12 +1583,19 @@ const AuraScannerScreen = ({ navigation }) => {
         <Animated.View style={{ width: '100%', flexDirection: 'row', gap: 10, transform: [{ scale: buttonPulse }] }}>
           {/* Create Sticker & Share Button */}
           <TouchableOpacity
-            style={styles.stickerActionBtn}
+            style={styles.stickerActionBtnWrapper}
             activeOpacity={0.8}
             onPress={() => setShowStickerModal(true)}
           >
-            <Ionicons name="sparkles" size={16} color="#ffffff" style={{ marginRight: 6 }} />
-            <Text style={styles.stickerActionBtnText}>Aura Sticker ✨</Text>
+            <LinearGradient
+              colors={['#8b5cf6', '#6366f1', '#06b6d4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.stickerActionBtnGradient}
+            >
+              <Ionicons name="sparkles" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.stickerActionBtnText}>Aura Sticker ✨</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Continue Button */}
@@ -1522,8 +1665,8 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   scanFrame: {
-    width: 290,
-    height: 330,
+    width: 275,
+    height: 295,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -1535,9 +1678,9 @@ const styles = StyleSheet.create({
   },
   auraCircle: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    width: 230,
+    height: 230,
+    borderRadius: 115,
     backgroundColor: 'rgba(168, 85, 247, 0.07)', // Soft purple aura background
     borderWidth: 2,
     borderColor: 'rgba(59, 130, 246, 0.25)', // Soft blue border
@@ -1559,44 +1702,53 @@ const styles = StyleSheet.create({
   scannerLabel: {
     color: '#ffffff',
     fontStyle: 'italic',
-    fontSize: 12,
-    marginBottom: 10,
+    fontSize: 11,
+    marginBottom: 6,
     marginTop: 2,
     letterSpacing: 0.6,
     textAlign: 'center',
     maxWidth: '90%',
   },
   bottomContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    paddingTop: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 4,
     alignItems: 'center',
   },
-  stickerActionBtn: {
-    flex: 1.15,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#8b5cf6',
+  stickerActionBtnWrapper: {
+    flex: 1.2,
+    height: 46,
+    borderRadius: 23,
+    overflow: 'hidden',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  stickerActionBtnGradient: {
+    width: '100%',
+    height: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 10,
-    shadowColor: '#8b5cf6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
   },
   stickerActionBtnText: {
     color: '#ffffff',
     fontSize: 13,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   continueActionBtn: {
     flex: 1,
-    height: 48,
-    borderRadius: 24,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 1.5,
     borderColor: '#ffffff',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
@@ -1942,17 +2094,20 @@ const styles = StyleSheet.create({
   stickerModalContainer: {
     width: '100%',
     maxWidth: 380,
-    maxHeight: '90%',
+    maxHeight: '94%',
     backgroundColor: '#0a0a14',
-    borderRadius: 28,
+    borderRadius: 24,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 20,
+    padding: 14,
     shadowColor: '#a855f7',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 12,
+  },
+  modalScrollContent: {
+    paddingBottom: 8,
   },
   stickerModalHeader: {
     flexDirection: 'row',
@@ -1961,188 +2116,43 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   stickerModalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#ffffff',
     letterSpacing: 0.5,
   },
   closeIconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   stickerModalSubtitle: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#94a3b8',
-    marginBottom: 14,
-    lineHeight: 16,
-  },
-  stickerCardOuterBorder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 24,
-    padding: 5,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    shadowColor: '#a855f7',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 8,
-    marginBottom: 14,
-  },
-  stickerCardInnerContainer: {
-    borderRadius: 20,
-    backgroundColor: '#050516',
-    borderWidth: 1.5,
-    padding: 16,
-    alignItems: 'center',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  stickerCardTopBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 8,
-  },
-  stickerCardTopBadgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.2,
-  },
-  stickerHashtagsBanner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  stickerHashtagsText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 0.8,
-    textAlign: 'center',
-  },
-  stickerPortraitHalo: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
     marginBottom: 10,
-    position: 'relative',
-    backgroundColor: '#03030d',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 15,
-    elevation: 6,
-  },
-  stickerPortraitImg: {
-    width: '100%',
-    height: '100%',
-  },
-  stickerPortraitPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stickerSheenOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderTopLeftRadius: 40,
-  },
-  stickerCardTitle: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 1,
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  stickerCardArchetype: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  stickerStatsBox: {
-    width: '100%',
-    backgroundColor: 'rgba(3, 3, 14, 0.85)',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    alignItems: 'center',
-  },
-  stickerStatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  stickerStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  stickerStatValue: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  stickerStatLabel: {
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 9,
-    marginTop: 1,
-  },
-  stickerStatDividerVertical: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  stickerStatDividerHorizontal: {
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    marginVertical: 8,
-  },
-  stickerStageText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  stickerTokenText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 8,
-    marginTop: 2,
-    letterSpacing: 0.5,
+    lineHeight: 14,
   },
   themeSelectorLabel: {
     color: '#cbd5e1',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   themePillsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 14,
+    gap: 5,
+    marginBottom: 10,
   },
   themePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -2156,134 +2166,150 @@ const styles = StyleSheet.create({
   },
   themePillText: {
     color: '#ffffff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
   },
   storyButtonsRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
+    marginBottom: 6,
     width: '100%',
   },
   instagramStoryBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 14,
+    height: 36,
+    borderRadius: 12,
     backgroundColor: '#E1306C',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   snapchatStoryBtn: {
     flex: 1,
-    height: 42,
-    borderRadius: 14,
+    height: 36,
+    borderRadius: 12,
     backgroundColor: '#FFFC00',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
   storyBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   snapchatBtnText: {
     color: '#000000',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   primaryShareBtn: {
     backgroundColor: '#ffffff',
-    borderRadius: 14,
-    height: 44,
+    borderRadius: 12,
+    height: 38,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   primaryShareBtnText: {
     color: '#000000',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   secondaryDownloadBtn: {
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 14,
-    height: 40,
+    borderRadius: 12,
+    height: 34,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   secondaryDownloadBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   socialShortcutsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 8,
   },
   socialIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   aestheticStickerCardContainer: {
     width: '100%',
-    height: 480,
+    height: 330,
     backgroundColor: '#f6f5f1',
-    borderRadius: 30,
+    borderRadius: 24,
     position: 'relative',
     overflow: 'hidden',
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 20,
-    marginBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    marginBottom: 10,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowRadius: 12,
+    elevation: 6,
   },
   aestheticTopHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginTop: 6,
+    gap: 8,
+    marginTop: 2,
     zIndex: 2,
   },
   aestheticLogo: {
-    width: 60,
-    height: 60,
+    width: 36,
+    height: 36,
   },
   aestheticTitle: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: 'bold',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: '#1a1a1a',
   },
+  aestheticAuraBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 4,
+    zIndex: 2,
+  },
+  aestheticAuraBadgeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    letterSpacing: 0.5,
+  },
   aestheticPhotoFrameGradient: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    padding: 6,
-    marginTop: 25,
+    width: 125,
+    height: 125,
+    borderRadius: 62.5,
+    padding: 4,
+    marginTop: 12,
     backgroundColor: '#5d7f7d',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
-    shadowRadius: 15,
-    elevation: 6,
+    shadowRadius: 10,
+    elevation: 4,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -2291,8 +2317,8 @@ const styles = StyleSheet.create({
   aestheticPhotoFrameInner: {
     width: '100%',
     height: '100%',
-    borderRadius: 90,
-    borderWidth: 5,
+    borderRadius: 58,
+    borderWidth: 3,
     borderColor: '#ffffff',
     overflow: 'hidden',
     backgroundColor: '#e5e3dc',
@@ -2309,27 +2335,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aestheticNamePill: {
-    width: 190,
-    marginTop: 24,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderWidth: 2.5,
+    width: 140,
+    marginTop: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderWidth: 2,
     borderColor: '#6b8787',
-    borderRadius: 25,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#f6f5f1',
     zIndex: 2,
   },
   aestheticNameText: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: '#1a1a1a',
     textAlign: 'center',
   },
   aestheticNameInput: {
-    fontSize: 17,
+    fontSize: 13,
     fontWeight: '600',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     color: '#1a1a1a',
@@ -2340,38 +2366,73 @@ const styles = StyleSheet.create({
   },
   aestheticTagsContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 10,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
   },
   aestheticTagsText: {
-    fontSize: 14,
+    fontSize: 10,
     fontFamily: Platform.OS === 'ios' ? 'Arial' : 'sans-serif',
     color: '#222222',
     textAlign: 'center',
   },
+  photoControlsRow: {
+    width: '100%',
+    marginVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  photoControlLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#a78bfa',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  photoControlButtonsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  photoCtrlBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(192, 132, 252, 0.4)',
+  },
+  photoCtrlBtnText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
   aestheticLeftLine: {
     position: 'absolute',
-    width: 140,
-    height: 360,
-    top: 55,
-    left: -75,
-    borderLeftWidth: 4,
+    width: 100,
+    height: 240,
+    top: 40,
+    left: -50,
+    borderLeftWidth: 3,
     borderLeftColor: '#6c8a89',
-    borderRadius: 90,
+    borderRadius: 60,
     zIndex: 1,
   },
   aestheticRightLine: {
     position: 'absolute',
-    width: 140,
-    height: 360,
-    top: 55,
-    right: -75,
-    borderRightWidth: 4,
+    width: 100,
+    height: 240,
+    top: 40,
+    right: -50,
+    borderRightWidth: 3,
     borderRightColor: '#6c8a89',
-    borderRadius: 90,
+    borderRadius: 60,
     zIndex: 1,
   },
 });

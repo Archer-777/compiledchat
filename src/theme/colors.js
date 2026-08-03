@@ -59,15 +59,5 @@ export const Colors = {
   transparent: 'transparent',
   white: '#ffffff',
   black: '#000000',
-  
-  // Chat bubbles
-  aiBubble: 'rgba(0,212,255,0.15)',
-  aiBubbleBorder: 'rgba(0,212,255,0.3)',
-  userBubble: 'rgba(124,58,237,0.3)',
-  userBubbleBorder: 'rgba(124,58,237,0.5)',
-  
-  // Light chat
-  lightAiBubble: 'rgba(0,0,0,0.06)',
-  lightUserBubble: '#e8f4f8',
   streakBadge: 'rgba(0,180,216,0.2)',
 };
