@@ -9,6 +9,7 @@ import {
   StatusBar,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { FontAwesome, MaterialIcons, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -17,17 +18,9 @@ const SuperchargeScreen = ({ navigation }) => {
 
   const handleStartChat = () => {
     if (navigation && navigation.navigate) {
-      navigation.navigate('AIChatLight');
+      navigation.navigate('AuraScanner');
     } else {
-      Alert.alert('Navigation', 'Navigating to AIChatLight');
-    }
-  };
-
-  const handleExploreFeatures = () => {
-    if (navigation && navigation.navigate) {
-      navigation.navigate('Dashboard');
-    } else {
-      Alert.alert('Explore Features', 'Navigating to Dashboard');
+      Alert.alert('Aura Scanner', 'Navigating to Aura Scanner');
     }
   };
 
@@ -57,22 +50,20 @@ const SuperchargeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a1a" />
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Center: Golden Halo Ring with AI & Smile */}
-        <View style={styles.haloSection}>
-          <View style={styles.haloGlowOuter}>
-            <View style={styles.haloRing}>
-              <Text style={styles.aiText}>AI</Text>
-              {/* Smile Curve Arc */}
-              <View style={styles.smileContainer}>
-                <View style={styles.smileCurve} />
-              </View>
-            </View>
+        {/* Top Center: Official Logo Header */}
+        <View style={styles.logoSection}>
+          <View style={styles.logoGlowContainer}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
         </View>
 
@@ -94,7 +85,7 @@ const SuperchargeScreen = ({ navigation }) => {
           >
             <View style={styles.goldCircleContainer}>
               <View style={styles.goldCircle}>
-                <FontAwesome name="dollar" size={34} color="#d4a017" />
+                <FontAwesome name="dollar" size={32} color="#ffe57f" />
               </View>
             </View>
             <Text style={styles.circleLabel}>PASSIVE INCOME</Text>
@@ -109,7 +100,7 @@ const SuperchargeScreen = ({ navigation }) => {
           >
             <View style={styles.cyanCircleContainer}>
               <View style={styles.cyanCircle}>
-                <MaterialIcons name="file-download" size={38} color="#00d4ff" />
+                <MaterialIcons name="file-download" size={36} color="#00e5ff" />
               </View>
               {/* Green FREE Badge */}
               <View style={styles.freeBadge}>
@@ -135,13 +126,13 @@ const SuperchargeScreen = ({ navigation }) => {
               >
                 <View style={styles.featureIconBox}>
                   {item.iconFamily === 'MaterialCommunityIcons' && (
-                    <MaterialCommunityIcons name={item.icon} size={24} color="#00d4ff" />
+                    <MaterialCommunityIcons name={item.icon} size={22} color="#00e5ff" />
                   )}
                   {item.iconFamily === 'MaterialIcons' && (
-                    <MaterialIcons name={item.icon} size={24} color="#f0c040" />
+                    <MaterialIcons name={item.icon} size={22} color="#ffe57f" />
                   )}
                   {item.iconFamily === 'Ionicons' && (
-                    <Ionicons name={item.icon} size={24} color="#10b981" />
+                    <Ionicons name={item.icon} size={22} color="#10b981" />
                   )}
                 </View>
                 <View style={styles.featureTextContent}>
@@ -153,24 +144,58 @@ const SuperchargeScreen = ({ navigation }) => {
           })}
         </View>
 
-        {/* Bottom Actions */}
+        {/* Social Share Section */}
+        <View style={styles.socialShareCard}>
+          <View style={styles.socialShareHeaderRow}>
+            <Ionicons name="share-social" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+            <Text style={styles.socialShareTitle}>SHARE YOUR AURA SCORE</Text>
+          </View>
+          <Text style={styles.socialShareDesc}>
+            Broadcast your 98.4% Transcendent Aura Field directly to Instagram & Snapchat Stories!
+          </Text>
+
+          <View style={styles.socialShareButtonsRow}>
+            <TouchableOpacity
+              style={styles.instaShareBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (navigation && navigation.navigate) {
+                  navigation.navigate('AuraScanner');
+                } else {
+                  Alert.alert('Instagram Story', 'Navigating to Aura Scanner to generate Instagram Story');
+                }
+              }}
+            >
+              <Ionicons name="logo-instagram" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.instaShareBtnText}>Instagram Story</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.snapShareBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (navigation && navigation.navigate) {
+                  navigation.navigate('AuraScanner');
+                } else {
+                  Alert.alert('Snapchat Story', 'Navigating to Aura Scanner to generate Snapchat Story');
+                }
+              }}
+            >
+              <Ionicons name="logo-snapchat" size={18} color="#000000" style={{ marginRight: 6 }} />
+              <Text style={styles.snapShareBtnText}>Snapchat Story</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Bottom Primary Action Button */}
         <View style={styles.actionSection}>
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={handleStartChat}
             activeOpacity={0.85}
           >
-            <Ionicons name="chatbubbles-outline" size={20} color="#0a0a1a" style={styles.btnIcon} />
-            <Text style={styles.primaryButtonText}>Start Chat</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={handleExploreFeatures}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="compass-outline" size={20} color="#00d4ff" style={styles.btnIcon} />
-            <Text style={styles.secondaryButtonText}>Explore Features</Text>
+            <Ionicons name="sparkles" size={20} color="#000000" style={styles.btnIcon} />
+            <Text style={styles.primaryButtonText}>Start Supercharging</Text>
           </TouchableOpacity>
         </View>
 
@@ -188,7 +213,7 @@ const SuperchargeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a1a',
+    backgroundColor: '#000000',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   scrollContent: {
@@ -197,56 +222,29 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     alignItems: 'center',
   },
-  haloSection: {
+  logoSection: {
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
-  haloGlowOuter: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: 'rgba(212, 160, 23, 0.12)',
+  logoGlowContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(212, 160, 23, 0.3)',
-  },
-  haloRing: {
-    width: 106,
-    height: 106,
-    borderRadius: 53,
-    borderWidth: 3.5,
-    borderColor: '#d4a017',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#12121f',
-    shadowColor: '#d4a017',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#00e5ff',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 12,
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
     elevation: 8,
   },
-  aiText: {
-    color: '#ffffff',
-    fontSize: 34,
-    fontWeight: 'bold',
-    letterSpacing: 2,
-    marginTop: -4,
-  },
-  smileContainer: {
-    width: 36,
-    height: 14,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    marginTop: 2,
-  },
-  smileCurve: {
-    width: 30,
-    height: 12,
-    borderBottomWidth: 3,
-    borderColor: '#f0c040',
-    borderRadius: 15,
+  logoImage: {
+    width: 64,
+    height: 64,
   },
   headerTextContainer: {
     alignItems: 'center',
@@ -259,10 +257,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 8,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   subtitle: {
-    color: '#a0a0b0',
+    color: '#888888',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
@@ -285,15 +283,15 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 2.5,
-    borderColor: '#d4a017',
-    backgroundColor: '#1a1a2e',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 229, 127, 0.4)',
+    backgroundColor: 'rgba(255, 229, 127, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#d4a017',
+    shadowColor: '#ffe57f',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 5,
   },
   cyanCircleContainer: {
@@ -304,15 +302,15 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 2.5,
-    borderColor: '#00d4ff',
-    backgroundColor: '#1a1a2e',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 229, 255, 0.4)',
+    backgroundColor: 'rgba(0, 229, 255, 0.05)',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00d4ff',
+    shadowColor: '#00e5ff',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 5,
   },
   freeBadge: {
@@ -324,7 +322,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#0a0a1a',
+    borderColor: '#000000',
     elevation: 4,
   },
   freeBadgeText: {
@@ -360,25 +358,27 @@ const styles = StyleSheet.create({
   featureCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-    borderRadius: 14,
-    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#12121f',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   featureCardSelected: {
-    borderColor: '#00d4ff',
-    backgroundColor: '#12121f',
+    borderColor: '#00e5ff',
+    backgroundColor: 'rgba(0, 229, 255, 0.06)',
   },
   featureIconBox: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   featureTextContent: {
     flex: 1,
@@ -390,63 +390,110 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   featureDesc: {
-    color: '#a0a0b0',
+    color: '#888888',
     fontSize: 12,
     lineHeight: 16,
   },
   actionSection: {
     width: '100%',
-    gap: 12,
     marginBottom: 28,
   },
   primaryButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#ffffff',
     borderRadius: 28,
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00d4ff',
+    shadowColor: '#ffffff',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
     elevation: 6,
   },
   btnIcon: {
     marginRight: 8,
   },
   primaryButtonText: {
-    color: '#0a0a1a',
-    fontSize: 16,
+    color: '#000000',
+    fontSize: 15,
     fontWeight: 'bold',
-    letterSpacing: 0.3,
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderRadius: 28,
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: '#00d4ff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   footerContainer: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   footerText: {
-    color: '#6b7280',
+    color: '#555555',
     fontSize: 11,
     fontWeight: '500',
     letterSpacing: 1.1,
     textAlign: 'center',
+  },
+  socialShareCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  socialShareHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  socialShareTitle: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  socialShareDesc: {
+    color: '#aaaaaa',
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 14,
+  },
+  socialShareButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  instaShareBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#E1306C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  instaShareBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  snapShareBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFC00',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  snapShareBtnText: {
+    color: '#000000',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 });
 

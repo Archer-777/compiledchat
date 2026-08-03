@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar, Platform, View, StyleSheet } from 'react-native';
+import './src/styles/aurora.css';
 
 // Import kept screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -21,6 +22,31 @@ function MainNavigation() {
 }
 
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const fontId = 'poppins-google-font';
+      if (!document.getElementById(fontId)) {
+        const link = document.createElement('link');
+        link.id = fontId;
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap';
+        document.head.appendChild(link);
+      }
+
+      let style = document.getElementById('poppins-global-style');
+      if (!style) {
+        style = document.createElement('style');
+        style.id = 'poppins-global-style';
+        document.head.appendChild(style);
+      }
+      style.textContent = `
+        body, input, textarea, select, button, [dir] {
+          font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+      `;
+    }
+  }, []);
+
   const content = (
     <NavigationContainer>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a1a" />

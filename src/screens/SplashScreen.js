@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
     textAlign: 'center',
     ...Platform.select({
-      ios: { fontFamily: 'System' },
-      android: { fontFamily: 'sans-serif-light' },
-      web: { fontFamily: 'Outfit, sans-serif' },
+      ios: { fontFamily: 'Poppins' },
+      android: { fontFamily: 'Poppins' },
+      web: { fontFamily: 'Poppins, sans-serif' },
     }),
   },
   smileArcContainer: {

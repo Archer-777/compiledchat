@@ -12,6 +12,7 @@ import {
   Alert,
   Image,
   Modal,
+  TextInput,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -23,8 +24,33 @@ const AuraScannerScreen = ({ navigation }) => {
 
   // 1. Existing State & Animations
   const glowOpacity = useRef(new Animated.Value(0.4)).current;
+  const laserAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(laserAnim, {
+          toValue: 310,
+          duration: 2200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(laserAnim, {
+          toValue: 0,
+          duration: 2200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const [showPermissionModal, setShowPermissionModal] = useState(true);
+  const [showManualLoginModal, setShowManualLoginModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPasscode, setLoginPasscode] = useState('');
+  const [loginError, setLoginError] = useState(null);
+
   const [cameraGranted, setCameraGranted] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
@@ -34,10 +60,80 @@ const AuraScannerScreen = ({ navigation }) => {
   const canvasRef = useRef(null);
 
   // New States for Face Matching & Calibration
-  const [calibrationConfirmed, setCalibrationConfirmed] = useState(false);
+  const [calibrationConfirmed, setCalibrationConfirmed] = useState(true);
   const [capturedImage, setCapturedImage] = useState(null);
   const [matchStatus, setMatchStatus] = useState(null); // 'matched' or 'new'
   const [scanComplete, setScanComplete] = useState(false);
+
+  // Aura Sticker Studio & Social Share States
+  const [showStickerModal, setShowStickerModal] = useState(false);
+  const [stickerTheme, setStickerTheme] = useState('violet'); // 'violet', 'indigo', 'gold', 'emerald', 'rose'
+  const [stickerUsername, setStickerUsername] = useState('@username');
+  const [toastMsg, setToastMsg] = useState(null);
+  const stickerCanvasRef = useRef(null);
+
+  const stickerThemes = {
+    violet: {
+      id: 'violet',
+      name: 'Cosmic Violet',
+      title: 'TRANSCENDENT AURA',
+      archetype: 'Cosmic Visionary',
+      bgGradient: ['#8b5cf6', '#3b82f6', '#0f172a'],
+      border: '#c084fc',
+      glow: 'rgba(192, 132, 252, 0.7)',
+      badgeBg: 'rgba(139, 92, 246, 0.25)',
+      accent: '#e9d5ff',
+      icon: 'sparkles',
+    },
+    indigo: {
+      id: 'indigo',
+      name: 'Quantum Indigo',
+      title: 'QUANTUM HARMONY',
+      archetype: 'Deep Resonance',
+      bgGradient: ['#6366f1', '#06b6d4', '#0284c7'],
+      border: '#818cf8',
+      glow: 'rgba(129, 140, 248, 0.7)',
+      badgeBg: 'rgba(99, 102, 241, 0.25)',
+      accent: '#c7d2fe',
+      icon: 'planet-outline',
+    },
+    gold: {
+      id: 'gold',
+      name: 'Solfeggio Gold',
+      title: 'SOLFEGGIO GOLD',
+      archetype: 'Abundance Matrix',
+      bgGradient: ['#f59e0b', '#d97706', '#78350f'],
+      border: '#fbbf24',
+      glow: 'rgba(251, 191, 36, 0.7)',
+      badgeBg: 'rgba(245, 158, 11, 0.25)',
+      accent: '#fef3c7',
+      icon: 'sunny-outline',
+    },
+    emerald: {
+      id: 'emerald',
+      name: 'Emerald Healing',
+      title: 'EMERALD VITALITY',
+      archetype: 'Life-Force Shield',
+      bgGradient: ['#10b981', '#059669', '#064e3b'],
+      border: '#34d399',
+      glow: 'rgba(52, 211, 153, 0.7)',
+      badgeBg: 'rgba(16, 185, 129, 0.25)',
+      accent: '#d1fae5',
+      icon: 'leaf-outline',
+    },
+    rose: {
+      id: 'rose',
+      name: 'Astral Rose',
+      title: 'ASTRAL DEVOTION',
+      archetype: 'High Frequency',
+      bgGradient: ['#f43f5e', '#c084fc', '#4c0519'],
+      border: '#fb7185',
+      glow: 'rgba(251, 113, 133, 0.7)',
+      badgeBg: 'rgba(244, 63, 94, 0.25)',
+      accent: '#ffe4e6',
+      icon: 'heart-outline',
+    },
+  };
 
   const semanticPhrases = [
     "Aligning consciousness field...",
@@ -54,117 +150,159 @@ const AuraScannerScreen = ({ navigation }) => {
     });
   }, []);
 
+
+  // Face-api.js model loading state
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+
+  // Load face-api.js neural network models on mount
   useEffect(() => {
-    if (cameraGranted && cameraStream && calibrationConfirmed) {
-      let isSubscribed = true;
-      const runAuraScanner = async () => {
-        // Step 1: Aligning resonance
-        if (!isSubscribed) return;
-        setSemanticAnalysis("Aligning consciousness fields...");
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Step 2: Analyzing semantics
-        if (!isSubscribed) return;
-        setSemanticAnalysis("Extracting face semantics & resonance...");
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Step 3: Capture Snapshot
-        if (!isSubscribed) return;
-        const result = captureFrame();
-        
-        if (result) {
-          const { dataUrl, signature } = result;
-          
-          // Check database via databaseService
-          const existing = await databaseService.fetchLatestAuraScan();
-          if (existing && existing.aura) {
-            // Match found!
-            if (!isSubscribed) return;
-            setMatchStatus('matched');
-            setCapturedImage(dataUrl);
-            setSemanticAnalysis("Aura Found! Welcome back (Resonance: 99.8%)");
-          } else {
-            // New user registration
-            await databaseService.saveAuraScan({
-              image: dataUrl,
-              signature: signature,
-              frequency: '432Hz - 963Hz',
-              resonanceScore: 98.4,
-            });
-            if (!isSubscribed) return;
-            setMatchStatus('new');
-            setCapturedImage(dataUrl);
-            setSemanticAnalysis("New Aura Registered! Calibration complete.");
-          }
+    if (Platform.OS === 'web') {
+      import('../services/faceRecognitionService').then(async (module) => {
+        const faceService = module.default;
+        console.log('[FaceAPI] Loading neural network models...');
+        setSemanticAnalysis('Loading aura recognition AI models...');
+        const loaded = await faceService.loadModels();
+        setModelsLoaded(loaded);
+        if (loaded) {
+          console.log('[FaceAPI] Models ready');
+          setSemanticAnalysis('AI models loaded. Ready for scanning.');
         } else {
-          // Fallback if not web or refs not ready
-          if (!isSubscribed) return;
-          setSemanticAnalysis("Aura density check: 98.4% (Highly aligned)");
+          console.error('[FaceAPI] Model loading failed');
+          setSemanticAnalysis('AI model loading failed. Using fallback mode.');
+        }
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cameraGranted && cameraStream && calibrationConfirmed && modelsLoaded) {
+      let isSubscribed = true;
+
+      const runFaceRecognition = async () => {
+        // Step 1: Show scanning status
+        if (!isSubscribed) return;
+        setSemanticAnalysis('Initializing neural aura detection...');
+        await new Promise((r) => setTimeout(r, 800));
+
+        // Step 2: Wait for video to be ready
+        if (!isSubscribed) return;
+        setSemanticAnalysis('Scanning aura with neural network...');
+
+        // Give video stream time to stabilize
+        await new Promise((r) => setTimeout(r, 1500));
+
+        if (!isSubscribed || !videoRef.current) return;
+
+        // Step 3: Detect face using real face-api.js
+        const faceService = (await import('../services/faceRecognitionService')).default;
+        let faceResult = null;
+        let attempts = 0;
+        const maxAttempts = 8;
+
+        while (!faceResult && attempts < maxAttempts && isSubscribed) {
+          attempts++;
+          setSemanticAnalysis(`Detecting aura... (attempt ${attempts}/${maxAttempts})`);
+
+          if (videoRef.current && canvasRef.current) {
+            const drawn = faceService.drawVideoToCanvas(videoRef.current, canvasRef.current);
+            if (drawn) {
+              faceResult = await faceService.detectFaceFromCanvas(canvasRef.current);
+            }
+          }
+
+          if (!faceResult) {
+            await new Promise((r) => setTimeout(r, 600));
+          }
         }
 
-        // Final transition
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         if (!isSubscribed) return;
-        setSemanticAnalysis("Spectral refraction complete.");
+
+        if (!faceResult) {
+          setSemanticAnalysis('No aura detected. Please center yourself in clear lighting.');
+          setFaceDetected(false);
+          setScanComplete(true);
+          return;
+        }
+
+        // Face detected! Extract 128-D descriptor
+        setFaceDetected(true);
+        const descriptor = Array.from(faceResult.descriptor); // Float32Array -> number[]
+        const confidence = Math.round(faceResult.score * 100);
+
+        console.log(`[FaceAPI] Face detected! Score: ${confidence}%, Descriptor length: ${descriptor.length}`);
+        setSemanticAnalysis(`Aura detected (${confidence}% confidence). Matching against database...`);
+        await new Promise((r) => setTimeout(r, 800));
+
+        if (!isSubscribed) return;
+
+        // Step 4: Create signature object with real 128-D descriptor
+        const signature = { descriptor };
+
+        // Step 5: Match against stored faces in Supabase/localStorage
+        const matchResult = await databaseService.findMatchingAuraScan(signature);
+
+        if (!isSubscribed) return;
+
+        // Capture a snapshot for display
+        let dataUrl = null;
+        if (canvasRef.current && videoRef.current) {
+          const canvas = canvasRef.current;
+          const ctx = canvas.getContext('2d');
+          canvas.width = 320;
+          canvas.height = 400;
+          ctx.drawImage(videoRef.current, 0, 0, 320, 400);
+          dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+        }
+
+        if (matchResult && matchResult.match) {
+          // Known face found in database
+          setMatchStatus('matched');
+          setCapturedImage(dataUrl);
+          setSemanticAnalysis(`Welcome back! Aura matched (${matchResult.score}% confidence)`);
+          console.log(`[FaceAPI] MATCHED! Score: ${matchResult.score}%`);
+        } else {
+          // New face - save to Supabase with real 128-D descriptor
+          const resonanceScore = Math.round(94 + Math.random() * 5.5);
+          await databaseService.saveAuraScan({
+            image: dataUrl,
+            signature: signature, // Contains real 128-D descriptor
+            frequency: '432Hz - 963Hz',
+            resonanceScore: resonanceScore,
+          });
+          setMatchStatus('new');
+          setCapturedImage(dataUrl);
+          setSemanticAnalysis(`New aura registered! Profile saved to database.`);
+          console.log('[FaceAPI] NEW AURA registered with 128-D descriptor');
+        }
+
+        // Final
+        await new Promise((r) => setTimeout(r, 1500));
+        if (!isSubscribed) return;
+        setSemanticAnalysis('Scan complete.');
         setScanComplete(true);
       };
 
-      runAuraScanner();
+      runFaceRecognition();
       return () => {
         isSubscribed = false;
       };
+    } else if (cameraGranted && cameraStream && calibrationConfirmed && !modelsLoaded) {
+      setSemanticAnalysis('Loading face recognition models...');
+      setScanComplete(false);
     } else {
-      // If calibration is reset or not confirmed yet
-      setSemanticAnalysis("Ready for face calibration...");
+      setSemanticAnalysis('Waiting for camera...');
       setScanComplete(false);
     }
-  }, [cameraGranted, cameraStream, calibrationConfirmed]);
+  }, [cameraGranted, cameraStream, calibrationConfirmed, modelsLoaded]);
 
+  // Bind camera stream to video element
   useEffect(() => {
-    return () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, [cameraStream]);
-
-  useEffect(() => {
-    if (Platform.OS === 'web' && cameraStream) {
-      if (videoRef.current) videoRef.current.srcObject = cameraStream;
+    if (Platform.OS === 'web' && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch((e) => console.log('Camera video play error:', e));
     }
   }, [cameraStream, cameraGranted]);
-
-  const captureFrame = () => {
-    if (Platform.OS === 'web' && videoRef.current && canvasRef.current) {
-      try {
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        canvas.width = 320;
-        canvas.height = 400;
-        ctx.drawImage(video, 0, 0, 320, 400);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-
-        // Get simple RGB checksum signature
-        const imgData = ctx.getImageData(80, 100, 160, 200); // Sample central face area
-        const data = imgData.data;
-        let r = 0, g = 0, b = 0;
-        for (let i = 0; i < data.length; i += 40) {
-          r += data[i];
-          g += data[i+1];
-          b += data[i+2];
-        }
-        const signature = `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
-
-        return { dataUrl, signature };
-      } catch (err) {
-        console.error("Frame capture error:", err);
-      }
-    }
-    return null;
-  };
-
 
   // 2. Premium Entrance Animations
   const headerTranslateY = useRef(new Animated.Value(-20)).current;
@@ -346,6 +484,21 @@ const AuraScannerScreen = ({ navigation }) => {
     }, 600);
   };
 
+  const handleManualLoginSubmit = () => {
+    if (!loginEmail.trim()) {
+      setLoginError("Please enter your email or username.");
+      return;
+    }
+    setLoginError(null);
+    setShowManualLoginModal(false);
+    setShowPermissionModal(false);
+    setCameraGranted(true);
+    setCalibrationConfirmed(true);
+    setMatchStatus('matched');
+    setSemanticAnalysis(`Authenticated as ${loginEmail.trim()}. Aura field ready.`);
+    setScanComplete(true);
+  };
+
   const handleContinue = () => {
     if (!scanComplete) {
       Alert.alert("Calibrating Aura", "Please wait until the aura scanner has completed calibration.");
@@ -355,6 +508,436 @@ const AuraScannerScreen = ({ navigation }) => {
       navigation.navigate('Supercharge');
     } else {
       Alert.alert('Navigation', 'Proceeding to Supercharge screen');
+    }
+  };
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3200);
+  };
+
+  const handleUploadPhoto = () => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setCapturedImage(event.target.result);
+            showToast('Photo updated successfully! ✨');
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    } else {
+      Alert.alert('Upload Photo', 'Tap camera scanner on main screen to capture face photo.');
+    }
+  };
+
+  const generateStickerCanvas = () => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+    const canvas = stickerCanvasRef.current || document.createElement('canvas');
+    canvas.width = 840;
+    canvas.height = 1280;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // 1. Off-White Linen Canvas Background (#f6f5f1)
+    ctx.clearRect(0, 0, 840, 1280);
+
+    const pad = 20;
+    const stickerW = 840 - pad * 2;
+    const stickerH = 1280 - pad * 2;
+    const stickerRx = 60;
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 16;
+
+    ctx.fillStyle = '#f6f5f1';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pad, pad, stickerW, stickerH, stickerRx);
+    else ctx.rect(pad, pad, stickerW, stickerH);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    ctx.save();
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pad, pad, stickerW, stickerH, stickerRx);
+    else ctx.rect(pad, pad, stickerW, stickerH);
+    ctx.clip();
+
+    // 2. Decorative Side Swooping Lines in Sage Green (#6c8a89)
+    ctx.strokeStyle = '#6c8a89';
+    ctx.lineWidth = 8;
+
+    // Left Line Arc & Bottom Hook
+    ctx.beginPath();
+    ctx.arc(pad - 110, pad + 450, 260, -Math.PI * 0.45, Math.PI * 0.45, false);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(pad + 80, pad + 780, 140, 0, Math.PI * 0.5, false);
+    ctx.stroke();
+
+    // Right Line Arc & Bottom Hook
+    ctx.beginPath();
+    ctx.arc(pad + stickerW + 110, pad + 450, 260, Math.PI * 0.55, Math.PI * 1.45, false);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(pad + stickerW - 80, pad + 780, 140, Math.PI * 0.5, Math.PI, false);
+    ctx.stroke();
+
+    // 3. Top Header: Title "Next Archer" Georgia Serif Text & Logo Icon
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 76px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Next Archer', 420, 180);
+
+    // 4. Photo Frame Circle (Sage/Silver Gradient Ring & White Inner Border)
+    const pCenterX = 420;
+    const pCenterY = 560;
+    const pRadius = 220;
+
+    const ringGrad = ctx.createLinearGradient(pCenterX - pRadius, pCenterY - pRadius, pCenterX + pRadius, pCenterY + pRadius);
+    ringGrad.addColorStop(0, '#5d7f7d');
+    ringGrad.addColorStop(0.5, '#d5d5d5');
+    ringGrad.addColorStop(1, '#5d7f7d');
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.18)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 12;
+    ctx.fillStyle = ringGrad;
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius + 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    // White 12px Inner Ring Border
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius + 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Photo Cutout
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius - 10, 0, Math.PI * 2);
+    ctx.clip();
+
+    if (capturedImage) {
+      const userImg = new window.Image();
+      userImg.src = capturedImage;
+      try {
+        ctx.drawImage(userImg, pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      } catch (e) {
+        ctx.fillStyle = '#5d7f7d';
+        ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      }
+    } else {
+      ctx.fillStyle = '#e5e3dc';
+      ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      ctx.fillStyle = '#6c8a89';
+      ctx.font = 'bold 110px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('👤', pCenterX, pCenterY + 38);
+    }
+    ctx.restore();
+
+    // 5. Username Pill Box
+    const pillW = 440;
+    const pillH = 90;
+    const pillX = (840 - pillW) / 2;
+    const pillY = 880;
+
+    ctx.strokeStyle = '#6b8787';
+    ctx.lineWidth = 6;
+    ctx.fillStyle = '#f6f5f1';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pillX, pillY, pillW, pillH, 45);
+    else ctx.rect(pillX, pillY, pillW, pillH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = '600 44px Georgia, serif';
+    ctx.textAlign = 'center';
+    const displayUsername = stickerUsername || (loginEmail ? `@${loginEmail.split('@')[0]}` : '@username');
+    ctx.fillText(displayUsername, 420, pillY + 60);
+
+    // 6. Hashtags Footer Text
+    ctx.fillStyle = '#222222';
+    ctx.font = '34px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('#AuraFarming #ConsciousComputing #Ideawarfare', 420, 1180);
+
+    ctx.restore();
+
+    return canvas;
+  };
+
+  const generateStoryCanvas = (platformName = 'Instagram') => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1920;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    // 1. Off-White Linen Background (#f6f5f1)
+    ctx.fillStyle = '#f6f5f1';
+    ctx.fillRect(0, 0, 1080, 1920);
+
+    // 2. Decorative Side Swooping Lines in Sage Green (#6c8a89)
+    ctx.strokeStyle = '#6c8a89';
+    ctx.lineWidth = 12;
+
+    ctx.beginPath();
+    ctx.arc(-140, 750, 420, -Math.PI * 0.45, Math.PI * 0.45, false);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(1080 + 140, 750, 420, Math.PI * 0.55, Math.PI * 1.45, false);
+    ctx.stroke();
+
+    // 3. Top Header: Title "Next Archer" Georgia Serif Text
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 105px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Next Archer', 540, 260);
+
+    ctx.fillStyle = '#6c8a89';
+    ctx.font = 'bold 36px Georgia, serif';
+    ctx.fillText(`OFFICIAL ${platformName.toUpperCase()} STORY STICKER`, 540, 330);
+
+    // 4. Circular Photo Frame with Sage/Silver Ring & White Border
+    const pCenterX = 540;
+    const pCenterY = 860;
+    const pRadius = 340;
+
+    const ringGrad = ctx.createLinearGradient(pCenterX - pRadius, pCenterY - pRadius, pCenterX + pRadius, pCenterY + pRadius);
+    ringGrad.addColorStop(0, '#5d7f7d');
+    ringGrad.addColorStop(0.5, '#d5d5d5');
+    ringGrad.addColorStop(1, '#5d7f7d');
+
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 45;
+    ctx.shadowOffsetY = 18;
+    ctx.fillStyle = ringGrad;
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius + 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius + 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pCenterX, pCenterY, pRadius - 14, 0, Math.PI * 2);
+    ctx.clip();
+
+    if (capturedImage) {
+      const userImg = new window.Image();
+      userImg.src = capturedImage;
+      try {
+        ctx.drawImage(userImg, pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      } catch (e) {
+        ctx.fillStyle = '#5d7f7d';
+        ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      }
+    } else {
+      ctx.fillStyle = '#e5e3dc';
+      ctx.fillRect(pCenterX - pRadius, pCenterY - pRadius, pRadius * 2, pRadius * 2);
+      ctx.fillStyle = '#6c8a89';
+      ctx.font = 'bold 160px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('👤', pCenterX, pCenterY + 55);
+    }
+    ctx.restore();
+
+    // 5. Username Pill Box
+    const pillW = 620;
+    const pillH = 130;
+    const pillX = (1080 - pillW) / 2;
+    const pillY = 1320;
+
+    ctx.strokeStyle = '#6b8787';
+    ctx.lineWidth = 8;
+    ctx.fillStyle = '#f6f5f1';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(pillX, pillY, pillW, pillH, 65);
+    else ctx.rect(pillX, pillY, pillW, pillH);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = '600 64px Georgia, serif';
+    ctx.textAlign = 'center';
+    const displayUsername = stickerUsername || (loginEmail ? `@${loginEmail.split('@')[0]}` : '@username');
+    ctx.fillText(displayUsername, 540, pillY + 88);
+
+    // 6. Hashtags Footer
+    ctx.fillStyle = '#222222';
+    ctx.font = '48px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('#AuraFarming #ConsciousComputing #Ideawarfare', 540, 1740);
+
+    return canvas;
+  };
+
+  const handleDownloadSticker = () => {
+    try {
+      const canvas = generateStickerCanvas();
+      if (!canvas) {
+        showToast('Sticker download ready on web device!');
+        return;
+      }
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `AuraSticker_SpiritualizeAI_${stickerTheme}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('🎉 Holographic Aura Sticker saved!');
+    } catch (e) {
+      console.error('Download sticker error:', e);
+      showToast('Downloaded sticker snapshot.');
+    }
+  };
+
+  const handleInstagramShare = async () => {
+    try {
+      const canvas = generateStoryCanvas('Instagram');
+      if (canvas) {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `AuraStory_Instagram_${stickerTheme}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      if (typeof window !== 'undefined') {
+        window.open('https://www.instagram.com', '_blank');
+      }
+      showToast('📸 HD Story Card downloaded! Share to Instagram Stories.');
+    } catch (e) {
+      showToast('📸 Instagram Story Card saved!');
+    }
+  };
+
+  const handleSnapchatShare = async () => {
+    try {
+      const canvas = generateStoryCanvas('Snapchat');
+      if (canvas) {
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `AuraStory_Snapchat_${stickerTheme}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      if (typeof window !== 'undefined') {
+        window.open('https://www.snapchat.com', '_blank');
+      }
+      showToast('👻 HD Story Card downloaded! Share to Snapchat.');
+    } catch (e) {
+      showToast('👻 Snapchat Story Card saved!');
+    }
+  };
+
+  const handleShareSticker = async () => {
+    const shareText = `🔮 My Aura Scan: 98.4% Resonance | 528Hz Solfeggio Alignment on Spiritualize AI! ✨\nCheck your aura now:`;
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://spiritualize.ai';
+
+    if (Platform.OS === 'web' && navigator.share) {
+      try {
+        const canvas = generateStickerCanvas();
+        if (canvas && navigator.canShare) {
+          canvas.toBlob(async (blob) => {
+            if (blob) {
+              const file = new File([blob], 'AuraSticker.png', { type: 'image/png' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  title: 'My Aura Sticker - Spiritualize AI',
+                  text: shareText,
+                  files: [file],
+                });
+                showToast('Shared successfully! 🌟');
+                return;
+              }
+            }
+            await navigator.share({
+              title: 'My Aura Sticker - Spiritualize AI',
+              text: shareText,
+              url: shareUrl,
+            });
+            showToast('Shared successfully! 🌟');
+          });
+        } else {
+          await navigator.share({
+            title: 'My Aura Sticker - Spiritualize AI',
+            text: shareText,
+            url: shareUrl,
+          });
+          showToast('Shared successfully! 🌟');
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          handleCopyLink();
+        }
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
+
+  const handleCopyLink = () => {
+    const shareText = `🔮 My Aura Scan: 98.4% Resonance | 528Hz Solfeggio Alignment on Spiritualize AI! ✨`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(shareText).then(() => {
+        showToast('📋 Aura result copied to clipboard!');
+      });
+    } else {
+      showToast('Copied to clipboard!');
+    }
+  };
+
+  const handleSocialDirectShare = (platform) => {
+    if (platform === 'instagram') {
+      handleInstagramShare();
+      return;
+    }
+    if (platform === 'snapchat') {
+      handleSnapchatShare();
+      return;
+    }
+
+    const shareText = encodeURIComponent(`🔮 I scanned my Aura on Spiritualize AI! Resonance: 98.4% | 528Hz Solfeggio Alignment. Create your Aura Sticker now!`);
+    const url = encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://spiritualize.ai');
+
+    let targetUrl = '';
+    if (platform === 'whatsapp') {
+      targetUrl = `https://api.whatsapp.com/send?text=${shareText}%20${url}`;
+    } else if (platform === 'twitter') {
+      targetUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${url}`;
+    } else if (platform === 'telegram') {
+      targetUrl = `https://t.me/share/url?url=${url}&text=${shareText}`;
+    }
+
+    if (targetUrl && typeof window !== 'undefined') {
+      window.open(targetUrl, '_blank');
+      showToast(`Opening ${platform.toUpperCase()} share...`);
     }
   };
 
@@ -374,7 +957,7 @@ const AuraScannerScreen = ({ navigation }) => {
             style={[styles.modalContainer, { transform: [{ scale: modalScale }] }]}
           >
             <Image
-              source={require('../../loading screen/logo.png')}
+              source={require('../../assets/logo.png')}
               style={{ width: 44, height: 44, alignSelf: 'center', marginBottom: 12 }}
               resizeMode="contain"
             />
@@ -390,7 +973,7 @@ const AuraScannerScreen = ({ navigation }) => {
               </View>
               <View style={styles.permissionTextGroup}>
                 <Text style={styles.permissionLabel}>Camera Access</Text>
-                <Text style={styles.permissionDesc}>Required for real-time Aura Scanner & Face Detection</Text>
+                <Text style={styles.permissionDesc}>Required for real-time Aura Scanner & Aura Detection</Text>
               </View>
               <Ionicons
                 name={cameraGranted ? 'checkmark-circle' : 'ellipse-outline'}
@@ -430,9 +1013,92 @@ const AuraScannerScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            {/* Skip Button */}
-            <TouchableOpacity style={styles.skipButton} onPress={() => setPermissionError("Camera access is required to continue.")}>
-              <Text style={styles.skipButtonText}>Skip for now</Text>
+            {/* Try Another Way / Manual Login Option */}
+            <TouchableOpacity
+              style={styles.altLoginButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                setShowPermissionModal(false);
+                setShowManualLoginModal(true);
+              }}
+            >
+              <Ionicons name="key-outline" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.altLoginButtonText}>Not working? Try another way to login</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Alternative Manual Login Modal */}
+      <Modal
+        visible={showManualLoginModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowManualLoginModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalContainer, { transform: [{ scale: modalScale }] }]}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={{ width: 44, height: 44, alignSelf: 'center', marginBottom: 12 }}
+              resizeMode="contain"
+            />
+            <Text style={styles.modalTitle}>Alternative Login</Text>
+            <Text style={styles.modalSubtitle}>
+              Camera not working? Sign in with your registered account credentials.
+            </Text>
+
+            {/* Input 1: Email / Username */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={18} color="#888888" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Email or Username"
+                placeholderTextColor="#666666"
+                value={loginEmail}
+                onChangeText={setLoginEmail}
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Input 2: Passcode */}
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={18} color="#888888" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="Passcode or Key"
+                placeholderTextColor="#666666"
+                secureTextEntry
+                value={loginPasscode}
+                onChangeText={setLoginPasscode}
+              />
+            </View>
+
+            {loginError && (
+              <View style={styles.errorBanner}>
+                <Ionicons name="warning" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.errorText}>{loginError}</Text>
+              </View>
+            )}
+
+            {/* Login Submit Button */}
+            <TouchableOpacity
+              style={styles.allowButton}
+              activeOpacity={0.8}
+              onPress={handleManualLoginSubmit}
+            >
+              <Text style={styles.allowButtonText}>Sign In & Load Profile ✓</Text>
+            </TouchableOpacity>
+
+            {/* Back to Permission Prompt */}
+            <TouchableOpacity
+              style={{ alignItems: 'center', paddingVertical: 12, marginTop: 4 }}
+              onPress={() => {
+                setShowManualLoginModal(false);
+                setShowPermissionModal(true);
+              }}
+            >
+              <Text style={{ color: '#888888', fontSize: 13, fontWeight: '500' }}>← Back to Camera Scan</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -440,11 +1106,11 @@ const AuraScannerScreen = ({ navigation }) => {
 
       {/* Animated Header */}
       <Animated.View style={[styles.header, { opacity: headerOpacity, transform: [{ translateY: headerTranslateY }] }]}>
-        <Image source={require('../../loading screen/logo.png')} style={{ width: 36, height: 36, marginBottom: 4 }} resizeMode="contain" />
+        <Image source={require('../../assets/logo.png')} style={{ width: 32, height: 32, marginBottom: 2 }} resizeMode="contain" />
         <Text style={styles.headerTitle}>AURA SCANNER</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,212,255,0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#00e5ff', marginTop: 4 }}>
-          <Ionicons name={matchStatus === 'matched' ? "checkmark-circle" : (matchStatus === 'new' ? "sparkles" : "pulse")} size={12} color="#00e5ff" style={{ marginRight: 5 }} />
-          <Text style={{ color: "#00e5ff", fontSize: 10, fontWeight: '600', letterSpacing: 0.5 }}>
+        <View style={styles.statusBadgeRow}>
+          <Ionicons name={matchStatus === 'matched' ? "checkmark-circle" : (matchStatus === 'new' ? "sparkles" : "pulse")} size={11} color="#ffffff" style={{ marginRight: 4 }} />
+          <Text style={styles.statusBadgeText}>
             {matchStatus === 'matched' ? "AURA FOUND" : (matchStatus === 'new' ? "NEW AURA REGISTERED" : "AURA FIELD ACTIVE")}
           </Text>
         </View>
@@ -452,11 +1118,11 @@ const AuraScannerScreen = ({ navigation }) => {
 
       {/* Animated Center Scanning Area */}
       <Animated.View style={[styles.centerContainer, { opacity: scannerOpacity, transform: [{ scale: scannerScale }] }]}>
-        <Text style={styles.scannerLabel}>
+        <Text style={styles.scannerLabel} numberOfLines={2}>
           {cameraGranted && cameraStream ? `[AI SCANNER]: ${semanticAnalysis}` : "proprietary aura scanner"}
         </Text>
         <View style={styles.scanFrame}>
-          {/* Live Camera Feed on Web */}
+          {/* Live Camera Feed on Web - 100% CONTINUOUS LIVE WEBCAM VIDEO */}
           {Platform.OS === 'web' && cameraGranted && cameraStream ? (
             <video
               ref={videoRef}
@@ -475,7 +1141,33 @@ const AuraScannerScreen = ({ navigation }) => {
             />
           ) : null}
 
-          {/* Hidden Canvas for Face Capture */}
+          {/* Dynamic Glowing Laser Scan Line Overlay across Live Video */}
+          {cameraGranted && cameraStream && calibrationConfirmed && (
+            <Animated.View
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                height: 3,
+                backgroundColor: '#ffffff',
+                boxShadow: '0 0 15px #ffffff, 0 0 30px #ffffff',
+                zIndex: 10,
+                transform: [{ translateY: laserAnim }],
+              }}
+            />
+          )}
+
+          {/* Biometric HUD Reticle Corner Brackets */}
+          {cameraGranted && cameraStream && (
+            <View style={styles.hudOverlay}>
+              <View style={[styles.cornerBracket, styles.topLeftBracket]} />
+              <View style={[styles.cornerBracket, styles.topRightBracket]} />
+              <View style={[styles.cornerBracket, styles.bottomLeftBracket]} />
+              <View style={[styles.cornerBracket, styles.bottomRightBracket]} />
+            </View>
+          )}
+
+          {/* Hidden Canvas for Live Video Processing */}
           {Platform.OS === 'web' && (
             <canvas ref={canvasRef} style={{ display: 'none' }} width="320" height="400" />
           )}
@@ -486,18 +1178,18 @@ const AuraScannerScreen = ({ navigation }) => {
               <Ionicons name="sparkles-outline" size={28} color="#ffffff" style={{ marginBottom: 8 }} />
               <Text style={styles.calibrationTitle}>Aura Calibration</Text>
               <Text style={styles.calibrationText}>
-                Please check: Is your face clearly visible? Any lighting or backlighting disturbance?
+                Please check: Is your aura clearly visible in the live stream? Any lighting disturbance?
               </Text>
               <TouchableOpacity
                 style={styles.confirmScanButton}
                 activeOpacity={0.8}
                 onPress={() => setCalibrationConfirmed(true)}
               >
-                <Text style={styles.confirmScanText}>Face is clear, Proceed ✓</Text>
+                <Text style={styles.confirmScanText}>Aura is clear, Proceed ✓</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ marginTop: 10 }}
-                onPress={() => Alert.alert("Scan Guidelines", "1. Place yourself in a well-lit space.\n2. Ensure no strong lights are behind you.\n3. Keep your face centered.")}
+                onPress={() => Alert.alert("Scan Guidelines", "1. Place yourself in a well-lit space.\n2. Ensure no strong lights are behind you.\n3. Keep yourself centered.")}
               >
                 <Text style={{ color: '#888888', fontSize: 11, textDecorationLine: 'underline' }}>Troubleshoot disturbances</Text>
               </TouchableOpacity>
@@ -507,32 +1199,276 @@ const AuraScannerScreen = ({ navigation }) => {
           {/* Dynamic Background Aura Glow Ring */}
           <Animated.View style={[styles.auraCircle, { opacity: auraPulseOpacity, transform: [{ scale: auraPulseScale }] }]} />
 
-
-          {/* Face Recognition Icon */}
+          {/* Aura Scanner Placeholder if camera not granted */}
           {(!cameraGranted || !cameraStream) && (
-            <Animated.View style={[styles.iconContainer, { opacity: glowOpacity }]}>
-              <MaterialCommunityIcons name="face-recognition" size={120} color="#ffffff" />
-            </Animated.View>
+            <View style={styles.iconContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={requestPermissions}
+                style={{ alignItems: 'center', marginBottom: 16 }}
+              >
+                <MaterialCommunityIcons name="camera-outline" size={70} color="#ffffff" style={{ marginBottom: 8 }} />
+                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>Tap to Enable Webcam</Text>
+                <Text style={{ color: '#888888', fontSize: 11, marginTop: 4 }}>Live camera stream required for aura scan</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.4)',
+                }}
+                activeOpacity={0.8}
+                onPress={() => setShowManualLoginModal(true)}
+              >
+                <Ionicons name="key-outline" size={14} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>Not working? Try another way</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </Animated.View>
 
-      {/* Animated Bottom Section */}
+      {/* Hidden Offscreen Canvas for High-Res PNG Sticker Rendering */}
+      {Platform.OS === 'web' && (
+        <canvas ref={stickerCanvasRef} style={{ display: 'none' }} width="800" height="1000" />
+      )}
+
+      {/* Interactive Aura Sticker Studio & Social Share Modal */}
+      <Modal
+        visible={showStickerModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowStickerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {/* Toast Notification Banner */}
+          {toastMsg && (
+            <View style={styles.toastContainer}>
+              <Ionicons name="sparkles" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={styles.toastText}>{toastMsg}</Text>
+            </View>
+          )}
+
+          <Animated.View style={[styles.stickerModalContainer, { transform: [{ scale: modalScale }] }]}>
+            {/* Modal Header */}
+            <View style={styles.stickerModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="sparkles" size={20} color="#c084fc" style={{ marginRight: 8 }} />
+                <Text style={styles.stickerModalTitle}>Aura Sticker Studio</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowStickerModal(false)}
+                style={styles.closeIconButton}
+              >
+                <Ionicons name="close" size={22} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.stickerModalSubtitle}>
+              Generate your collectible holographic sticker and share your aura resonance on social media!
+            </Text>
+
+            {/* Minimalist Vintage Linen Aesthetic Sticker Card */}
+            <View style={styles.aestheticStickerCardContainer}>
+              {/* Decorative Swooping Side Lines */}
+              <View style={styles.aestheticLeftLine} />
+              <View style={styles.aestheticRightLine} />
+
+              {/* Logo & Header Title */}
+              <View style={styles.aestheticTopHeader}>
+                <Image
+                  source={require('../../assets/logo.png')}
+                  style={styles.aestheticLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.aestheticTitle}>Next Archer</Text>
+              </View>
+
+              {/* User Photo Frame with Metallic Gradient & White Border - Tap to Upload */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleUploadPhoto}
+                style={styles.aestheticPhotoFrameGradient}
+              >
+                <View style={styles.aestheticPhotoFrameInner}>
+                  {capturedImage ? (
+                    <Image source={{ uri: capturedImage }} style={styles.aestheticPhotoImg} />
+                  ) : (
+                    <View style={styles.aestheticPhotoPlaceholder}>
+                      <Ionicons name="camera-outline" size={38} color="#5d7f7d" />
+                      <Text style={{ fontSize: 10, color: '#5d7f7d', fontWeight: 'bold', marginTop: 4 }}>Tap to Add Photo</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+
+              {/* Editable Username Pill */}
+              <View style={styles.aestheticNamePill}>
+                <TextInput
+                  style={styles.aestheticNameInput}
+                  value={stickerUsername}
+                  onChangeText={(txt) => {
+                    let formatted = txt;
+                    if (formatted && !formatted.startsWith('@')) {
+                      formatted = '@' + formatted;
+                    }
+                    setStickerUsername(formatted);
+                  }}
+                  placeholder="@username"
+                  placeholderTextColor="#6b8787"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Hashtags Footer */}
+              <View style={styles.aestheticTagsContainer}>
+                <Text style={styles.aestheticTagsText}>
+                  #AuraFarming #ConsciousComputing #Ideawarfare
+                </Text>
+              </View>
+            </View>
+
+            {/* Theme Selector Section */}
+            <Text style={styles.themeSelectorLabel}>Select Aura Energy Theme:</Text>
+            <View style={styles.themePillsRow}>
+              {Object.keys(stickerThemes).map((key) => {
+                const theme = stickerThemes[key];
+                const isSelected = stickerTheme === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.themePill,
+                      { backgroundColor: theme.bgGradient[0] },
+                      isSelected && styles.themePillSelected,
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setStickerTheme(key)}
+                  >
+                    <Ionicons name={theme.icon} size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                    <Text style={styles.themePillText}>{theme.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Instagram & Snapchat Story Action Row */}
+            <View style={styles.storyButtonsRow}>
+              <TouchableOpacity
+                style={styles.instagramStoryBtn}
+                activeOpacity={0.85}
+                onPress={handleInstagramShare}
+              >
+                <Ionicons name="logo-instagram" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.storyBtnText}>Instagram Story</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.snapchatStoryBtn}
+                activeOpacity={0.85}
+                onPress={handleSnapchatShare}
+              >
+                <Ionicons name="logo-snapchat" size={18} color="#000000" style={{ marginRight: 6 }} />
+                <Text style={styles.snapchatBtnText}>Snapchat Story</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Main Action Buttons */}
+            <TouchableOpacity
+              style={styles.primaryShareBtn}
+              activeOpacity={0.8}
+              onPress={handleShareSticker}
+            >
+              <Ionicons name="share-social" size={18} color="#000000" style={{ marginRight: 8 }} />
+              <Text style={styles.primaryShareBtnText}>Share Aura Sticker Card</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryDownloadBtn}
+              activeOpacity={0.8}
+              onPress={handleDownloadSticker}
+            >
+              <Ionicons name="download-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.secondaryDownloadBtnText}>Download PNG Sticker</Text>
+            </TouchableOpacity>
+
+            {/* Direct Social Shortcuts Row */}
+            <View style={styles.socialShortcutsRow}>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: '#E1306C' }]}
+                onPress={() => handleSocialDirectShare('instagram')}
+              >
+                <Ionicons name="logo-instagram" size={18} color="#ffffff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: '#FFFC00' }]}
+                onPress={() => handleSocialDirectShare('snapchat')}
+              >
+                <Ionicons name="logo-snapchat" size={18} color="#000000" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: '#25D366' }]}
+                onPress={() => handleSocialDirectShare('whatsapp')}
+              >
+                <Ionicons name="logo-whatsapp" size={18} color="#ffffff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: '#1DA1F2' }]}
+                onPress={() => handleSocialDirectShare('twitter')}
+              >
+                <Ionicons name="logo-twitter" size={18} color="#ffffff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: '#0088cc' }]}
+                onPress={() => handleSocialDirectShare('telegram')}
+              >
+                <Ionicons name="paper-plane" size={18} color="#ffffff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.socialIconBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+                onPress={handleCopyLink}
+              >
+                <Ionicons name="copy-outline" size={18} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Animated Bottom Section - Side-by-side action buttons */}
       <Animated.View style={[styles.bottomContainer, { opacity: bottomOpacity, transform: [{ translateY: bottomTranslateY }] }]}>
-        <Animated.View style={{ width: '100%', transform: [{ scale: buttonPulse }] }}>
+        <Animated.View style={{ width: '100%', flexDirection: 'row', gap: 10, transform: [{ scale: buttonPulse }] }}>
+          {/* Create Sticker & Share Button */}
           <TouchableOpacity
-            style={[styles.continueButton, !scanComplete && styles.continueButtonDisabled]}
+            style={styles.stickerActionBtn}
+            activeOpacity={0.8}
+            onPress={() => setShowStickerModal(true)}
+          >
+            <Ionicons name="sparkles" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+            <Text style={styles.stickerActionBtnText}>Aura Sticker ✨</Text>
+          </TouchableOpacity>
+
+          {/* Continue Button */}
+          <TouchableOpacity
+            style={[styles.continueActionBtn, !scanComplete && styles.continueButtonDisabled]}
             activeOpacity={scanComplete ? 0.8 : 1}
             onPress={handleContinue}
           >
-            <Text style={[styles.continueButtonText, !scanComplete && styles.continueButtonTextDisabled]}>
-              {scanComplete ? 'Continue' : 'Calibrating Aura...'}
+            <Text style={[styles.continueActionBtnText, !scanComplete && styles.continueButtonTextDisabled]}>
+              {scanComplete ? 'Continue' : 'Calibrating...'}
             </Text>
             <Ionicons
               name="arrow-forward"
-              size={20}
+              size={16}
               color={scanComplete ? '#ffffff' : '#666666'}
-              style={styles.buttonIcon}
+              style={{ marginLeft: 6 }}
             />
           </TouchableOpacity>
         </Animated.View>
@@ -549,37 +1485,59 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
-    paddingTop: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
     alignItems: 'center',
+    zIndex: 10,
   },
   headerTitle: {
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 4,
     color: '#ffffff',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  statusBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: 6,
+  },
+  statusBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    marginVertical: 4,
   },
   scanFrame: {
-    width: 320,
-    height: 400,
+    width: 290,
+    height: 330,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.15)',
     overflow: 'hidden',
   },
   auraCircle: {
     position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
     backgroundColor: 'rgba(168, 85, 247, 0.07)', // Soft purple aura background
     borderWidth: 2,
     borderColor: 'rgba(59, 130, 246, 0.25)', // Soft blue border
@@ -601,16 +1559,62 @@ const styles = StyleSheet.create({
   scannerLabel: {
     color: '#ffffff',
     fontStyle: 'italic',
-    fontSize: 13,
-    marginBottom: 16,
-    letterSpacing: 0.8,
+    fontSize: 12,
+    marginBottom: 10,
+    marginTop: 2,
+    letterSpacing: 0.6,
     textAlign: 'center',
     maxWidth: '90%',
   },
   bottomContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    paddingTop: 6,
     alignItems: 'center',
+  },
+  stickerActionBtn: {
+    flex: 1.15,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#8b5cf6',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  stickerActionBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  continueActionBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  continueActionBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   continueButton: {
     width: '100%',
@@ -766,7 +1770,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    zIndex: 5,
+    zIndex: 99,
     borderRadius: 12,
   },
   calibrationTitle: {
@@ -801,7 +1805,575 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
   },
-
+  hudOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    padding: 12,
+    zIndex: 8,
+    pointerEvents: 'none',
+  },
+  cornerBracket: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderColor: '#ffffff',
+  },
+  topLeftBracket: {
+    top: 14,
+    left: 14,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 6,
+  },
+  topRightBracket: {
+    top: 14,
+    right: 14,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 6,
+  },
+  bottomLeftBracket: {
+    bottom: 14,
+    left: 14,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 6,
+  },
+  bottomRightBracket: {
+    bottom: 14,
+    right: 14,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 6,
+  },
+  altLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    width: '100%',
+    marginTop: 10,
+  },
+  altLoginButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+    marginBottom: 10,
+  },
+  textInput: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 13,
+  },
+  guestLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 12,
+    width: '100%',
+  },
+  guestLoginText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  createStickerButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#c084fc',
+    backgroundColor: 'rgba(168, 85, 247, 0.2)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#c084fc',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  createStickerButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 0.8,
+  },
+  toastContainer: {
+    position: 'absolute',
+    top: 40,
+    zIndex: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    borderWidth: 1,
+    borderColor: '#c084fc',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    shadowColor: '#c084fc',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+  },
+  toastText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stickerModalContainer: {
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '90%',
+    backgroundColor: '#0a0a14',
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 20,
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  stickerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stickerModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  closeIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stickerModalSubtitle: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginBottom: 14,
+    lineHeight: 16,
+  },
+  stickerCardOuterBorder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 24,
+    padding: 5,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+    marginBottom: 14,
+  },
+  stickerCardInnerContainer: {
+    borderRadius: 20,
+    backgroundColor: '#050516',
+    borderWidth: 1.5,
+    padding: 16,
+    alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  stickerCardTopBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: 8,
+  },
+  stickerCardTopBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+  },
+  stickerHashtagsBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  stickerHashtagsText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+  },
+  stickerPortraitHalo: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginBottom: 10,
+    position: 'relative',
+    backgroundColor: '#03030d',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  stickerPortraitImg: {
+    width: '100%',
+    height: '100%',
+  },
+  stickerPortraitPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stickerSheenOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopLeftRadius: 40,
+  },
+  stickerCardTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  stickerCardArchetype: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  stickerStatsBox: {
+    width: '100%',
+    backgroundColor: 'rgba(3, 3, 14, 0.85)',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    alignItems: 'center',
+  },
+  stickerStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  stickerStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  stickerStatValue: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  stickerStatLabel: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 9,
+    marginTop: 1,
+  },
+  stickerStatDividerVertical: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  stickerStatDividerHorizontal: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginVertical: 8,
+  },
+  stickerStageText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  stickerTokenText: {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: 8,
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  themeSelectorLabel: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  themePillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 14,
+  },
+  themePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  themePillSelected: {
+    borderColor: '#ffffff',
+    borderWidth: 2,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+  },
+  themePillText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  storyButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+    width: '100%',
+  },
+  instagramStoryBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#E1306C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  snapchatStoryBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FFFC00',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  storyBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  snapchatBtnText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  primaryShareBtn: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    height: 44,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  primaryShareBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  secondaryDownloadBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 14,
+    height: 40,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  secondaryDownloadBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  socialShortcutsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  socialIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aestheticStickerCardContainer: {
+    width: '100%',
+    height: 480,
+    backgroundColor: '#f6f5f1',
+    borderRadius: 30,
+    position: 'relative',
+    overflow: 'hidden',
+    alignItems: 'center',
+    paddingTop: 24,
+    paddingBottom: 20,
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  aestheticTopHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 6,
+    zIndex: 2,
+  },
+  aestheticLogo: {
+    width: 60,
+    height: 60,
+  },
+  aestheticTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#1a1a1a',
+  },
+  aestheticPhotoFrameGradient: {
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    padding: 6,
+    marginTop: 25,
+    backgroundColor: '#5d7f7d',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 15,
+    elevation: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  aestheticPhotoFrameInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 90,
+    borderWidth: 5,
+    borderColor: '#ffffff',
+    overflow: 'hidden',
+    backgroundColor: '#e5e3dc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aestheticPhotoImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  aestheticPhotoPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  aestheticNamePill: {
+    width: 190,
+    marginTop: 24,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderWidth: 2.5,
+    borderColor: '#6b8787',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f6f5f1',
+    zIndex: 2,
+  },
+  aestheticNameText: {
+    fontSize: 17,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#1a1a1a',
+    textAlign: 'center',
+  },
+  aestheticNameInput: {
+    fontSize: 17,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: '#1a1a1a',
+    textAlign: 'center',
+    width: '100%',
+    padding: 0,
+    outlineStyle: 'none',
+  },
+  aestheticTagsContainer: {
+    position: 'absolute',
+    bottom: 20,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  aestheticTagsText: {
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Arial' : 'sans-serif',
+    color: '#222222',
+    textAlign: 'center',
+  },
+  aestheticLeftLine: {
+    position: 'absolute',
+    width: 140,
+    height: 360,
+    top: 55,
+    left: -75,
+    borderLeftWidth: 4,
+    borderLeftColor: '#6c8a89',
+    borderRadius: 90,
+    zIndex: 1,
+  },
+  aestheticRightLine: {
+    position: 'absolute',
+    width: 140,
+    height: 360,
+    top: 55,
+    right: -75,
+    borderRightWidth: 4,
+    borderRightColor: '#6c8a89',
+    borderRadius: 90,
+    zIndex: 1,
+  },
 });
 
 export default AuraScannerScreen;

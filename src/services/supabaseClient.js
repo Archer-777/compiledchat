@@ -1,6 +1,21 @@
-import 'react-native-url-polyfill/auto.js';
 import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Polyfill URL safely if in native environment
+if (typeof window === 'undefined' || !window.URL) {
+  try {
+    require('react-native-url-polyfill/auto');
+  } catch (_) {}
+}
+
+const safeWebStorage = {
+  getItem: (key) => (typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(key) : null),
+  setItem: (key, val) => {
+    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.setItem(key, val);
+  },
+  removeItem: (key) => {
+    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(key);
+  },
+};
 
 // Live Supabase project credentials
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://qwmnyomlfchazapkohfy.supabase.co';
@@ -10,7 +25,7 @@ export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY &&
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: AsyncStorage,
+    storage: safeWebStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
