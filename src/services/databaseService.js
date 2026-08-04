@@ -389,6 +389,140 @@ export const databaseService = {
 
     return { source: 'default', tasks: defaultTasks };
   },
+
+  /**
+   * Save authorized social profile (Instagram / Snapchat) linked with Aura Scanner image to database
+   */
+  async saveAuthorizedUserProfile({ platform, userProfile }) {
+    // 1. Fetch latest Aura scan image
+    let auraImage = userProfile.auraImage || null;
+    if (!auraImage) {
+      try {
+        const latestAuraRes = await this.fetchLatestAuraScan();
+        if (latestAuraRes && latestAuraRes.aura && latestAuraRes.aura.image) {
+          auraImage = latestAuraRes.aura.image;
+        }
+      } catch (err) {
+        console.warn('Error fetching latest aura image:', err);
+      }
+    }
+
+    const recordPayload = {
+      id: `auth_${platform}_${Date.now()}`,
+      platform,
+      name: userProfile.name,
+      handle: userProfile.handle,
+      age: userProfile.age,
+      address: userProfile.address,
+      email: userProfile.email,
+      token: userProfile.token,
+      verified_date: userProfile.verifiedDate || new Date().toISOString(),
+      aura_image: auraImage,
+      created_at: new Date().toISOString(),
+    };
+
+    // 2. Cache locally in window.localStorage and safeStorage
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const storedStr = window.localStorage.getItem('spiritualize_authorized_profiles');
+        const stored = storedStr ? JSON.parse(storedStr) : {};
+        stored[platform] = recordPayload;
+        window.localStorage.setItem('spiritualize_authorized_profiles', JSON.stringify(stored));
+      }
+      await safeStorage.setItem('spiritualize_authorized_profiles', JSON.stringify(recordPayload));
+    } catch (e) {
+      console.warn('[DB] Local cache auth profile error:', e);
+    }
+
+    // 3. Save to Supabase `user_profiles` database table if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .upsert([{
+            platform: platform,
+            full_name: userProfile.name,
+            username: userProfile.handle,
+            age: userProfile.age,
+            address: userProfile.address,
+            email: userProfile.email,
+            access_token: userProfile.token,
+            aura_image_url: auraImage,
+            updated_at: new Date().toISOString(),
+          }])
+          .select();
+
+        if (!error && data && data.length > 0) {
+          console.log('[DB Supabase] Saved authorized user profile with Aura Scanner picture:', data[0]);
+          return { success: true, source: 'supabase', data: data[0], recordPayload };
+        }
+      } catch (err) {
+        console.warn('[DB Supabase] Save user_profiles error:', err);
+      }
+    }
+
+    return { success: true, source: 'local', data: recordPayload };
+  },
+
+  /**
+   * Fetch stored authorized social profiles along with linked Aura Scanner image
+   */
+  async fetchAuthorizedUserProfiles() {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .order('updated_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const res = {};
+          data.forEach(item => {
+            res[item.platform] = {
+              name: item.full_name,
+              handle: item.username,
+              age: item.age,
+              address: item.address,
+              email: item.email,
+              token: item.access_token,
+              verifiedDate: new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              auraImage: item.aura_image_url,
+            };
+          });
+          return res;
+        }
+      } catch (err) {
+        console.warn('[DB] Error fetching user_profiles from Supabase:', err);
+      }
+    }
+
+    // Fallback to local storage
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = window.localStorage.getItem('spiritualize_authorized_profiles');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const res = {};
+          Object.keys(parsed).forEach((k) => {
+            const item = parsed[k];
+            res[k] = {
+              name: item.name,
+              handle: item.handle,
+              age: item.age,
+              address: item.address,
+              email: item.email,
+              token: item.token,
+              verifiedDate: item.verified_date,
+              auraImage: item.aura_image,
+            };
+          });
+          return res;
+        }
+      }
+    } catch (e) {}
+
+    return null;
+  },
 };
 
 export default databaseService;

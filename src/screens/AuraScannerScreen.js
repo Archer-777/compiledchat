@@ -1356,14 +1356,6 @@ const AuraScannerScreen = ({ navigation }) => {
                   <Text style={styles.aestheticTitle}>Next Archer</Text>
                 </View>
 
-                {/* Aura Energy Pill Badge */}
-                <View style={[styles.aestheticAuraBadgePill, { backgroundColor: activeTheme.badgeBg, borderColor: activeTheme.border }]}>
-                  <Ionicons name={activeTheme.icon} size={10} color={activeTheme.primary} style={{ marginRight: 4 }} />
-                  <Text style={[styles.aestheticAuraBadgeText, { color: activeTheme.primary }]}>
-                    {activeTheme.name.toUpperCase()} • {activeTheme.title}
-                  </Text>
-                </View>
-
                 {/* User Photo Frame with Glowing Aura Halo & White Border */}
                 <TouchableOpacity
                   activeOpacity={0.85}

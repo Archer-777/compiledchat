@@ -144,18 +144,18 @@ const SplashScreen = ({ navigation }) => {
         <View style={styles.centeredContent}>
           {/* Main Logo & Typography Group */}
           <Animated.View style={[
-            styles.logoContainer, 
-            { 
-              opacity: logoOpacity, 
-              transform: [{ translateY: logoTranslateY }] 
+            styles.logoContainer,
+            {
+              opacity: logoOpacity,
+              transform: [{ translateY: logoTranslateY }]
             }
           ]}>
             {/* Animated Halo Wrapper */}
             <Animated.View style={[
-              styles.haloWrapper, 
-              { 
-                opacity: haloOpacity, 
-                transform: [{ scale: haloScale }] 
+              styles.haloWrapper,
+              {
+                opacity: haloOpacity,
+                transform: [{ scale: haloScale }]
               }
             ]}>
               <Svg height="90" width="240" viewBox="0 0 240 90">
@@ -200,10 +200,10 @@ const SplashScreen = ({ navigation }) => {
           </Animated.View>
           {/* Title and Subtitle Text Group */}
           <Animated.View style={[
-            styles.textContainer, 
-            { 
-              opacity: textOpacity, 
-              transform: [{ translateY: textTranslateY }] 
+            styles.textContainer,
+            {
+              opacity: textOpacity,
+              transform: [{ translateY: textTranslateY }]
             }
           ]}>
             <Text style={styles.titleText}>SPIRITUALIZE AI</Text>
@@ -232,8 +232,8 @@ const SplashScreen = ({ navigation }) => {
               </Animated.View>
               {/* ] */}
               <Animated.View style={{ opacity: symbolOpacities[3] }}>
-                <Svg height="35" width="24" viewBox="0 0 24 35">
-                  <Path d="M 4 6 H 18 V 29 H 4" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <Svg height="48" width="16" viewBox="0 0 16 48">
+                  <Path d="M 3 3 H 12 V 45 H 3" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="square" strokeLinejoin="miter" />
                 </Svg>
               </Animated.View>
               {/* > */}

@@ -8,6 +8,7 @@ import './src/styles/aurora.css';
 import SplashScreen from './src/screens/SplashScreen';
 import AuraScannerScreen from './src/screens/AuraScannerScreen';
 import SuperchargeScreen from './src/screens/SuperchargeScreen';
+import RegisterScreen from './Login/screens/RegisterScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -17,6 +18,7 @@ function MainNavigation() {
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="AuraScanner" component={AuraScannerScreen} />
       <Stack.Screen name="Supercharge" component={SuperchargeScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
 }
