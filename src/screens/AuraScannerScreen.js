@@ -57,7 +57,11 @@ const AuraScannerScreen = ({ navigation }) => {
   const [locationGranted, setLocationGranted] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [permissionError, setPermissionError] = useState(null);
-  const [semanticAnalysis, setSemanticAnalysis] = useState("Initializing resonance fields...");
+  const [analysisLogs, setAnalysisLogs] = useState(["Initializing quantum aura scanner..."]);
+  const setSemanticAnalysis = (msg) => {
+    if (msg) setAnalysisLogs((prev) => [...prev, msg]);
+  };
+  const semanticAnalysis = analysisLogs[analysisLogs.length - 1] || "Scanner active";
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -189,17 +193,15 @@ const AuraScannerScreen = ({ navigation }) => {
       let isSubscribed = true;
 
       const runFaceRecognition = async () => {
-        // Step 1: Show scanning status
+        // Step 1: Initial neural setup message
         if (!isSubscribed) return;
-        setSemanticAnalysis('Initializing neural aura detection...');
-        await new Promise((r) => setTimeout(r, 800));
+        setSemanticAnalysis('Initializing neural aura detection & frequency sensor...');
+        await new Promise((r) => setTimeout(r, 2200));
 
-        // Step 2: Wait for video to be ready
+        // Step 2: Scanning neural aura message
         if (!isSubscribed) return;
-        setSemanticAnalysis('Scanning aura with neural network...');
-
-        // Give video stream time to stabilize
-        await new Promise((r) => setTimeout(r, 1500));
+        setSemanticAnalysis('Scanning quantum aura energy field with neural network...');
+        await new Promise((r) => setTimeout(r, 2200));
 
         if (!isSubscribed || !videoRef.current) return;
 
@@ -211,7 +213,7 @@ const AuraScannerScreen = ({ navigation }) => {
 
         while (!faceResult && attempts < maxAttempts && isSubscribed) {
           attempts++;
-          setSemanticAnalysis(`Detecting aura... (attempt ${attempts}/${maxAttempts})`);
+          setSemanticAnalysis(`Analyzing aura frequency field... (step ${attempts}/${maxAttempts})`);
 
           if (videoRef.current && canvasRef.current) {
             const drawn = faceService.drawVideoToCanvas(videoRef.current, canvasRef.current);
@@ -221,7 +223,7 @@ const AuraScannerScreen = ({ navigation }) => {
           }
 
           if (!faceResult) {
-            await new Promise((r) => setTimeout(r, 600));
+            await new Promise((r) => setTimeout(r, 1200));
           }
         }
 
@@ -234,56 +236,78 @@ const AuraScannerScreen = ({ navigation }) => {
           return;
         }
 
-        // Face detected! Extract 128-D descriptor
+        // Face detected! Extract 128-D descriptor & Emotion analysis
         setFaceDetected(true);
         const descriptor = Array.from(faceResult.descriptor); // Float32Array -> number[]
         const confidence = Math.round(faceResult.score * 100);
+        const dominantEmotion = faceResult.dominantEmotion;
+        const emotionName = dominantEmotion ? dominantEmotion.expression.toUpperCase() : 'CALM';
 
-        console.log(`[FaceAPI] Face detected! Score: ${confidence}%, Descriptor length: ${descriptor.length}`);
-        setSemanticAnalysis(`Aura detected (${confidence}% confidence). Matching against database...`);
-        await new Promise((r) => setTimeout(r, 800));
+        setSemanticAnalysis(`Facial Emotion & Aura Detected: ${emotionName} (${confidence}% confidence)...`);
+        await new Promise((r) => setTimeout(r, 2400));
 
-        if (!isSubscribed) return;
+        // Step 4: Run Aura Prediction Engine based on emotion analysis & facial features
+        const { auraPredictionService } = await import('../services/auraPredictionService');
+        const auraPrediction = auraPredictionService.predictAura(faceResult);
 
-        // Step 4: Create signature object with real 128-D descriptor
-        const signature = { descriptor };
+        // Update selected theme to match predicted aura (Cosmic Violet, Quantum Indigo, Solfeggio Gold, etc.)
+        if (auraPrediction && auraPrediction.themeId && stickerThemes[auraPrediction.themeId]) {
+          setStickerTheme(auraPrediction.themeId);
+        }
+
+        setSemanticAnalysis(`Predicting Aura Archetype: ${auraPrediction.archetype} (${auraPrediction.frequency})...`);
+        await new Promise((r) => setTimeout(r, 2400));
+
+        // Create signature object with real 128-D descriptor, emotion analysis, and predicted aura metadata
+        const signature = {
+          descriptor,
+          emotion: dominantEmotion,
+          expressions: faceResult.expressions,
+          auraPrediction: auraPrediction,
+        };
 
         // Step 5: Match against stored faces in Supabase/localStorage
         const matchResult = await databaseService.findMatchingAuraScan(signature);
 
         if (!isSubscribed) return;
 
-        // Capture a snapshot for display
+        // Step 6: Capture snapshot with high-performance background removal & glowing cosmic aura compositing
         let dataUrl = null;
         if (canvasRef.current && videoRef.current) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext('2d');
-          canvas.width = 320;
-          canvas.height = 400;
-          ctx.drawImage(videoRef.current, 0, 0, 320, 400);
-          dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+          const currentTheme = stickerThemes[auraPrediction.themeId] || stickerThemes.violet;
+          dataUrl = faceService.removeBackgroundAndCompositeAura(
+            canvasRef.current,
+            videoRef.current,
+            faceResult,
+            currentTheme
+          );
         }
 
         if (matchResult && matchResult.match) {
           // Known face found in database
           setMatchStatus('matched');
           setCapturedImage(dataUrl);
-          setSemanticAnalysis(`Welcome back! Aura matched (${matchResult.score}% confidence)`);
-          console.log(`[FaceAPI] MATCHED! Score: ${matchResult.score}%`);
+          setSemanticAnalysis(`Aura Matched: ${auraPrediction.archetype} (${auraPrediction.frequency})`);
+          console.log(`[FaceAPI] MATCHED! Score: ${matchResult.score}%, Archetype: ${auraPrediction.archetype}`);
         } else {
-          // New face - save to Supabase with real 128-D descriptor
-          const resonanceScore = Math.round(94 + Math.random() * 5.5);
+          // New face - save to Supabase with real 128-D descriptor & predicted aura profile
           await databaseService.saveAuraScan({
             image: dataUrl,
-            signature: signature, // Contains real 128-D descriptor
-            frequency: '432Hz - 963Hz',
-            resonanceScore: resonanceScore,
+            signature: signature,
+            frequency: auraPrediction.frequency,
+            resonanceScore: auraPrediction.resonanceScore,
           });
           setMatchStatus('new');
           setCapturedImage(dataUrl);
-          setSemanticAnalysis(`New aura registered! Profile saved to database.`);
-          console.log('[FaceAPI] NEW AURA registered with 128-D descriptor');
+          setSemanticAnalysis(`Aura Profile Saved: ${auraPrediction.archetype} (${auraPrediction.resonanceScore}% Resonance)`);
+          console.log(`[FaceAPI] NEW AURA registered! Predicted theme: ${auraPrediction.themeId}, Score: ${auraPrediction.resonanceScore}%`);
         }
+
+        // Final holding display
+        await new Promise((r) => setTimeout(r, 2500));
+        if (!isSubscribed) return;
+        setSemanticAnalysis('Aura scanning complete. Alignment saved!');
+        setScanComplete(true);
 
         // Final
         await new Promise((r) => setTimeout(r, 1500));
@@ -1183,9 +1207,49 @@ const AuraScannerScreen = ({ navigation }) => {
 
       {/* Animated Center Scanning Area */}
       <Animated.View style={[styles.centerContainer, { opacity: scannerOpacity, transform: [{ scale: scannerScale }] }]}>
-        <Text style={styles.scannerLabel} numberOfLines={2}>
-          {cameraGranted && cameraStream ? `[AI SCANNER]: ${semanticAnalysis}` : "proprietary aura scanner"}
-        </Text>
+        {/* STACKED AI DIAGNOSTIC LOG CARD */}
+        {cameraGranted && cameraStream && (
+          <View style={{
+            width: '100%',
+            maxWidth: 340,
+            backgroundColor: 'rgba(10, 10, 20, 0.85)',
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: stickerThemes[stickerTheme]?.border || 'rgba(168, 85, 247, 0.5)',
+            padding: 8,
+            marginBottom: 8,
+            shadowColor: stickerThemes[stickerTheme]?.primary || '#a855f7',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.4,
+            shadowRadius: 10,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Ionicons name="terminal-outline" size={13} color={stickerThemes[stickerTheme]?.border || "#c084fc"} style={{ marginRight: 6 }} />
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#ffffff', letterSpacing: 0.8 }}>
+                AI QUANTUM DIAGNOSTIC LOG (STACKED)
+              </Text>
+            </View>
+            <View style={{ gap: 3 }}>
+              {analysisLogs.slice(-4).map((logItem, idx) => (
+                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 9, color: stickerThemes[stickerTheme]?.border || '#c084fc', marginRight: 5 }}>▶</Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: idx === Math.min(analysisLogs.length, 4) - 1 ? 'bold' : '500',
+                      color: idx === Math.min(analysisLogs.length, 4) - 1 ? '#ffffff' : '#a1a1aa',
+                      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                    }}
+                    numberOfLines={1}
+                  >
+                    {logItem}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         <View style={styles.scanFrame}>
           {/* Live Camera Feed on Web - 100% CONTINUOUS LIVE WEBCAM VIDEO */}
           {Platform.OS === 'web' && cameraGranted && cameraStream ? (
@@ -1205,6 +1269,41 @@ const AuraScannerScreen = ({ navigation }) => {
               }}
             />
           ) : null}
+
+          {/* Captured Snapshot with Complete Background Removal & Bold Cosmic Aura Colors */}
+          {capturedImage && (
+            <Image
+              source={{ uri: capturedImage }}
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                borderRadius: 12,
+                resizeMode: 'cover',
+                zIndex: 15,
+              }}
+            />
+          )}
+
+          {/* BOLD & VIBRANT GLOWING AURA COLOR FIELD OVERLAY ON LIVE STREAM */}
+          {cameraGranted && cameraStream && !capturedImage && (
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 12,
+                background: `radial-gradient(ellipse at center, ${stickerThemes[stickerTheme]?.glow || 'rgba(192, 132, 252, 0.85)'} 0%, ${stickerThemes[stickerTheme]?.primary || '#8b5cf6'}77 45%, transparent 75%)`,
+                pointerEvents: 'none',
+                zIndex: 2,
+                borderWidth: 3,
+                borderColor: stickerThemes[stickerTheme]?.border || '#c084fc',
+                boxShadow: `inset 0 0 40px ${stickerThemes[stickerTheme]?.primary || '#8b5cf6'}, 0 0 30px ${stickerThemes[stickerTheme]?.border || '#c084fc'}`,
+              }}
+            />
+          )}
 
           {/* Dynamic Glowing Laser Scan Line Overlay across Live Video */}
           {cameraGranted && cameraStream && calibrationConfirmed && (
