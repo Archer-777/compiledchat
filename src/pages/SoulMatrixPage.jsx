@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import MyWorldSliders from '@/components/features/anish/MyWorldSliders';
 import DashboardMetrics from '@/components/features/anish/DashboardMetrics';
 import { FALLBACK_SOUL_MATRIX_PROFILE } from '@/data/soulMatrixData';
+import { getUserData } from '@/utils/storage';
 
 export default function SoulMatrixPage() {
   const navigate = useNavigate();
   const profile = FALLBACK_SOUL_MATRIX_PROFILE;
+  const [userName, setUserName] = useState(profile.user_name);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const data = await getUserData();
+      if (data) {
+        const name = data.firstName || data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null);
+        if (name) setUserName(name);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <AmbientBackground>
@@ -23,7 +36,7 @@ export default function SoulMatrixPage() {
             <div className="lg:col-span-7 flex flex-col gap-6">
               <div className="bg-[#0D0A21]/80 backdrop-blur-2xl p-6 lg:p-8 rounded-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_30px_rgba(147,51,234,0.15)]">
                 <DashboardHeader
-                  userName={profile.user_name}
+                  userName={userName}
                   maslowLevels={profile.maslow_levels}
                   chakras={profile.chakras}
                   onBack={() => navigate(-1)}

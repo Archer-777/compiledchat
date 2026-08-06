@@ -25,6 +25,7 @@ import databaseService from '@/services/databaseService';
 import auraPredictionService from '@/services/auraPredictionService';
 import { sendResendPasswordResetEmail, validateOTP } from '@/utils/otp';
 import { resetUserPassword } from '@/utils/storage';
+import { supabase, isSupabaseConfigured } from '@/services/supabaseClient';
 import './AuraScannerPage.css';
 
 const stickerThemes = {
@@ -340,18 +341,64 @@ export default function AuraScannerPage() {
     setShowPermissionModal(false);
   };
 
-  const handleManualLoginSubmit = () => {
-    if (!loginEmail.trim()) {
-      setLoginError("Please enter your email or username.");
+  const handleManualLoginSubmit = async () => {
+    const enteredEmail = loginEmail.toLowerCase().trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // 1. Strict Email Format Validation
+    if (!enteredEmail || !emailRegex.test(enteredEmail)) {
+      setLoginError("Please enter a valid email address");
       return;
     }
+
     setLoginError(null);
+
+    // 2. Supabase User Profile Lookup
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('email', enteredEmail)
+          .single();
+
+        if (!error && data) {
+          const userObj = {
+            firstName: data.first_name || (data.full_name ? data.full_name.split(' ')[0] : ''),
+            lastName: data.last_name || (data.full_name ? data.full_name.split(' ').slice(1).join(' ') : ''),
+            fullName: data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+            email: data.email,
+            phone: data.phone || '',
+            age: data.age ? String(data.age) : '',
+            gender: data.gender || '',
+            profession: data.profession || '',
+            registeredAt: data.registered_at || data.updated_at
+          };
+
+          // Overwrite localStorage with active session data
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('@spiritual_register_user', JSON.stringify(userObj));
+          }
+
+          setShowManualLoginModal(false);
+          setShowPermissionModal(false);
+          setCameraGranted(true);
+          setMatchStatus('matched');
+          setSemanticAnalysis(`Authenticated as ${userObj.firstName || enteredEmail}. Aura active.`);
+          setScanComplete(true);
+          return;
+        }
+      } catch (err) {
+        console.warn('Supabase profile lookup error:', err);
+      }
+    }
+
+    // 3. If no profile matches the email, smoothly redirect to Registration form
+    showToast('No existing profile found. Redirecting to sign up...');
     setShowManualLoginModal(false);
-    setShowPermissionModal(false);
-    setCameraGranted(true);
-    setMatchStatus('matched');
-    setSemanticAnalysis(`Authenticated as ${loginEmail.trim()}. Aura active.`);
-    setScanComplete(true);
+    setTimeout(() => {
+      navigate('/register');
+    }, 1000);
   };
 
   const handleContinue = () => {
@@ -542,8 +589,8 @@ export default function AuraScannerPage() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <input
-                    type="text"
-                    placeholder="Email or Username"
+                    type="email"
+                    placeholder="Enter your email address"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     style={{

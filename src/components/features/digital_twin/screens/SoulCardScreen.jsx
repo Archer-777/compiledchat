@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { ShieldCheck, Share2, Sparkles, RefreshCw, Cpu, Activity, CheckCircle2, ArrowRight } from 'lucide-react';
+import { getUserData } from '@/utils/storage';
 
 export default function SoulCardScreen({
   twinName,
@@ -49,6 +50,16 @@ export default function SoulCardScreen({
     }
   }, []);
 
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const data = await getUserData();
+      if (data) setUserData(data);
+    };
+    fetchUser();
+  }, []);
+
   const getFilterClass = () => {
     switch (filterMode) {
       case 'dramatic': return 'filter-bw-dramatic';
@@ -58,8 +69,13 @@ export default function SoulCardScreen({
     }
   };
 
-  const displayName = twinName.trim() || 'My Digital Twin';
-  const displayInitials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DT';
+  const displayName = (twinName && twinName.trim()) 
+    || userData?.fullName 
+    || (userData?.firstName && userData?.lastName ? `${userData.firstName} ${userData.lastName}` : null)
+    || userData?.firstName 
+    || 'My Digital Twin';
+
+  const displayInitials = displayName.split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DT';
 
   const handleShare = () => {
     playHaptic();
@@ -207,7 +223,7 @@ export default function SoulCardScreen({
           }}
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          <span>Proceed to Soul Matrix</span>
+          <span>Synthesize & View Soul Card</span>
           <ArrowRight className="w-4 h-4" />
         </button>
 

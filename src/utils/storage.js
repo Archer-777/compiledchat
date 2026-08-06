@@ -6,6 +6,7 @@ export const saveUserData = async (data) => {
   const registeredAt = new Date().toISOString();
   const payload = {
     ...data,
+    fullName: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
     registeredAt,
   };
 
@@ -13,10 +14,11 @@ export const saveUserData = async (data) => {
   let supabaseSuccess = false;
   let supabaseError = null;
 
-  // 1. Save to Web localStorage
+  // 1. Explicitly clear previous session cache before setting new user object
   try {
-    const jsonValue = JSON.stringify(payload);
     if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(USER_DATA_KEY);
+      const jsonValue = JSON.stringify(payload);
       window.localStorage.setItem(USER_DATA_KEY, jsonValue);
     }
     localSuccess = true;
@@ -77,20 +79,37 @@ export const saveUserData = async (data) => {
 };
 
 export const getUserData = async () => {
-  // 1. Primary: Fetch latest registered user profile from Supabase Database
+  let activeEmail = '';
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const webVal = window.localStorage.getItem(USER_DATA_KEY);
+      if (webVal != null) {
+        const parsed = JSON.parse(webVal);
+        activeEmail = parsed.email || '';
+      }
+    }
+  } catch (error) {
+    console.error('Error reading local user data:', error);
+  }
+
+  // 1. Primary: Fetch active registered user profile from Supabase Database
   if (isSupabaseConfigured) {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('registered_at', { ascending: false })
-        .limit(1);
+      let query = supabase.from('user_profiles').select('*');
+      if (activeEmail) {
+        query = query.eq('email', activeEmail);
+      } else {
+        query = query.order('registered_at', { ascending: false }).limit(1);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
         const row = data[0];
         const userObj = {
           firstName: row.first_name || (row.full_name ? row.full_name.split(' ')[0] : ''),
           lastName: row.last_name || (row.full_name ? row.full_name.split(' ').slice(1).join(' ') : ''),
+          fullName: row.full_name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
           age: row.age ? String(row.age) : '',
           gender: row.gender || '',
           profession: row.profession || '',
@@ -101,7 +120,7 @@ export const getUserData = async () => {
           emailVerified: Boolean(row.email_verified),
           registeredAt: row.registered_at || row.updated_at,
         };
-        // Sync to localStorage
+        // Sync active user to localStorage
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem(USER_DATA_KEY, JSON.stringify(userObj));

@@ -109,6 +109,7 @@ const HAPPY_PATTERNS = [
 const AIChatDarkScreen = ({ navigation, route }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTenMinModal, setShowTenMinModal] = useState(false);
+  const [userProfileName, setUserProfileName] = useState('Archer');
   const [selectedModel, setSelectedModel] = useState('spiritualize'); // 'spiritualize' | 'twin'
   const [showModelDropdown, setShowModelDropdown] = useState(false);
 
@@ -124,6 +125,75 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     }, 1000); // REAL TIME: 1 second interval (600s = 10 Minutes)
     return () => clearInterval(timer);
   }, [navigation]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLatestAccount = async () => {
+      // 1. PRIORITY 1: Read URL search parameter (?firstName=...) passed from Main App (Port 3000 -> Port 8081)
+      try {
+        if (typeof window !== 'undefined' && window.location) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const nameFromUrl = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
+          if (nameFromUrl && isMounted) {
+            const cleanName = nameFromUrl.trim();
+            setUserProfileName(cleanName);
+            try {
+              window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanName }));
+            } catch (e) {}
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // 2. PRIORITY 2: Query Supabase DB directly for the latest registered user profile
+      try {
+        const endpoint = 'https://qwmnyomlfchazapkohfy.supabase.co/rest/v1/user_profiles?select=first_name,full_name,email,registered_at&order=registered_at.desc&limit=1';
+        const res = await fetch(endpoint, {
+          headers: {
+            'apikey': 'sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv',
+            'Authorization': 'Bearer sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv',
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0 && isMounted) {
+            const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
+            if (dbName) {
+              const cleanDbName = dbName.trim();
+              setUserProfileName(cleanDbName);
+              try {
+                window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanDbName, email: data[0].email }));
+              } catch (e) {}
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase DB fetch error in ChatScreen:', err);
+      }
+
+      // 3. PRIORITY 3: Fallback to Port 8081 Local Cache
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = window.localStorage.getItem('@spiritual_register_user');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const localName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+            if (localName && isMounted) {
+              setUserProfileName(localName.trim());
+            }
+          }
+        }
+      } catch (e) {}
+    };
+
+    fetchLatestAccount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -234,8 +304,6 @@ const AIChatDarkScreen = ({ navigation, route }) => {
 
 
   const [inputText, setInputText] = useState('');
-  const [selectedModel, setSelectedModel] = useState('Spiritualize AI');
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [messages, setMessages] = useState([
     { id: '1', sender: 'ai', text: 'Hello! How are you today?' },
     { id: '2', sender: 'user', text: 'Hi' },
