@@ -44,7 +44,7 @@ export default function GlobalNavbar() {
     if (item.path === '/chat') {
       const firstName = userData?.firstName || (userData?.full_name ? userData.full_name.split(' ')[0] : '');
       const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
-      window.location.href = `http://localhost:8081${query}`;
+      window.location.href = `https://compiledchat.vercel.app/${query}`;
     } else {
       navigate(item.path);
     }
