@@ -1,0 +1,203 @@
+/* ---------------------------------------------------------------------
+   Next Archer — ambient chat background
+   Import once globally (e.g. App.js, globals.css, or root layout).
+   All motion uses transform/opacity only — cheap on mobile GPUs, no
+   layout thrash, and respects prefers-reduced-motion.
+--------------------------------------------------------------------- */
+
+.chat-bg {
+  transition: background 1000ms ease-in-out, background-color 1000ms ease-in-out;
+  background-size: 200% 200%;
+}
+
+/* Day 06:00–16:59 — soft ambient daylight, kept dark-app-friendly (Next
+   Archer's base UI is near-black), so this leans muted dawn/haze rather
+   than a bright white app background. */
+.chat-bg--day {
+  background-image: radial-gradient(120% 120% at 20% 0%, #2b2f45 0%, #14151f 55%, #0a0a0f 100%);
+}
+
+/* Evening 17:00–19:59 — dusk purple / warm twilight */
+.chat-bg--evening {
+  background-image: radial-gradient(120% 120% at 80% 0%, #3d1f52 0%, #23163f 45%, #0d0912 100%);
+}
+
+/* Night 20:00–05:59 — midnight blue / obsidian / cosmic */
+.chat-bg--night {
+  background-image: radial-gradient(130% 130% at 50% -10%, #10142b 0%, #0a0a12 50%, #050507 100%);
+}
+
+/* -------------------- Aurora blobs -------------------- */
+
+.aurora-blob {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 620px;
+  max-height: 620px;
+  border-radius: 9999px;
+  filter: blur(80px) saturate(130%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  animation: aurora-drift 22s ease-in-out infinite alternate;
+}
+
+.aurora-blob--violet {
+  background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.55), transparent 70%);
+  animation-duration: 26s;
+}
+
+.aurora-blob--indigo {
+  background: radial-gradient(circle at 60% 40%, rgba(79, 70, 229, 0.5), transparent 70%);
+  animation-duration: 30s;
+  animation-delay: -6s;
+}
+
+.aurora-blob--gold {
+  background: radial-gradient(circle at 50% 50%, rgba(212, 175, 90, 0.28), transparent 70%);
+  animation-duration: 34s;
+  animation-delay: -12s;
+}
+
+.aurora-blob--teal {
+  background: radial-gradient(circle at 40% 60%, rgba(45, 212, 191, 0.3), transparent 70%);
+  animation-duration: 28s;
+  animation-delay: -3s;
+}
+
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -6%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-5%, 4%, 0) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob {
+    animation: none;
+  }
+  .chat-bg {
+    transition: none;
+  }
+}
+
+/* -------------------- Glassmorphism & Layout Utility Fallbacks -------------------- */
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.pointer-events-none { pointer-events: none; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.min-h-full { min-height: 100%; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.h-screen { height: 100vh; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.opacity-0 { opacity: 0; }
+.opacity-100 { opacity: 1; }
+.transition-opacity { transition: opacity 1500ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.bg-black\/20 { background-color: rgba(0, 0, 0, 0.2); }
+.bg-black\/30 { background-color: rgba(0, 0, 0, 0.3); }
+.bg-white\/10 { background-color: rgba(255, 255, 255, 0.1); }
+.bg-violet-500\/30 { background-color: rgba(139, 92, 246, 0.3); }
+
+.border-b { border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+.border-t { border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
+
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.rounded-2xl { border-radius: 1rem; }
+.rounded-full { border-radius: 9999px; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.font-medium { font-weight: 500; }
+.text-white { color: #ffffff; }
+.text-white\/90 { color: rgba(255, 255, 255, 0.9); }
+.placeholder-white\/40::placeholder { color: rgba(255, 255, 255, 0.4); }
+.outline-none { outline: 2px solid transparent; outline-offset: 2px; }
+.ml-auto { margin-left: auto; }
+.max-w-\[80\%\] { max-width: 80%; }
+
+:root {
+  --sky-deep: oklch(0.11 0.03 268);
+  --sky-mid: oklch(0.19 0.05 258);
+  --sky-haze: oklch(0.12 0.03 262 / 55%);
+  --aurora-green: oklch(0.85 0.22 152);
+  --aurora-teal: oklch(0.8 0.15 195);
+  --aurora-violet: oklch(0.62 0.2 295);
+  --aurora-lime: oklch(0.92 0.21 128);
+  --gradient-sky: linear-gradient(
+    180deg,
+    oklch(0.1 0.03 268) 0%,
+    var(--sky-mid) 45%,
+    oklch(0.15 0.04 230) 78%,
+    oklch(0.09 0.02 240) 100%
+  );
+  --shadow-glow: 0 0 40px -8px color-mix(in oklab, var(--aurora-green) 45%, transparent);
+}
+
+.sky-gradient {
+  background-image: var(--gradient-sky);
+}
+
+.glow-ring {
+  box-shadow: var(--shadow-glow);
+}
+
+.aurora-curtain {
+  mix-blend-mode: screen;
+  transform-origin: 50% 0%;
+  will-change: transform, opacity;
+  animation-name: aurora-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate3d(-9%, 0, 0) skewX(-4.5deg) rotate(-2.5deg); opacity: 0.72; }
+  55%  { transform: translate3d(2%, 0, 0) skewX(2deg) rotate(2deg);      opacity: 1.0; }
+  100% { transform: translate3d(9%, 0, 0) skewX(5.5deg) rotate(-1.5deg);        opacity: 0.82; }
+}
+
+.star {
+  position: absolute;
+  border-radius: 9999px;
+  background-color: oklch(0.99 0.01 210);
+  animation-name: twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: opacity, transform;
+}
+
+@keyframes twinkle {
+  from { opacity: 0.15; transform: scale(0.7); }
+  to   { opacity: 1;    transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-curtain,
+  .star { animation: none; }
+}
