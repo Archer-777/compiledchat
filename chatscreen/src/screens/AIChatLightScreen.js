@@ -543,7 +543,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
               onPress={() => {
                 setShowTenMinModal(false);
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'http://localhost:3000/heal-me';
+                  window.location.href = 'https://nextarcher.vercel.app/heal-me';
                 } else if (navigation && navigation.navigate) {
                   navigation.navigate('HealMe');
                 }

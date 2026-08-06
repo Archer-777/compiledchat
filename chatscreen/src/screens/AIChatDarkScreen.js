@@ -708,7 +708,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
               style={styles.iconCircleBtn}
               onPress={() => {
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'http://localhost:3000/soul-matrix';
+                  window.location.href = 'https://nextarcher.vercel.app/soul-matrix';
                 } else {
                   setShowProfileDropdown(true);
                 }
@@ -736,7 +736,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 onPress={() => {
                   setShowProfileDropdown(false);
                   if (typeof window !== 'undefined') {
-                    window.location.href = 'http://localhost:3000/soul-matrix';
+                    window.location.href = 'https://nextarcher.vercel.app/soul-matrix';
                   } else if (navigation && navigation.navigate) {
                     navigation.navigate('SoulMatrix');
                   }
@@ -778,7 +778,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
               onPress={() => {
                 setShowTenMinModal(false);
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'http://localhost:3000/heal-me';
+                  window.location.href = 'https://nextarcher.vercel.app/heal-me';
                 } else if (navigation && navigation.navigate) {
                   navigation.navigate('HealMe');
                 }
