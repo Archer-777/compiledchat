@@ -3,22 +3,41 @@ import { useNavigate } from 'react-router-dom';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import './SplashPage.css';
 
-export default function SplashPage({ isOverlay = false }) {
+export default function SplashPage({ isOverlay = false, onFinish }) {
   const navigate = useNavigate();
+
+  const getTargetRoute = () => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@spiritual_register_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && (parsed.email || parsed.firstName || parsed.full_name || parsed.fullName)) {
+            return '/soul-matrix';
+          }
+        }
+      }
+    } catch (e) {}
+    return '/scan';
+  };
 
   useEffect(() => {
     if (!isOverlay) {
       const timer = setTimeout(() => {
-        navigate('/scan');
-      }, 3500);
+        const route = getTargetRoute();
+        if (onFinish) onFinish(route);
+        else navigate(route);
+      }, 2800);
 
       return () => clearTimeout(timer);
     }
-  }, [navigate, isOverlay]);
+  }, [navigate, isOverlay, onFinish]);
 
   const handlePress = () => {
     if (!isOverlay) {
-      navigate('/scan');
+      const route = getTargetRoute();
+      if (onFinish) onFinish(route);
+      else navigate(route);
     }
   };
 

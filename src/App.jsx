@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import SplashPage from './pages/SplashPage';
 import AuraScannerPage from './pages/AuraScannerPage';
 import HealMePage from './pages/HealMePage';
@@ -9,9 +9,38 @@ import DigitalTwinPage from './pages/DigitalTwinPage';
 import SoulMatrixPage from './pages/SoulMatrixPage';
 import SuperchargePage from './pages/SuperchargePage';
 import RegisterPage from './pages/RegisterPage';
-import ChatScreenPage from './pages/ChatScreenPage';
 import GlobalNavbar from './components/layout/GlobalNavbar';
 import './styles/index.css';
+
+// Helper to check if a valid user session exists in localStorage
+export const checkIsAuthenticated = () => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem('@spiritual_register_user');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && (parsed.email || parsed.firstName || parsed.full_name || parsed.fullName)) {
+          return true;
+        }
+      }
+    }
+  } catch (e) {}
+  return false;
+};
+
+// Global Logout Helper: Clears session and strictly resets screen state to Aura Scanner (/scan)
+export const handleLogout = (navigate) => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('@spiritual_register_user');
+    }
+  } catch (e) {}
+  if (navigate) {
+    navigate('/scan');
+  } else if (typeof window !== 'undefined') {
+    window.location.href = '/scan';
+  }
+};
 
 function ChatRedirect() {
   React.useEffect(() => {
@@ -26,70 +55,60 @@ function ChatRedirect() {
       }
     } catch (e) {}
     const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
-    window.location.href = `http://localhost:8081${query}`;
+    const chatUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? `https://compiledchat.vercel.app/${query}`
+      : `http://localhost:8081${query}`;
+    window.location.href = chatUrl;
   }, []);
+
   return (
     <div style={{ background: '#050510', color: '#00e5ff', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif' }}>
-      Redirecting to AI Chat Screen (Port 8081)...
+      Redirecting to AI Chat Screen...
     </div>
   );
 }
 
-function GlobalSplashOverlay() {
-  const [showSplash, setShowSplash] = React.useState(true);
-  const [fadeOut, setFadeOut] = React.useState(false);
+// Root Splash Controller: Checks localStorage auth state after splash finishes
+function RootSplashController() {
+  const navigate = useNavigate();
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setFadeOut(true);
-      setTimeout(() => setShowSplash(false), 500);
-    }, 2400);
+  const handleSplashFinish = (targetRoute) => {
+    navigate(targetRoute, { replace: true });
+  };
 
-    return () => clearTimeout(timer);
-  }, []);
+  return <SplashPage isOverlay={false} onFinish={handleSplashFinish} />;
+}
 
-  if (!showSplash) return null;
-
-  return (
-    <div
-      onClick={() => {
-        setFadeOut(true);
-        setTimeout(() => setShowSplash(false), 300);
-      }}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 999999,
-        opacity: fadeOut ? 0 : 1,
-        transition: 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-        pointerEvents: fadeOut ? 'none' : 'auto',
-      }}
-    >
-      <SplashPage isOverlay={true} />
-    </div>
-  );
+// Protected Route Wrapper: Strictly redirects unauthenticated users to Aura Scanner (/scan)
+function ProtectedRoute({ children }) {
+  const isAuthed = checkIsAuthenticated();
+  if (!isAuthed) {
+    return <Navigate to="/scan" replace />;
+  }
+  return children;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <GlobalSplashOverlay />
       <GlobalNavbar />
       <Routes>
-        <Route path="/chat" element={<ChatRedirect />} />
-        <Route path="/" element={<SplashPage />} />
+        <Route path="/" element={<RootSplashController />} />
         <Route path="/scan" element={<AuraScannerPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        
+        {/* Protected Routes: Require valid profile, strictly fallback to /scan if unauthenticated */}
+        <Route path="/soul-matrix" element={<ProtectedRoute><SoulMatrixPage /></ProtectedRoute>} />
+        <Route path="/digital-twin" element={<ProtectedRoute><DigitalTwinPage /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><ChatRedirect /></ProtectedRoute>} />
+
+        {/* Universal Public Flow Routes */}
         <Route path="/heal-me" element={<HealMePage />} />
         <Route path="/healing" element={<HealingPage />} />
         <Route path="/travel" element={<TravelModePage />} />
-        <Route path="/digital-twin" element={<DigitalTwinPage />} />
-        <Route path="/soul-matrix" element={<SoulMatrixPage />} />
         <Route path="/supercharge" element={<SuperchargePage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        
+        <Route path="*" element={<Navigate to="/scan" replace />} />
       </Routes>
     </BrowserRouter>
   );

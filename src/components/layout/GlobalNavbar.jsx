@@ -50,6 +50,17 @@ export default function GlobalNavbar() {
     }
   };
 
+  const handleLogoutAction = () => {
+    setMenuOpen(false);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('@spiritual_register_user');
+      }
+    } catch (e) {}
+    setUserData(null);
+    navigate('/scan');
+  };
+
   return (
     <>
       {/* ── Compact Top Header Bar ── */}
@@ -75,7 +86,7 @@ export default function GlobalNavbar() {
         <div
           onClick={() => {
             setMenuOpen(false);
-            navigate('/digital-twin');
+            navigate(userData ? '/soul-matrix' : '/scan');
           }}
           style={{
             display: 'flex',
@@ -328,6 +339,31 @@ export default function GlobalNavbar() {
               </button>
             );
           })}
+
+          {/* Logout Button */}
+          {userData && (
+            <button
+              onClick={handleLogoutAction}
+              style={{
+                marginTop: '12px',
+                padding: '12px 16px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                borderRadius: '14px',
+                color: '#f87171',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>🚪 Sign Out & Reset Session</span>
+            </button>
+          )}
         </div>
 
         {/* Drawer Footer */}
