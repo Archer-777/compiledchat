@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import EnterHealingButton from '@/components/common/EnterHealingButton';
 
-export default function HealMeScreen({ onProceed, onBack }) {
+export default function HealMeScreen({ onProceed, onTravel, onBack }) {
   const [message, setMessage] = useState('');
 
   const handleSubmit = (e) => {
@@ -108,17 +108,24 @@ export default function HealMeScreen({ onProceed, onBack }) {
             </div>
 
             {/* Glassmorphic Message Input Box */}
-            <form onSubmit={handleSubmit} className="w-full bg-[#080B26]/80 border border-white/15 rounded-2xl p-2.5 flex items-center justify-between shadow-xl focus-within:border-purple-400 transition-all">
+            <form onSubmit={handleSubmit} className="w-full bg-[#080B26]/80 border border-white/15 rounded-2xl p-2.5 flex items-center gap-2 shadow-xl focus-within:border-purple-400 transition-all">
               <input 
                 type="text" 
                 placeholder="Talk about grief, anxiety, or spiritual healing..." 
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="bg-transparent border-none outline-none text-white placeholder-gray-400 w-full px-4 text-base font-normal font-['Poppins']"
+                className="bg-transparent border-none outline-none text-white placeholder-gray-400 flex-1 px-3 text-sm font-normal font-['Poppins']"
               />
               <button 
+                type="button"
+                onClick={onTravel}
+                className="px-3.5 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold font-['Poppins'] uppercase tracking-tight transition-colors cursor-pointer flex items-center gap-1 shadow-lg whitespace-nowrap"
+              >
+                <span>✈️ TRAVEL MODE</span>
+              </button>
+              <button 
                 type="submit" 
-                className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-['Poppins'] uppercase tracking-tight transition-colors cursor-pointer flex items-center gap-2 shadow-lg"
+                className="px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-['Poppins'] uppercase tracking-tight transition-colors cursor-pointer flex items-center gap-1.5 shadow-lg whitespace-nowrap"
               >
                 <span>BEGIN SESSION</span>
                 <span>→</span>

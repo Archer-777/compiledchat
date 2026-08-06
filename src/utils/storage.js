@@ -77,16 +77,7 @@ export const saveUserData = async (data) => {
 };
 
 export const getUserData = async () => {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const webVal = window.localStorage.getItem(USER_DATA_KEY);
-      if (webVal != null) return JSON.parse(webVal);
-    }
-  } catch (error) {
-    console.error('Error reading user data:', error);
-  }
-
-  // Fallback to Supabase if configured
+  // 1. Primary: Fetch latest registered user profile from Supabase Database
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
@@ -97,7 +88,7 @@ export const getUserData = async () => {
 
       if (!error && data && data.length > 0) {
         const row = data[0];
-        return {
+        const userObj = {
           firstName: row.first_name || (row.full_name ? row.full_name.split(' ')[0] : ''),
           lastName: row.last_name || (row.full_name ? row.full_name.split(' ').slice(1).join(' ') : ''),
           age: row.age ? String(row.age) : '',
@@ -110,10 +101,27 @@ export const getUserData = async () => {
           emailVerified: Boolean(row.email_verified),
           registeredAt: row.registered_at || row.updated_at,
         };
+        // Sync to localStorage
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(USER_DATA_KEY, JSON.stringify(userObj));
+          }
+        } catch (e) {}
+        return userObj;
       }
     } catch (e) {
-      console.warn('Error fetching user data from Supabase:', e);
+      console.warn('Error fetching user data from Supabase DB:', e);
     }
+  }
+
+  // 2. Fallback to web localStorage if DB query is unavailable
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const webVal = window.localStorage.getItem(USER_DATA_KEY);
+      if (webVal != null) return JSON.parse(webVal);
+    }
+  } catch (error) {
+    console.error('Error reading local user data:', error);
   }
 
   return null;

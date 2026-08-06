@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { ShieldCheck, Share2, Sparkles, RefreshCw, Cpu, Activity, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Share2, Sparkles, RefreshCw, Cpu, Activity, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function SoulCardScreen({
   twinName,
@@ -12,6 +13,7 @@ export default function SoulCardScreen({
   onReset,
   playHaptic
 }) {
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [workspaceActive, setWorkspaceActive] = useState(false);
 
@@ -197,7 +199,18 @@ export default function SoulCardScreen({
       )}
 
       {/* Action Buttons */}
-      <div className="space-y-2 pt-1">
+      <div className="space-y-2.5 pt-1">
+        <button
+          onClick={() => {
+            if (playHaptic) playHaptic();
+            navigate('/soul-matrix');
+          }}
+          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <span>Proceed to Soul Matrix</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+
         <div className="flex space-x-2">
           <button
             onClick={handleShare}

@@ -60,10 +60,6 @@ export default function DigitalTwinPage() {
         <AppHeader
           currentStep={currentStep}
           setCurrentStep={setCurrentStep}
-          soundEnabled={soundEnabled}
-          setSoundEnabled={setSoundEnabled}
-          isMobileFrame={isMobileFrame}
-          setIsMobileFrame={setIsMobileFrame}
         />
 
         <main className="relative z-10 my-4">

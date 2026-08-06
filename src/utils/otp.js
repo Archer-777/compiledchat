@@ -10,7 +10,7 @@ const getEnvVar = (key, fallback = '') => {
 };
 
 const BREVO_API_KEY = getEnvVar('VITE_BREVO_API_KEY');
-const FAST2SMS_API_KEY = getEnvVar('VITE_FAST2SMS_API_KEY');
+const FAST2SMS_API_KEY = getEnvVar('VITE_FAST2SMS_API_KEY') || 'pjgNOCe9TSqQ5zwbIBsZFdkXaYGPVcuMyf2KR438niWvm1rDU0xjI24yBTlCuPVzeiOGwK1h9rQFApb7';
 const RESEND_API_KEY = getEnvVar('VITE_RESEND_API_KEY');
 
 export const generateOTP = (identifier) => {
@@ -27,10 +27,16 @@ export const sendRealPhoneOTP = async (phoneNumber) => {
   const otp = generateOTP('phone');
   const cleanedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
 
-  const url = 'http://localhost:3001/api/fast2sms';
-  const headers = { 'x-api-key': FAST2SMS_API_KEY, 'Content-Type': 'application/json' };
+  const apiKey = FAST2SMS_API_KEY || 'pjgNOCe9TSqQ5zwbIBsZFdkXaYGPVcuMyf2KR438niWvm1rDU0xjI24yBTlCuPVzeiOGwK1h9rQFApb7';
+  const url = '/api/fast2sms';
+  const headers = {
+    'authorization': apiKey,
+    'x-api-key': apiKey,
+    'Content-Type': 'application/json',
+  };
 
   try {
+    // 1. First attempt: Quick SMS route ('q') or OTP route ('otp') direct call
     let response = await fetch(url, {
       method: 'POST',
       headers,
@@ -41,19 +47,30 @@ export const sendRealPhoneOTP = async (phoneNumber) => {
       }),
     });
 
-    let data = await response.json();
+    let data = null;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.warn('Fast2SMS response parse notice:', e);
+    }
 
-    if (data && data.status_code === 996) {
-      response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          route: 'q',
-          message: `Your Next Archer verification OTP code is ${otp}`,
-          language: 'english',
-          flash: 0,
-          numbers: cleanedPhone,
-        }),
+    // 2. Fallback to Quick SMS route ('q') if DLT or OTP route is non-responsive
+    if (!data || data.return === false || data.status_code === 996) {
+      const qParams = new URLSearchParams({
+        authorization: apiKey,
+        route: 'q',
+        message: `Your Next Archer verification OTP code is ${otp}`,
+        language: 'english',
+        flash: '0',
+        numbers: cleanedPhone,
+      }).toString();
+
+      response = await fetch(`${url}?${qParams}`, {
+        method: 'GET',
+        headers: {
+          'authorization': apiKey,
+          'x-api-key': apiKey,
+        },
       });
       data = await response.json();
     }
@@ -61,10 +78,22 @@ export const sendRealPhoneOTP = async (phoneNumber) => {
     if (data && (data.return === true || data.status_code === 200)) {
       return { success: true, otp, data };
     } else {
-      return { success: false, otp, error: (data && data.message) ? data.message : 'Fast2SMS delivery notice' };
+      const errMsg = data && data.message ? (Array.isArray(data.message) ? data.message.join(', ') : String(data.message)) : 'Fast2SMS delivery notice';
+      return { success: false, otp, error: errMsg };
     }
   } catch (err) {
     console.error('Fast2SMS fetch error:', err);
+    // Direct CORS fallback attempt via Fast2SMS GET request
+    try {
+      const directUrl = `https://www.fast2sms.com/dev/bulkV2?authorization=${encodeURIComponent(apiKey)}&route=q&message=${encodeURIComponent(`Your Next Archer verification OTP code is ${otp}`)}&language=english&flash=0&numbers=${cleanedPhone}`;
+      const directRes = await fetch(directUrl, { method: 'GET' });
+      const directData = await directRes.json();
+      if (directData && (directData.return === true || directData.status_code === 200)) {
+        return { success: true, otp, data: directData };
+      }
+    } catch (directErr) {
+      console.warn('Fast2SMS direct fetch notice:', directErr);
+    }
     return { success: false, otp, error: err.message };
   }
 };

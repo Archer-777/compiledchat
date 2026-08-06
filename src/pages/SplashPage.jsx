@@ -3,19 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import './SplashPage.css';
 
-export default function SplashPage() {
+export default function SplashPage({ isOverlay = false }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate('/scan');
-    }, 4500);
+    if (!isOverlay) {
+      const timer = setTimeout(() => {
+        navigate('/scan');
+      }, 3500);
 
-    return () => clearTimeout(timer);
-  }, [navigate]);
+      return () => clearTimeout(timer);
+    }
+  }, [navigate, isOverlay]);
 
   const handlePress = () => {
-    navigate('/scan');
+    if (!isOverlay) {
+      navigate('/scan');
+    }
   };
 
   return (

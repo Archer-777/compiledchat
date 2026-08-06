@@ -19,7 +19,18 @@ export default function SuperchargePage() {
   };
 
   const handleStartSupercharge = () => {
-    navigate('/register');
+    let firstName = '';
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@spiritual_register_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          firstName = parsed.firstName || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+        }
+      }
+    } catch (e) {}
+    const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
+    window.location.href = `http://localhost:8081${query}`;
   };
 
   const features = [

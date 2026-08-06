@@ -14,6 +14,7 @@ export default function HealMePage() {
     <WebsiteLayout>
       <HealMeScreen
         onProceed={handleProceed}
+        onTravel={() => navigate('/travel')}
         onBack={() => navigate('/scan')}
       />
     </WebsiteLayout>

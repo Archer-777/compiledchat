@@ -14,6 +14,7 @@ export default function HealingPage() {
       <HealingScreen
         currentChakra={currentChakra}
         onChakraChange={(id) => setCurrentChakra(id)}
+        onRegister={() => navigate('/register')}
         onBack={() => navigate('/heal-me')}
       />
     </WebsiteLayout>

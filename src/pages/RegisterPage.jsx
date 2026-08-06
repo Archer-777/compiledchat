@@ -6,7 +6,7 @@ import OTPInput from '@/components/common/OTPInput';
 import GenderPicker from '@/components/common/GenderPicker';
 import StepIndicator from '@/components/common/StepIndicator';
 import Toast from '@/components/common/Toast';
-import { validateOTP, sendRealPhoneOTP, sendRealEmailOTP } from '@/utils/otp';
+import { validateOTP, sendRealPhoneOTP } from '@/utils/otp';
 import { saveUserData } from '@/utils/storage';
 import './RegisterPage.css';
 
@@ -140,28 +140,11 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSendEmailOTP = async () => {
-    if (!validateEmail()) return;
-    setOtpSent(true);
-    setResendTimer(30);
-    setEmailOTPInput('');
-
-    const res = await sendRealEmailOTP(formData.email);
-    if (res.success) {
-      showToast(`Email verification sent to ${formData.email}`);
-    } else {
-      showToast(`Verification OTP: ${res.otp}`);
-    }
-  };
-
-  const handleVerifyEmailOTP = () => {
-    const result = validateOTP('email', emailOTPInput);
-    if (result.valid) {
+  const handleNextFromStep3 = () => {
+    if (validateEmail()) {
       setEmailVerified(true);
       setErrors({});
       handleSaveAndFinish();
-    } else {
-      setErrors({ otp: result.error });
     }
   };
 
@@ -355,46 +338,13 @@ export default function RegisterPage() {
                 error={errors.password}
               />
 
-              {!emailVerified && (
-                <button
-                  className="register-secondary-btn"
-                  onClick={handleSendEmailOTP}
-                  disabled={otpSent && resendTimer > 0}
-                >
-                  {otpSent
-                    ? resendTimer > 0
-                      ? `Resend in ${resendTimer}s`
-                      : 'Resend OTP'
-                    : 'Send OTP'}
-                </button>
-              )}
-
-              {otpSent && !emailVerified && (
-                <div>
-                  <p style={{ textAlign: 'center', fontSize: 12, color: '#aaa', marginTop: 16 }}>
-                    Enter verification code
-                  </p>
-                  <OTPInput value={emailOTPInput} onChange={setEmailOTPInput} />
-                  {errors.otp && (
-                    <p style={{ color: '#ff4d4d', textAlign: 'center', fontSize: 12 }}>
-                      ⚠ {errors.otp}
-                    </p>
-                  )}
-                  <button
-                    className="register-primary-btn"
-                    onClick={handleVerifyEmailOTP}
-                    disabled={emailOTPInput.length < 6}
-                  >
-                    Verify ✓
-                  </button>
-                </div>
-              )}
-
-              {emailVerified && (
-                <div className="register-verified-badge">
-                  ✓ Email Verified
-                </div>
-              )}
+              <button
+                className="register-primary-btn"
+                onClick={handleNextFromStep3}
+                style={{ marginTop: 16 }}
+              >
+                Complete Registration →
+              </button>
             </div>
 
             <button
@@ -458,9 +408,9 @@ export default function RegisterPage() {
 
             <button
               className="register-primary-btn"
-              onClick={() => navigate('/scan')}
+              onClick={() => navigate('/digital-twin')}
             >
-              Proceed to Aura Scanner →
+              Proceed to Digital Twin →
             </button>
           </div>
         )}

@@ -1,18 +1,12 @@
 import React from 'react';
-import { ShieldCheck, Volume2, VolumeX, Smartphone, Monitor } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 
 export default function AppHeader({
   currentStep,
   setCurrentStep,
-  soundEnabled,
-  setSoundEnabled,
-  isMobileFrame,
-  setIsMobileFrame
 }) {
-  const steps = [
-    { id: 1, label: 'Twin Setup' },
-    { id: 2, label: 'Soul Card' }
-  ];
+  const navigate = useNavigate();
 
   return (
     <header className="w-full border-b border-white/10 glass-panel sticky top-0 z-40 backdrop-blur-xl px-4 py-3">
@@ -46,56 +40,33 @@ export default function AppHeader({
           </div>
         </div>
 
-        {/* Center: Step Navigation Indicator */}
-        <nav className="hidden md:flex items-center space-x-1 bg-black/60 p-1 rounded-full border border-white/10">
-          {steps.map((step) => {
-            const isActive = currentStep === step.id;
-            return (
-              <button
-                key={step.id}
-                onClick={() => setCurrentStep(step.id)}
-                className={`px-4 py-1 rounded-full text-xs transition-all duration-300 flex items-center space-x-1.5 ${
-                  isActive
-                    ? 'bg-white text-black font-semibold shadow-[0_0_12px_rgba(255,255,255,0.4)]'
-                    : 'text-spiritual-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span>{step.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Right: Controls & Simulator Toggles */}
+        {/* Center: Action Button to Proceed to Soul Matrix Card */}
         <div className="flex items-center space-x-2">
-          {/* Sound / Haptic Simulation Toggle */}
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={`p-2 rounded-full border transition-all ${
-              soundEnabled
-                ? 'border-white/40 bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]'
-                : 'border-white/10 text-spiritual-500 hover:text-white'
-            }`}
-            title={soundEnabled ? "Mute Ethereal Frequencies" : "Enable Ethereal Soundscape"}
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-
-          {/* Device Frame View Toggle */}
-          <button
-            onClick={() => setIsMobileFrame(!isMobileFrame)}
-            className={`p-2 rounded-full border transition-all flex items-center space-x-1 text-xs ${
-              isMobileFrame
-                ? 'border-white/40 bg-white/10 text-white'
-                : 'border-white/10 text-spiritual-400 hover:text-white'
-            }`}
-            title={isMobileFrame ? "Switch to Desktop View" : "Switch to Mobile View"}
-          >
-            {isMobileFrame ? <Monitor className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
-            <span className="hidden sm:inline text-[11px]">
-              {isMobileFrame ? 'Desktop' : 'App Mode'}
-            </span>
-          </button>
+          {currentStep === 1 ? (
+            <button
+              onClick={() => setCurrentStep(2)}
+              className="px-5 py-2 rounded-full text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_28px_rgba(168,85,247,0.7)] hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <span>Proceed to Soul Matrix Card</span>
+              <span className="text-sm">→</span>
+            </button>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 flex items-center space-x-1.5 border border-white/20 bg-white/10 text-white hover:bg-white/20 cursor-pointer"
+              >
+                <span>← Back to Twin Setup</span>
+              </button>
+              <button
+                onClick={() => navigate('/soul-matrix')}
+                className="px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 flex items-center space-x-1.5 bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-md hover:scale-105 cursor-pointer"
+              >
+                <span>Proceed to Soul Matrix</span>
+                <span className="text-sm">→</span>
+              </button>
+            </div>
+          )}
         </div>
 
       </div>

@@ -15,6 +15,19 @@ export default defineConfig({
     port: 3000,
     open: true,
     proxy: {
+      '/api/fast2sms': {
+        target: 'https://www.fast2sms.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/fast2sms/, '/dev/bulkV2'),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            if (req.headers['x-api-key']) {
+              proxyReq.setHeader('authorization', req.headers['x-api-key']);
+            }
+          });
+        },
+      },
       '/chatscreen-app': {
         target: 'http://localhost:8081',
         changeOrigin: true,

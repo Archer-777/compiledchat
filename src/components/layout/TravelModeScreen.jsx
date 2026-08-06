@@ -39,14 +39,16 @@ export default function TravelModeScreen({ onBack, onNavigateNext }) {
       
       {/* Header */}
       <div className="w-full flex items-center justify-between border-b border-white/10 pb-4 mb-6">
-        <button onClick={onBack} className="text-white hover:opacity-70 transition-opacity p-2 rounded-full bg-white/10 border border-white/15 cursor-pointer font-['Poppins'] text-xs font-bold flex items-center gap-2">
+        <button onClick={onBack} className="text-white hover:opacity-70 transition-opacity p-2 px-4 rounded-full bg-white/10 border border-white/15 cursor-pointer font-['Poppins'] text-xs font-bold flex items-center gap-2">
           <span>← Back</span>
         </button>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
           <span className="font-semibold text-sm tracking-tight text-white font-['Poppins']">Travel Healing Sanctuary Mode</span>
         </div>
-        <div className="w-16"></div>
+        <button onClick={onNavigateNext} className="text-white hover:opacity-90 transition-opacity p-2 px-4 rounded-full bg-purple-600 border border-purple-400/40 cursor-pointer font-['Poppins'] text-xs font-bold">
+          <span>Proceed to Register →</span>
+        </button>
       </div>
 
       {/* 2-Column Widescreen Desktop Grid */}
@@ -197,6 +199,13 @@ export default function TravelModeScreen({ onBack, onNavigateNext }) {
               </div>
             </div>
           </div>
+
+          <button
+            onClick={onNavigateNext}
+            className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer font-['Poppins'] shadow-lg"
+          >
+            First-Time User? Complete Registration →
+          </button>
 
         </div>
 

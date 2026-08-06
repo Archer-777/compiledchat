@@ -399,15 +399,6 @@ export default function AuraScannerPage() {
                 <img src={capturedImage} alt="Captured Aura" className="scanner-captured-img" />
               )}
 
-              {cameraGranted && cameraStream && !capturedImage && (
-                <div
-                  className="scanner-aura-field-overlay"
-                  style={{
-                    background: `radial-gradient(ellipse at center, ${activeTheme.glow} 0%, ${activeTheme.primary}77 45%, transparent 75%)`,
-                    borderColor: activeTheme.border,
-                  }}
-                />
-              )}
 
               {cameraGranted && cameraStream && (
                 <div className="scanner-laser-line" />
@@ -489,13 +480,6 @@ export default function AuraScannerPage() {
 
             {/* Action Buttons */}
             <div className="scanner-action-btn-group">
-              <button
-                className="scanner-sticker-btn"
-                onClick={() => setShowStickerModal(true)}
-              >
-                <IoSparkles size={18} />
-                <span>Aura Sticker Studio ✨</span>
-              </button>
 
               <button
                 className="scanner-continue-btn"

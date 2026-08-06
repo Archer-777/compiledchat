@@ -10,7 +10,7 @@ export default function TravelModePage() {
     <WebsiteLayout>
       <TravelModeScreen
         onBack={() => navigate('/healing')}
-        onNavigateNext={() => navigate('/supercharge')}
+        onNavigateNext={() => navigate('/register')}
       />
     </WebsiteLayout>
   );

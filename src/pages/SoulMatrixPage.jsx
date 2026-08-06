@@ -1,27 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import MyWorldSliders from '@/components/features/anish/MyWorldSliders';
 import DashboardMetrics from '@/components/features/anish/DashboardMetrics';
-import BottomNav from '@/components/layout/BottomNav';
 import { FALLBACK_SOUL_MATRIX_PROFILE } from '@/data/soulMatrixData';
 
 export default function SoulMatrixPage() {
   const navigate = useNavigate();
-  const [activeNav, setActiveNav] = useState('dashboard');
   const profile = FALLBACK_SOUL_MATRIX_PROFILE;
-
-  const handleTabChange = (tab) => {
-    setActiveNav(tab);
-    if (tab === 'chat') navigate('/heal-me');
-    if (tab === 'profile') navigate('/digital-twin');
-    if (tab === 'home') navigate('/');
-  };
 
   return (
     <AmbientBackground>
-      <div className="relative min-h-screen text-white font-sans overflow-x-hidden pt-6 pb-24">
+      <div className="relative min-h-screen text-white font-sans overflow-x-hidden pt-6 pb-12">
         
         {/* Full Desktop 2-Pane Container */}
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -91,9 +82,6 @@ export default function SoulMatrixPage() {
           </div>
 
         </div>
-
-        {/* Bottom Sub-Navigation Bar */}
-        <BottomNav activeTab={activeNav} onTabChange={handleTabChange} />
 
       </div>
     </AmbientBackground>
