@@ -1,0 +1,225 @@
+.register-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.register-logo-img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
+.register-header-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: 3px;
+  color: var(--text-white);
+}
+
+.register-header-divider {
+  font-size: 14px;
+  color: var(--gold-light);
+  margin: 8px 0;
+  letter-spacing: 4px;
+}
+
+.register-header-subtitle {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-style: italic;
+}
+
+.register-step-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 22px;
+  color: var(--text-white);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.register-step-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  font-style: italic;
+  margin-bottom: 24px;
+}
+
+.register-form-card {
+  background: rgba(18, 18, 35, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.15);
+  margin-bottom: 20px;
+}
+
+.register-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 500px) {
+  .register-name-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.register-primary-btn {
+  background: var(--text-white);
+  color: #000000;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+  transition: all 0.2s ease;
+}
+
+.register-primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+.register-secondary-btn {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.08);
+  margin-top: 12px;
+  transition: all 0.2s ease;
+}
+
+.register-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.register-back-btn {
+  color: var(--text-gray);
+  font-size: 14px;
+  margin-top: 16px;
+  transition: color 0.2s ease;
+}
+
+.register-back-btn:hover {
+  color: var(--text-white);
+}
+
+.register-verified-badge {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  color: #10b981;
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 16px;
+  letter-spacing: 1px;
+}
+
+.register-success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+.register-success-symbol {
+  font-size: 44px;
+  color: var(--gold-light);
+  margin-bottom: 4px;
+}
+
+.register-lotus-icon {
+  font-size: 16px;
+  color: var(--gold-light);
+  letter-spacing: 8px;
+  margin-bottom: 20px;
+  opacity: 0.7;
+}
+
+.register-success-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 26px;
+  color: var(--text-white);
+  margin-bottom: 8px;
+}
+
+.register-success-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: 28px;
+}
+
+.register-success-card {
+  background: var(--card-dark);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 100%;
+  border: 1px solid var(--card-border);
+  margin-bottom: 20px;
+}
+
+.register-success-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+}
+
+.register-success-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.register-success-label {
+  color: var(--text-gray);
+}
+
+.register-success-value {
+  color: var(--text-white);
+  font-weight: 500;
+}
+
+.register-success-verified {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.register-saved-text {
+  font-size: 13px;
+  color: #10b981;
+  margin-top: 12px;
+}

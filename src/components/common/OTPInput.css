@@ -1,0 +1,30 @@
+.otp-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.otp-box {
+  width: 46px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-white);
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.otp-box:focus {
+  border-color: var(--text-white);
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+.otp-box.filled {
+  border-color: rgba(255, 255, 255, 0.5);
+}

@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
+@import "tailwindcss";
+@import './variables.css';
+@import './aurora.css';
+
+@theme {
+  --font-inter: 'Poppins', sans-serif;
+  --font-poppins: 'Poppins', sans-serif;
+}
+
+*, *::before, *::after {
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #06060C;
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050510;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Custom Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom glass & glow effects for Digital Twin */
+.glass-panel {
+  background: rgba(18, 18, 21, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(24, 24, 27, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.08);
+}
+
+.monochrome-gradient-text {
+  background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glowing-ring {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Image filter classes */
+.filter-bw-dramatic {
+  filter: grayscale(100%) contrast(140%) brightness(95%);
+}
+
+.filter-bw-ethereal {
+  filter: grayscale(100%) contrast(110%) brightness(115%) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.filter-bw-mystic {
+  filter: grayscale(100%) contrast(180%) brightness(85%);
+}
+
+/* Mandala Animations */
+@keyframes mandalaClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes mandalaCounterClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+.mandala-inner {
+  animation: mandalaClockwise 25s linear infinite;
+}
+.mandala-outer {
+  animation: mandalaCounterClockwise 40s linear infinite;
+}
+
+/* Enter Healing Button Orbit Animations */
+@keyframes travelLight1 {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -740; }
+}
+@keyframes travelLight2 {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 740; }
+}
+@keyframes travelLight3 {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -740; }
+}
+.travel-beam-1 {
+  animation: travelLight1 3.2s linear infinite;
+}
+.travel-beam-2 {
+  animation: travelLight2 4.5s linear infinite;
+}
+.travel-beam-3 {
+  animation: travelLight3 5.8s linear infinite;
+}

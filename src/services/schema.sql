@@ -107,3 +107,34 @@ CREATE POLICY "Public Read/Write Access for aura_scans Bucket"
 ON storage.objects FOR ALL 
 USING (bucket_id = 'aura_scans') 
 WITH CHECK (bucket_id = 'aura_scans');
+
+-- 9. Create table for User Profiles & Registration (with Password support)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    first_name TEXT,
+    last_name TEXT,
+    full_name TEXT,
+    age INT,
+    gender TEXT,
+    profession TEXT,
+    phone TEXT,
+    email TEXT UNIQUE,
+    password TEXT,
+    phone_verified BOOLEAN DEFAULT false,
+    email_verified BOOLEAN DEFAULT false,
+    platform TEXT DEFAULT 'registration',
+    registered_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration rule: Ensure password column exists if user_profiles table already existed
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS password TEXT;
+
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read/write access to user_profiles" ON public.user_profiles;
+CREATE POLICY "Allow public read/write access to user_profiles"
+    ON public.user_profiles FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
