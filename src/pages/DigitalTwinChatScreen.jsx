@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mic, Flame, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mic, Flame, MessageSquare, Menu, X, PlusCircle, Cpu, User, Heart, Zap } from 'lucide-react';
 import './DigitalTwinChatScreen.css';
 
 // User avatar matching the orange sunflower eyes and smile
@@ -24,7 +24,6 @@ function UserAvatar() {
   );
 }
 
-
 // Custom profile icon matching person-circle-outline
 function ProfileIconSvg() {
   return (
@@ -38,6 +37,7 @@ function ProfileIconSvg() {
 export default function DigitalTwinChatScreen() {
   const navigate = useNavigate();
   const [userProfileName, setUserProfileName] = useState('Archer');
+  const [isGuest, setIsGuest] = useState(false);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([
     { id: '1', sender: 'twin', text: 'Hello! How are you today?' },
@@ -47,7 +47,19 @@ export default function DigitalTwinChatScreen() {
     { id: '5', sender: 'twin', text: 'Knowledge base response for enlightening pleasant surprises and neuron enlightenment' },
   ]);
   const [stars, setStars] = useState([]);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+  const recognitionRef = useRef(null);
   const chatEndRef = useRef(null);
+
+  const isSmallScreen = windowWidth < 960;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Generate random twinkling stars across the entire screen
   useEffect(() => {
@@ -77,6 +89,7 @@ export default function DigitalTwinChatScreen() {
         const nameFromUrl = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
         if (nameFromUrl) {
           setUserProfileName(nameFromUrl.trim());
+          setIsGuest(false);
           return;
         }
       } catch (e) {}
@@ -88,6 +101,9 @@ export default function DigitalTwinChatScreen() {
           const localName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
           if (localName) {
             setUserProfileName(localName.trim());
+            if (parsed.isGuest === false || parsed.email) {
+              setIsGuest(false);
+            }
             return;
           }
         }
@@ -103,7 +119,7 @@ export default function DigitalTwinChatScreen() {
   }, [messages]);
 
   const handleSend = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!inputText.trim()) return;
 
     const newMsg = {
@@ -126,6 +142,46 @@ export default function DigitalTwinChatScreen() {
         },
       ]);
     }, 1000);
+  };
+
+  const handleMicPress = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInputText(transcript);
+      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      setIsListening(false);
+    }
   };
 
   const handleGoBack = () => {
@@ -210,40 +266,54 @@ export default function DigitalTwinChatScreen() {
         </div>
 
         {/* Sidebar Footer User Info */}
-        <div className="sidebar-footer">
-          <div className="user-avatar-placeholder">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+        {!isGuest && (
+          <div className="sidebar-footer">
+            <div className="user-avatar-placeholder">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            <div className="user-meta">
+              <div className="user-name">{userProfileName} User</div>
+              <div className="user-tier">Pro Plan • Active</div>
+            </div>
           </div>
-          <div className="user-meta">
-            <div className="user-name">{userProfileName} User</div>
-            <div className="user-tier">Pro Plan • Active</div>
-          </div>
-        </div>
+        )}
       </aside>
 
       {/* --- RIGHT CHAT AREA CONTAINER --- */}
       <div className="twin-chat-main">
         {/* Floating Header */}
         <header className="twin-chat-header">
-          {/* Left: Back & Greeting */}
+          {/* Left: Back Arrow / Hamburger & Greeting */}
           <div className="header-left">
-            <button className="back-btn" onClick={handleGoBack}>
-              <ArrowLeft size={20} />
-            </button>
+            {isSmallScreen ? (
+              <button className="back-btn" onClick={() => setShowMobileDrawer(true)}>
+                <Menu size={20} />
+              </button>
+            ) : (
+              <button className="back-btn" onClick={handleGoBack}>
+                <ArrowLeft size={20} />
+              </button>
+            )}
             <div>
               <h1 className="header-greeting">
                 Hey <span>{userProfileName}</span>
               </h1>
-              <p className="header-subtitle">NIGHT AMBIENT</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                <p className="header-subtitle">NIGHT AMBIENT</p>
+                <div className="timer-pill-unlimited">
+                  <Zap size={11} color="#00e5ff" />
+                  <span>⚡ UNLIMITED</span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Right: Quick Actions */}
           <div className="header-right">
-            <button className="header-icon-btn" title="User Profile">
+            <button className="header-icon-btn" title="User Profile" onClick={() => navigate('/soul-matrix')}>
               <ProfileIconSvg />
             </button>
           </div>
@@ -289,10 +359,18 @@ export default function DigitalTwinChatScreen() {
               type="text"
               className="input-field"
               placeholder="Message..."
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
-            <button type="button" className="mic-btn">
+            <button
+              type="button"
+              className="mic-btn"
+              onClick={handleMicPress}
+              style={isListening ? { color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderRadius: '18px' } : {}}
+            >
               <Mic size={20} />
             </button>
           </form>
@@ -305,6 +383,70 @@ export default function DigitalTwinChatScreen() {
           </div>
         </footer>
       </div>
+
+      {/* --- MOBILE NAVIGATION GLASS DRAWER (< 960px) OPENING ON LEFT SIDE --- */}
+      {showMobileDrawer && (
+        <div className="twin-drawer-overlay">
+          <div className="twin-drawer-content">
+            <div className="twin-drawer-header">
+              <div className="twin-drawer-brand">
+                <img src="/nextarcherlogo.jpeg" alt="Logo" className="twin-drawer-logo" />
+                <span className="twin-drawer-title">Next Archer</span>
+              </div>
+              <button className="twin-drawer-close" onClick={() => setShowMobileDrawer(false)}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="twin-drawer-actions">
+              <button
+                className="twin-drawer-btn"
+                onClick={() => {
+                  setShowMobileDrawer(false);
+                  setMessages([{ id: '1', sender: 'twin', text: 'Welcome to your Digital Twin. How can I assist you today?' }]);
+                }}
+              >
+                <PlusCircle size={18} color="#00d4ff" />
+                <span>New Chat</span>
+              </button>
+
+              <button
+                className="twin-drawer-btn"
+                onClick={() => {
+                  setShowMobileDrawer(false);
+                  navigate('/twin-chat');
+                }}
+              >
+                <Cpu size={18} color="#a855f7" />
+                <span>Twin Chat</span>
+              </button>
+
+              <button
+                className="twin-drawer-btn"
+                onClick={() => {
+                  setShowMobileDrawer(false);
+                  navigate('/soul-matrix');
+                }}
+              >
+                <User size={18} color="#ffffff" />
+                <span>Soul Matrix Profile</span>
+              </button>
+
+              <button
+                className="twin-drawer-btn"
+                onClick={() => {
+                  setShowMobileDrawer(false);
+                  navigate('/heal-me');
+                }}
+              >
+                <Heart size={18} color="#00ffcc" />
+                <span>Heal Me Sanctuary</span>
+              </button>
+            </div>
+          </div>
+          <div className="twin-drawer-backdrop" onClick={() => setShowMobileDrawer(false)} />
+        </div>
+      )}
     </div>
   );
 }

@@ -513,18 +513,125 @@
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-.grounding-text-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Focus outline removal */
+.input-field:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
-.grounding-text {
+/* Unlimited Badge Styling */
+.timer-pill-unlimited {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  padding: 3px 8px;
+  border-radius: 12px;
+  color: #00e5ff;
+  font-size: 11px;
+  font-weight: 700;
   font-family: 'Poppins', sans-serif;
-  font-size: 9.5px;
+}
+
+/* Mobile Drawer Overlay Styles (< 960px) */
+.twin-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  z-index: 1000;
+}
+
+.twin-drawer-content {
+  width: 280px;
+  height: 100%;
+  padding: 20px;
+  background-color: rgba(15, 23, 42, 0.96);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.twin-drawer-backdrop {
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.twin-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.twin-drawer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.twin-drawer-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.twin-drawer-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.twin-drawer-close {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.twin-drawer-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.twin-drawer-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 1.2px;
-  text-align: center;
-  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.twin-drawer-btn:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive Hide Sidebar on Mobile Viewports (< 960px) */
+@media (max-width: 959px) {
+  .twin-sidebar {
+    display: none !important;
+  }
 }
