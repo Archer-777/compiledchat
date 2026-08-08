@@ -829,17 +829,6 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   <Ionicons name="heart-outline" size={20} color="#00ffcc" />
                   <Text style={styles.drawerBtnText}>Heal Me Sanctuary</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.drawerBtn}
-                  onPress={() => {
-                    setShowMobileDrawer(false);
-                    if (navigation?.navigate) navigation.navigate('AIChatLight');
-                  }}
-                >
-                  <Ionicons name="sunny-outline" size={20} color="#ffb703" />
-                  <Text style={styles.drawerBtnText}>Switch Light Theme</Text>
-                </TouchableOpacity>
               </View>
             </BlurView>
             <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setShowMobileDrawer(false)} />
