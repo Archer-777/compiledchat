@@ -1276,17 +1276,19 @@ const styles = StyleSheet.create({
   groundingFooterContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 6,
     paddingBottom: 2,
+    width: '100%',
   },
   groundingFooterText: {
     fontFamily: Fonts.poppins,
-    fontSize: 9.5,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.65)',
-    letterSpacing: 1.2,
+    fontSize: 8.5,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.45)',
+    letterSpacing: 0.8,
     textAlign: 'center',
     textTransform: 'uppercase',
+    ...(Platform.OS === 'web' ? { whiteSpace: 'nowrap' } : {}),
   },
   // Mobile Drawer Overlay Styles (< 960px)
   drawerOverlay: {
