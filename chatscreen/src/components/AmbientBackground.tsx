@@ -300,9 +300,9 @@ function Stars({
   h: number;
 }) {
   const stars = useRef(
-    Array.from({ length: 38 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * (h * 0.55),
+    Array.from({ length: 48 }).map(() => ({
+      px: Math.random(),
+      py: Math.random() * 0.75,
       r: Math.random() * 1.5 + 0.6,
       sparkleFactor: 0.4 + Math.random() * 0.6,
     }))
@@ -311,19 +311,19 @@ function Stars({
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="none">
       {/* Base Still Starlight (0.35 Opacity - Zero Twinkling Normally) */}
-      <Svg width={w} height={h * 0.55}>
+      <Svg width={w} height={h * 0.75}>
         {stars.map((s, i) => (
-          <Circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffffff" opacity={0.35} />
+          <Circle key={i} cx={s.px * w} cy={s.py * h} r={s.r} fill="#ffffff" opacity={0.35} />
         ))}
       </Svg>
-      {/* Happy-Only Random Individual Star Twinkle Burst (35-40 Second Sparkle) */}
+      {/* Happy-Only Random Individual Star Twinkle Burst */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: twinkleOpacity }]}>
-        <Svg width={w} height={h * 0.55}>
+        <Svg width={w} height={h * 0.75}>
           {stars.map((s, i) => (
             <Circle
               key={`t-${i}`}
-              cx={s.x}
-              cy={s.y}
+              cx={s.px * w}
+              cy={s.py * h}
               r={s.r * (1 + s.sparkleFactor * 0.6)}
               fill="#ffffff"
               opacity={s.sparkleFactor}

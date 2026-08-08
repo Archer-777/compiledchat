@@ -4,7 +4,6 @@ import SplashPage from './pages/SplashPage';
 import AuraScannerPage from './pages/AuraScannerPage';
 import HealMePage from './pages/HealMePage';
 import HealingPage from './pages/HealingPage';
-import TravelModePage from './pages/TravelModePage';
 import DigitalTwinPage from './pages/DigitalTwinPage';
 import SoulMatrixPage from './pages/SoulMatrixPage';
 import SuperchargePage from './pages/SuperchargePage';
@@ -55,10 +54,7 @@ function ChatRedirect() {
       }
     } catch (e) {}
     const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
-    const chatUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-      ? `https://compiledchat.vercel.app/${query}`
-      : `http://localhost:8081${query}`;
-    window.location.href = chatUrl;
+    window.location.href = `http://localhost:8081/${query}`;
   }, []);
 
   return (
@@ -105,7 +101,6 @@ export default function App() {
         {/* Universal Public Flow Routes */}
         <Route path="/heal-me" element={<HealMePage />} />
         <Route path="/healing" element={<HealingPage />} />
-        <Route path="/travel" element={<TravelModePage />} />
         <Route path="/supercharge" element={<SuperchargePage />} />
         
         <Route path="*" element={<Navigate to="/scan" replace />} />

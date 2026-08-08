@@ -30,7 +30,7 @@ export default function SuperchargePage() {
       }
     } catch (e) {}
     const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
-    window.location.href = `https://compiledchat.vercel.app/${query}`;
+    window.location.href = `http://localhost:8081/${query}`;
   };
 
   const features = [

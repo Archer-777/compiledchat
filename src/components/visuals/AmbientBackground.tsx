@@ -170,18 +170,18 @@ function Moon({ opacity, happyNightOpacity, x }: { opacity: Animated.Value; happ
 
 function Stars({ opacity, happyNightOpacity, w, h }: { opacity: Animated.Value; happyNightOpacity: Animated.Value; w: number; h: number }) {
   const stars = useRef(
-    Array.from({ length: 30 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * (h * 0.55),
+    Array.from({ length: 48 }).map(() => ({
+      px: Math.random(),
+      py: Math.random() * 0.75,
       r: Math.random() * 1.3 + 0.5,
     }))
   ).current;
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="none">
-      <Svg width={w} height={h * 0.55}>
+      <Svg width={w} height={h * 0.75}>
         {stars.map((s, i) => (
-          <Circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffffff" opacity={0.75} />
+          <Circle key={i} cx={s.px * w} cy={s.py * h} r={s.r} fill="#ffffff" opacity={0.75} />
         ))}
       </Svg>
     </Animated.View>

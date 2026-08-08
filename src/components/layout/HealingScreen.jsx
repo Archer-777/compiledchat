@@ -57,11 +57,16 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
     if (onChakraChange) onChakraChange(id);
   };
 
-  const handleBegin = () => {
-    setIsHealingActive(true);
-    setIsPlaying(true);
-    playSolfeggioTone(activeChakra.frequencyNumber || 528);
-    setTimeout(() => setIsHealingActive(false), 8000);
+  const handleToggleHealing = () => {
+    if (isPlaying || isHealingActive) {
+      setIsHealingActive(false);
+      setIsPlaying(false);
+      stopSolfeggioTone();
+    } else {
+      setIsHealingActive(true);
+      setIsPlaying(true);
+      playSolfeggioTone(activeChakra.frequencyNumber || 528);
+    }
   };
 
   return (
@@ -77,12 +82,6 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
       {/* Selector Navigation Bar with z-[100] */}
       <div className="w-full flex items-center justify-between backdrop-blur-md bg-black/40 border border-white/20 p-4 rounded-2xl mb-8 shadow-xl relative z-[100]">
         <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="px-4 py-2 rounded-full bg-black/30 hover:bg-black/50 border border-white/30 flex items-center gap-2 text-white font-bold text-xs transition-all shadow-md cursor-pointer font-['Poppins']"
-          >
-            <span>← Back to Intro</span>
-          </button>
           <button
             onClick={onRegister}
             className="px-4 py-2 rounded-full bg-purple-600/80 hover:bg-purple-500 border border-purple-400/40 text-white font-bold text-xs transition-all shadow-md cursor-pointer font-['Poppins']"
@@ -166,8 +165,8 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
           <div className="w-full max-w-md flex flex-col gap-3 items-center">
             <HealingButton
               chakra={{ ...activeChakra, color: activeColor }}
-              onClick={handleBegin}
-              isHealing={isHealingActive}
+              onClick={handleToggleHealing}
+              isHealing={isHealingActive || isPlaying}
             />
             <button
               onClick={onRegister}
@@ -182,8 +181,8 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
         <div className="flex flex-col space-y-6">
           <AudioVisualCard
             chakra={{ ...activeChakra, color: activeColor }}
-            isPlaying={isPlaying}
-            onTogglePlay={() => setIsPlaying(!isPlaying)}
+            isPlaying={isPlaying || isHealingActive}
+            onTogglePlay={handleToggleHealing}
           />
         </div>
 

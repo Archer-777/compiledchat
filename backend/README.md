@@ -25,7 +25,7 @@ This repository contains the standalone production backend API server for **Next
 │  • Express.js Node API (Port 4000)                          │
 │  • Configured CORS allowing Vercel deployed origins         │
 │  • JWT Authentication in HttpOnly Shared Cookie              │
-│  • Grok AI Engine (gsk_MrQrZAELEUDbl6FF6iJDWGdyb3FY...)     │
+│  • Grok AI Engine (Groq LLM Integration)                  │
 │  • Fast2SMS SMS Gateway                                     │
 │  • Supabase Production Database Persistence                  │
 └─────────────────────────────────────────────────────────────┘

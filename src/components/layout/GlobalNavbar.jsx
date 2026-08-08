@@ -7,7 +7,6 @@ const NAV_ITEMS = [
   { path: '/scan', label: '✨ Scan' },
   { path: '/heal-me', label: '🔮 Sanctuary' },
   { path: '/healing', label: '🧘 Chakras' },
-  { path: '/travel', label: '✈️ Travel' },
   { path: '/digital-twin', label: '👤 Digital Twin', requiresUser: true },
   { path: '/soul-matrix', label: '🌌 Soul Matrix' },
   { path: '/supercharge', label: '⚡ Supercharge' },
@@ -44,7 +43,7 @@ export default function GlobalNavbar() {
     if (item.path === '/chat') {
       const firstName = userData?.firstName || (userData?.full_name ? userData.full_name.split(' ')[0] : '');
       const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
-      window.location.href = `https://compiledchat.vercel.app/${query}`;
+      window.location.href = `http://localhost:8081/${query}`;
     } else {
       navigate(item.path);
     }

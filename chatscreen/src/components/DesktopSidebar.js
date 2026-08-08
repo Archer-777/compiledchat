@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -22,12 +22,27 @@ export function DesktopSidebar({
   onNewChat,
   onSelectHistoryItem,
 }) {
-  const historyItems = [
-    { id: '1', title: 'Morning Alignment', time: 'Today' },
-    { id: '2', title: 'Deep Focus & Clarity', time: 'Yesterday' },
-    { id: '3', title: 'Cosmic Energy Check-in', time: '3 days ago' },
-    { id: '4', title: 'Night Affirmations', time: '1 week ago' },
-  ];
+  const [userName, setUserName] = useState('Archer User');
+  const [historyItems, setHistoryItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@spiritual_register_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const name = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+          if (name) setUserName(name.trim());
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleProfileClick = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = 'http://localhost:3000/soul-matrix';
+    }
+  };
 
   const bgColor = '#000000';
   const borderColor = 'rgba(255, 255, 255, 0.12)';
@@ -62,36 +77,48 @@ export function DesktopSidebar({
       <View style={styles.historySection}>
         <Text style={[styles.sectionTitle, { color: subTextColor }]}>RECENT CHATS</Text>
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-          {historyItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.historyCard, { backgroundColor: cardBg }]}
-              onPress={() => onSelectHistoryItem && onSelectHistoryItem(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={16} color={subTextColor} style={{ marginRight: 10 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.historyTitle, { color: textColor }]} numberOfLines={1}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.historyTime, { color: subTextColor }]}>{item.time}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {historyItems.length > 0 ? (
+            historyItems.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.historyCard, { backgroundColor: cardBg }]}
+                onPress={() => onSelectHistoryItem && onSelectHistoryItem(item)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={16} color={subTextColor} style={{ marginRight: 10 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.historyTitle, { color: textColor }]} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.historyTime, { color: subTextColor }]}>{item.time}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={{ paddingVertical: 16, paddingHorizontal: 4 }}>
+              <Text style={{ fontFamily: Fonts.inter, fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                No past sessions saved.
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </View>
 
-
       {/* User Profile Footer */}
-      <View style={[styles.userProfileFooter, { borderTopColor: borderColor }]}>
+      <TouchableOpacity
+        style={[styles.userProfileFooter, { borderTopColor: borderColor }]}
+        onPress={handleProfileClick}
+        activeOpacity={0.7}
+      >
         <View style={styles.userAvatarSmall}>
           <Ionicons name="person" size={16} color="#ffffff" />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={[styles.userName, { color: textColor }]}>Archer User</Text>
+          <Text style={[styles.userName, { color: textColor }]}>{userName}</Text>
           <Text style={[styles.userStatus, { color: subTextColor }]}>Pro Plan • Active</Text>
         </View>
-      </View>
+        <Ionicons name="chevron-forward-outline" size={14} color={subTextColor} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -182,24 +209,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.inter,
     fontSize: 10,
     marginTop: 2,
-  },
-  controlsSection: {
-    borderTopWidth: 1,
-    paddingTop: 14,
-    marginBottom: 14,
-    gap: 6,
-  },
-  controlRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  controlLabel: {
-    fontFamily: Fonts.inter,
-    fontSize: 13,
-    fontWeight: '500',
   },
   userProfileFooter: {
     borderTopWidth: 1,

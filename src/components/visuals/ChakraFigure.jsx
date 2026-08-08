@@ -2,13 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const CHAKRA_DEFS = [
-  { key: 'crown', label: 'Crown', color: '#d946ef', glowColor: 'rgba(217,70,239,0.85)', cyPercent: 14 },
-  { key: 'third_eye', label: 'Third Eye', color: '#6366f1', glowColor: 'rgba(99,102,241,0.85)', cyPercent: 24 },
-  { key: 'throat', label: 'Throat', color: '#06b6d4', glowColor: 'rgba(6,182,212,0.85)', cyPercent: 33 },
-  { key: 'heart', label: 'Heart', color: '#22c55e', glowColor: 'rgba(34,197,94,0.85)', cyPercent: 43 },
-  { key: 'solar_plexus', label: 'Solar Plexus', color: '#eab308', glowColor: 'rgba(234,179,8,0.85)', cyPercent: 53 },
-  { key: 'sacral', label: 'Sacral', color: '#f97316', glowColor: 'rgba(249,115,22,0.85)', cyPercent: 63 },
-  { key: 'root', label: 'Root', color: '#ef4444', glowColor: 'rgba(239,68,68,0.85)', cyPercent: 73 },
+  { key: 'crown', label: 'Crown', color: '#d946ef', glowColor: 'rgba(217,70,239,0.85)', cyPercent: 12 },
+  { key: 'third_eye', label: 'Third Eye', color: '#6366f1', glowColor: 'rgba(99,102,241,0.85)', cyPercent: 22 },
+  { key: 'throat', label: 'Throat', color: '#06b6d4', glowColor: 'rgba(6,182,212,0.85)', cyPercent: 32 },
+  { key: 'heart', label: 'Heart', color: '#22c55e', glowColor: 'rgba(34,197,94,0.85)', cyPercent: 42 },
+  { key: 'solar_plexus', label: 'Solar Plexus', color: '#eab308', glowColor: 'rgba(234,179,8,0.85)', cyPercent: 52 },
+  { key: 'sacral', label: 'Sacral', color: '#f97316', glowColor: 'rgba(249,115,22,0.85)', cyPercent: 62 },
+  { key: 'root', label: 'Root', color: '#ef4444', glowColor: 'rgba(239,68,68,0.85)', cyPercent: 72 },
 ];
 
 export default function ChakraFigure({ chakras }) {
@@ -23,9 +23,9 @@ export default function ChakraFigure({ chakras }) {
       >
         <div className="relative w-full aspect-[4/3] overflow-hidden flex items-center justify-center">
           <img
-            src="/assets/chakra-meditation.jpg"
-            alt="Silhouette of a person meditating in lotus pose with seven glowing chakras"
-            className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+            src="/soulmatrix.png"
+            alt="Soul Matrix Energy Figure"
+            className="w-full h-full object-contain object-center transition-transform duration-700 ease-out group-hover:scale-105"
           />
 
           <div

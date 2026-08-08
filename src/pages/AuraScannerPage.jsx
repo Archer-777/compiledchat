@@ -23,7 +23,7 @@ import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
 import databaseService from '@/services/databaseService';
 import auraPredictionService from '@/services/auraPredictionService';
-import { sendResendPasswordResetEmail, validateOTP } from '@/utils/otp';
+import { sendPhonePasswordResetOTP, validateOTP } from '@/utils/otp';
 import { resetUserPassword } from '@/utils/storage';
 import { supabase, isSupabaseConfigured } from '@/services/supabaseClient';
 import './AuraScannerPage.css';
@@ -99,7 +99,7 @@ export default function AuraScannerPage() {
   const [loginPasscode, setLoginPasscode] = useState('');
   const [loginError, setLoginError] = useState(null);
 
-  // Forgot Password & Resend API states
+  // Forgot Password & Phone OTP states
   const [isForgotMode, setIsForgotMode] = useState(false);
   const [resetStep, setResetStep] = useState(1);
   const [resetEmail, setResetEmail] = useState('');
@@ -110,28 +110,23 @@ export default function AuraScannerPage() {
 
   const handleSendResetEmail = async () => {
     if (!resetEmail.trim()) {
-      setResetError('Please enter your email address.');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(resetEmail.trim())) {
-      setResetError('Enter a valid email address.');
+      setResetError('Please enter your 10-digit phone number or email.');
       return;
     }
     setResetError(null);
     setIsResetSending(true);
 
-    const res = await sendResendPasswordResetEmail(resetEmail.trim());
+    const res = await sendPhonePasswordResetOTP(resetEmail.trim());
     setIsResetSending(false);
 
     if (res.success) {
-      showToast(`Reset code sent via Resend API to ${resetEmail.trim()}`);
+      showToast(`SMS reset OTP code dispatched to ${resetEmail.trim()}`);
       if (res.otp) {
         showToast(`Reset OTP: ${res.otp}`);
       }
       setResetStep(2);
     } else {
-      setResetError(res.error || 'Failed to send reset code.');
+      setResetError(res.error || 'Failed to send SMS reset code.');
     }
   };
 
@@ -649,7 +644,7 @@ export default function AuraScannerPage() {
                       setResetError(null);
                     }}
                   >
-                    🔑 Forgot Password? Reset via Resend API
+                    🔑 Forgot Password? Reset via SMS OTP
                   </button>
                 </div>
               </div>
@@ -658,15 +653,15 @@ export default function AuraScannerPage() {
                 <h2 style={{ fontSize: 20, marginBottom: 8, textAlign: 'center' }}>Reset Password</h2>
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 20, textAlign: 'center' }}>
                   {resetStep === 1
-                    ? 'Enter your email to receive a password reset code via Resend API'
+                    ? 'Enter your 10-digit phone number to receive a 6-digit SMS OTP code'
                     : 'Enter the 6-digit reset code and your new password'}
                 </p>
 
                 {resetStep === 1 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     <input
-                      type="email"
-                      placeholder="Enter your email address"
+                      type="text"
+                      placeholder="Enter 10-digit phone number"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
                       style={{
@@ -693,7 +688,7 @@ export default function AuraScannerPage() {
                       onClick={handleSendResetEmail}
                       disabled={isResetSending}
                     >
-                      {isResetSending ? 'Sending Code...' : 'Send Reset Code (Resend API) →'}
+                      {isResetSending ? 'Sending Code...' : 'Send SMS Reset Code →'}
                     </button>
 
                     <button

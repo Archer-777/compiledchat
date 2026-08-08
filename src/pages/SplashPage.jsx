@@ -7,17 +7,6 @@ export default function SplashPage({ isOverlay = false, onFinish }) {
   const navigate = useNavigate();
 
   const getTargetRoute = () => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('@spiritual_register_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && (parsed.email || parsed.firstName || parsed.full_name || parsed.fullName)) {
-            return '/soul-matrix';
-          }
-        }
-      }
-    } catch (e) {}
     return '/scan';
   };
 

@@ -14,6 +14,7 @@ import {
   Modal,
   Animated,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Ellipse, Path, Text as SvgText } from 'react-native-svg';
@@ -82,19 +83,23 @@ const HAPPY_PATTERNS = [
 ];
 
 const AIChatLightScreen = ({ navigation, route }) => {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 960; // Universal Sidebar Breakpoint (< 960px)
+
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTenMinModal, setShowTenMinModal] = useState(false);
+  const [showMobileDrawer, setShowMobileDrawer] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => {
         const next = prev + 1;
-        if (next === 600) {
+        if (next === 120) {
           setShowTenMinModal(true);
         }
         return next;
       });
-    }, 1000); // REAL TIME: 1 second interval (600s = 10 Minutes)
+    }, 1000);
     return () => clearInterval(timer);
   }, [navigation]);
 
@@ -179,14 +184,8 @@ const AIChatLightScreen = ({ navigation, route }) => {
   };
 
   const [inputText, setInputText] = useState('');
-  const [selectedModel, setSelectedModel] = useState('Spiritualize AI');
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [messages, setMessages] = useState([
-    { id: '1', sender: 'ai', text: 'Hello! How are you today?' },
-    { id: '2', sender: 'user', text: 'Hi' },
-    { id: '3', sender: 'ai', text: 'This would be a normal conversation within 30 words.' },
-    { id: '4', type: 'badge', text: 'Conversation Streak From User' },
-    { id: '5', sender: 'ai', text: 'Knowledge base response for enlightening pleasant surprises and neuron enlightenment' },
+    { id: '1', sender: 'ai', text: 'Hello! Welcome to Next Archer. How can I guide your consciousness today?' },
   ]);
 
   const detectEmotionalWeather = (text) => {
@@ -210,7 +209,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputText.trim()) return;
     const textToSend = inputText.trim();
     const newMsg = { id: Date.now().toString(), sender: 'user', text: textToSend };
@@ -218,16 +217,45 @@ const AIChatLightScreen = ({ navigation, route }) => {
     setInputText('');
     detectEmotionalWeather(textToSend);
 
-    setTimeout(() => {
+    try {
+      const backendUrl = typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_BACKEND_URL
+        ? process.env.EXPO_PUBLIC_BACKEND_URL
+        : 'http://localhost:8000';
+      const res = await fetch(`${backendUrl}/api/v1/chat/sessions/default_session/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: textToSend }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: data.message_id || Date.now().toString(),
+            sender: 'ai',
+            text: data.reply || 'Thank you for expressing your thought! Transcending consciousness...',
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            sender: 'ai',
+            text: 'Thank you for expressing your thought! Transcending consciousness...',
+          },
+        ]);
+      }
+    } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
-          id: (Date.now() + 1).toString(),
+          id: Date.now().toString(),
           sender: 'ai',
           text: 'Thank you for expressing your thought! Transcending consciousness...',
         },
       ]);
-    }, 1000);
+    }
   };
 
   const handleMicPress = () => Alert.alert('Voice Input', 'Listening...');
@@ -252,8 +280,9 @@ const AIChatLightScreen = ({ navigation, route }) => {
   }
 
   return (
-    <View style={{ flex: 1, flexDirection: Platform.OS === 'web' ? 'row' : 'column' }}>
-      {Platform.OS === 'web' && (
+    <View style={{ flex: 1, flexDirection: Platform.OS === 'web' && !isSmallScreen ? 'row' : 'column' }}>
+      {/* Desktop Sidebar — Hidden automatically on screens < 960px */}
+      {Platform.OS === 'web' && !isSmallScreen && (
         <DesktopSidebar
           isDark={false}
           currentSlot={null}
@@ -300,9 +329,15 @@ const AIChatLightScreen = ({ navigation, route }) => {
             tint={isDarkUI ? 'dark' : 'light'}
             style={styles.topBar}
           >
-            <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.7}>
-              <Ionicons name="arrow-back" size={24} color={isDarkUI ? '#ffffff' : '#0f172a'} />
-            </TouchableOpacity>
+            {isSmallScreen ? (
+              <TouchableOpacity style={styles.backButton} onPress={() => setShowMobileDrawer(true)} activeOpacity={0.7}>
+                <Ionicons name="menu" size={24} color={isDarkUI ? '#ffffff' : '#0f172a'} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.7}>
+                <Ionicons name="arrow-back" size={24} color={isDarkUI ? '#ffffff' : '#0f172a'} />
+              </TouchableOpacity>
+            )}
 
             <View style={styles.titleContainer}>
               <Text style={[styles.headerTitle, isDarkUI ? styles.textBright : styles.textDark]}>
@@ -326,37 +361,30 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 >
                   SKY CONSCIOUSNESS • {timeName.toUpperCase()}{solar.auroraActive ? ' • AURORA' : ''}
                 </Text>
-                <View style={styles.timerPill}>
-                  <Ionicons name="time-outline" size={12} color="#00ffcc" style={{ marginRight: 3 }} />
-                  <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
-                </View>
+                {isSmallScreen && (
+                  <View style={styles.timerPill}>
+                    <Ionicons name="time-outline" size={10} color="#00ffcc" style={{ marginRight: 2 }} />
+                    <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
+                  </View>
+                )}
               </View>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {/* 1. Aurora Toggle */}
-              <TouchableOpacity
-                style={[styles.themeToggleBtn, manualAurora && { backgroundColor: 'rgba(0,212,255,0.3)' }]}
-                onPress={() => {
-                  const next = !manualAurora;
-                  setManualAurora(next);
-                  showToast(next ? '🌌 Aurora Mode Active' : '☀️ Light Mode Active');
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 16 }}>🌌</Text>
-              </TouchableOpacity>
+              {!isSmallScreen && (
+                <TouchableOpacity
+                  style={[styles.themeToggleBtn, manualAurora && { backgroundColor: 'rgba(0,212,255,0.3)' }]}
+                  onPress={() => {
+                    const next = !manualAurora;
+                    setManualAurora(next);
+                    showToast(next ? '🌌 Aurora Mode Active' : '☀️ Light Mode Active');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 16 }}>🌌</Text>
+                </TouchableOpacity>
+              )}
 
-              {/* 2. Ambient Slot Toggle */}
-              <TouchableOpacity
-                style={[styles.themeToggleBtn, currentSlot && { backgroundColor: 'rgba(255,200,80,0.25)' }]}
-                onPress={cycleTimeSlot}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: 16 }}>{currentSlot ? currentSlot.icon : timeIcon}</Text>
-              </TouchableOpacity>
-
-              {/* 3. Theme/Profile Switch */}
               <TouchableOpacity
                 style={styles.themeToggleBtn}
                 onPress={toggleThemeMode}
@@ -429,82 +457,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
           {/* Input Bar */}
           <BlurView intensity={40} tint={isDarkUI ? 'dark' : 'light'} style={styles.bottomSection}>
             <View style={{ position: 'relative', zIndex: 100 }}>
-              {/* Model Selection Dropdown Popup */}
-              {showModelDropdown && (
-                <>
-                  <TouchableOpacity
-                    style={{
-                      position: 'fixed',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      zIndex: 90,
-                    }}
-                    activeOpacity={1}
-                    onPress={() => setShowModelDropdown(false)}
-                  />
-                  <View style={styles.modelDropdownContainer}>
-                    <Text style={styles.modelDropdownHeader}>SELECT MODEL</Text>
-
-                    {/* Model 1: Spiritualize AI (Selected) */}
-                    <TouchableOpacity
-                      style={[
-                        styles.modelOptionRow,
-                        selectedModel === 'Spiritualize AI' && styles.modelOptionRowSelected,
-                      ]}
-                      onPress={() => {
-                        setSelectedModel('Spiritualize AI');
-                        setShowModelDropdown(false);
-                        showToast('✨ Switched to Spiritualize AI');
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                        <Ionicons name="sparkles" size={16} color="#00d4ff" />
-                        <Text style={styles.modelOptionTitle}>Spiritualize AI</Text>
-                      </View>
-                      {selectedModel === 'Spiritualize AI' && (
-                        <Ionicons name="checkmark-circle" size={16} color="#00d4ff" />
-                      )}
-                    </TouchableOpacity>
-
-                    {/* Model 2: Digital Twin (Locked State) */}
-                    <TouchableOpacity
-                      style={[styles.modelOptionRow, styles.modelOptionRowLocked]}
-                      onPress={() => {
-                        showToast('🔒 Unlock Digital Twin experience');
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                        <Ionicons name="person-sharp" size={15} color="rgba(255, 255, 255, 0.4)" />
-                        <Text style={styles.modelOptionTitleLocked}>Digital Twin</Text>
-                      </View>
-                      <View style={styles.lockBadge}>
-                        <Ionicons name="lock-closed" size={10} color="#ffd166" style={{ marginRight: 3 }} />
-                        <Text style={styles.lockBadgeText}>LOCKED</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-
               <View style={styles.inputRow}>
-                {/* Model Selector Dropdown Button (Left Side) */}
-                <TouchableOpacity
-                  style={styles.modelSelectorBtn}
-                  onPress={() => setShowModelDropdown(!showModelDropdown)}
-                  activeOpacity={0.7}
-                  accessibilityLabel="Select Model"
-                >
-                  <Ionicons name="sparkles" size={13} color={isDarkUI ? '#00d4ff' : '#0284c7'} />
-                  <Text style={[styles.modelSelectorText, { color: isDarkUI ? '#00d4ff' : '#0284c7' }]}>{selectedModel}</Text>
-                  <Ionicons name="chevron-down" size={12} color={isDarkUI ? 'rgba(255,255,255,0.6)' : '#64748b'} />
-                </TouchableOpacity>
-
-                <View style={styles.modelSelectorDivider} />
-
                 <TextInput
                   style={[styles.textInput, isDarkUI ? styles.textInputDark : styles.textInputLight]}
                   placeholder="Type your response..."
@@ -530,20 +483,85 @@ const AIChatLightScreen = ({ navigation, route }) => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
+      {/* Mobile Drawer (< 960px) */}
+      <Modal visible={showMobileDrawer} transparent animationType="slide">
+        <View style={styles.drawerOverlay}>
+          <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setShowMobileDrawer(false)} />
+          <BlurView intensity={80} tint="dark" style={styles.drawerContent}>
+            <View style={styles.drawerHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Image source={require('../../nextarcherlogo.jpeg')} style={{ width: 36, height: 36, borderRadius: 10 }} />
+                <Text style={{ fontFamily: Fonts.poppins, fontSize: 16, fontWeight: '700', color: '#ffffff' }}>Next Archer</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowMobileDrawer(false)}>
+                <Ionicons name="close" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={{ marginTop: 20, gap: 12 }}>
+              <TouchableOpacity
+                style={styles.drawerBtn}
+                onPress={() => {
+                  setShowMobileDrawer(false);
+                  setMessages([{ id: '1', sender: 'ai', text: 'Hello! Welcome to Next Archer. How can I help you today?', time: 'Just now' }]);
+                  showToast('✨ New conversation started');
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#00d4ff" />
+                <Text style={styles.drawerBtnText}>New Chat</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerBtn}
+                onPress={() => {
+                  setShowMobileDrawer(false);
+                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/soul-matrix';
+                }}
+              >
+                <Ionicons name="person-outline" size={20} color="#ffffff" />
+                <Text style={styles.drawerBtnText}>Soul Matrix Profile</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerBtn}
+                onPress={() => {
+                  setShowMobileDrawer(false);
+                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/heal-me';
+                }}
+              >
+                <Ionicons name="heart-outline" size={20} color="#00ffcc" />
+                <Text style={styles.drawerBtnText}>Heal Me Sanctuary</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerBtn}
+                onPress={() => {
+                  setShowMobileDrawer(false);
+                  if (navigation?.navigate) navigation.navigate('AIChatDark');
+                }}
+              >
+                <Ionicons name="moon-outline" size={20} color="#38bdf8" />
+                <Text style={styles.drawerBtnText}>Switch Dark Theme</Text>
+              </TouchableOpacity>
+            </View>
+          </BlurView>
+        </View>
+      </Modal>
+
       <Modal visible={showTenMinModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Image source={require('../../nextarcherlogo.jpeg')} style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12, resizeMode: 'contain' }} />
             <Text style={styles.modalTitle}>Session Completed</Text>
             <Text style={styles.modalDesc}>
-              Your 10-minute reflection cycle is complete.
+              Your 2-minute reflection cycle is complete.
             </Text>
             <TouchableOpacity
               style={styles.modalBtn}
               onPress={() => {
                 setShowTenMinModal(false);
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'https://nextarcher.vercel.app/heal-me';
+                  window.location.href = 'http://localhost:3000/heal-me';
                 } else if (navigation && navigation.navigate) {
                   navigation.navigate('HealMe');
                 }
@@ -576,7 +594,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.08)',
@@ -633,8 +651,6 @@ const styles = StyleSheet.create({
   },
   textBright: { color: '#ffffff' },
   textDark: { color: '#0f172a' },
-  subBright: { color: '#00ffcc' },
-  subDark: { color: '#0284c7' },
   chatScrollView: {
     flex: 1,
     maxWidth: 800,
@@ -650,7 +666,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 0,
     backgroundColor: '#4e7b97',
   },
   streakBadgeText: { fontFamily: Fonts.poppins, color: '#ffffff', fontSize: 12, fontWeight: '700' },
@@ -658,8 +673,8 @@ const styles = StyleSheet.create({
   rowLeft: { justifyContent: 'flex-start' },
   rowRight: { justifyContent: 'flex-end' },
   bubble: {
-    maxWidth: '76%',
-    paddingHorizontal: 15,
+    maxWidth: '72%',
+    paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 18,
     overflow: 'hidden',
@@ -738,7 +753,6 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 20,
     zIndex: 100,
-    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
   },
   modelDropdownHeader: {
     fontFamily: Fonts.poppins,
@@ -799,42 +813,21 @@ const styles = StyleSheet.create({
   textInput: {
     fontFamily: Fonts.inter,
     flex: 1,
-    height: 44,
-    borderRadius: 22,
-    paddingHorizontal: 18,
     fontSize: 14,
-    borderWidth: 1,
-    fontWeight: '400',
+    paddingHorizontal: 10,
   },
-  textInputDark: {
-    backgroundColor: 'rgba(13, 17, 38, 0.95)',
-    color: '#ffffff',
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  textInputLight: {
-    backgroundColor: '#ffffff',
-    color: '#0f172a',
-    borderColor: '#ffffff',
-  },
-  micButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,212,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
+  textInputDark: { color: '#ffffff' },
+  textInputLight: { color: '#0f172a' },
+  micButton: { padding: 6, marginRight: 4 },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#0284c7',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
   },
-  sendDisabled: { backgroundColor: 'rgba(2,132,199,0.4)', opacity: 0.5 },
+  sendDisabled: { opacity: 0.5 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(4,8,20,0.85)',
@@ -852,8 +845,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0,255,204,0.3)',
   },
-  modalTitle: { color: '#ffffff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  modalDesc: { color: 'rgba(255,255,255,0.85)', fontSize: 13, textAlign: 'center', marginTop: 10, lineHeight: 19 },
+  modalTitle: { fontFamily: Fonts.poppins, color: '#ffffff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  modalDesc: { fontFamily: Fonts.inter, color: 'rgba(255,255,255,0.85)', fontSize: 13, textAlign: 'center', marginTop: 10, lineHeight: 19 },
   modalBtn: {
     marginTop: 20,
     backgroundColor: '#00ffcc',
@@ -861,7 +854,46 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 25,
   },
-  modalBtnText: { color: '#040814', fontSize: 14, fontWeight: '700' },
+  modalBtnText: { fontFamily: Fonts.poppins, color: '#040814', fontSize: 14, fontWeight: '700' },
+  drawerOverlay: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  drawerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  drawerContent: {
+    width: 280,
+    height: '100%',
+    padding: 20,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    borderRightWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  drawerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  drawerBtnText: {
+    fontFamily: Fonts.inter,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
 });
 
 export default AIChatLightScreen;

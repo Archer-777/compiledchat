@@ -3,7 +3,7 @@ import React from 'react';
 export default function EnterHealingButton({ onClick }) {
   return (
     <div 
-      className="relative group w-full max-w-sm mx-auto lg:mx-0 my-4 flex items-center justify-center" 
+      className="relative group w-full max-w-sm mx-auto my-4 flex items-center justify-center text-center" 
       style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
     >
       {/* Orbit Container strictly hugging the button */}
