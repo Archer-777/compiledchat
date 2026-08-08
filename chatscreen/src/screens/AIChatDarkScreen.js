@@ -389,7 +389,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = true;
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
@@ -400,7 +400,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
 
       recognition.onresult = (event) => {
         let transcript = '';
-        for (let i = 0; i < event.results.length; i++) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
         if (transcript) {
@@ -411,7 +411,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
-        if (event.error === 'not-allowed') {
+        if (event.error === 'network') {
+          showToast('⚠️ Network connection issue with Speech API');
+        } else if (event.error === 'not-allowed') {
           showToast('⚠️ Mic permission denied in browser settings');
         } else if (event.error !== 'no-speech') {
           showToast(`⚠️ Voice input: ${event.error}`);
