@@ -112,6 +112,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
   const [showTenMinModal, setShowTenMinModal] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [userProfileName, setUserProfileName] = useState('Archer');
+  const [historyItems, setHistoryItems] = useState([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -433,6 +434,13 @@ const AIChatDarkScreen = ({ navigation, route }) => {
           currentSlot={currentSlot}
           timeIcon={timeIcon}
           manualAurora={manualAurora}
+          historyItems={historyItems}
+          onSelectHistoryItem={(item) => {
+            if (item.messages && item.messages.length > 0) {
+              setMessages(item.messages);
+              showToast(`Restored: ${item.title}`);
+            }
+          }}
           onToggleAurora={() => {
             const next = !manualAurora;
             setManualAurora(next);

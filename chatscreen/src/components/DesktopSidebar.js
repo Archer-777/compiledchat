@@ -21,9 +21,11 @@ export function DesktopSidebar({
   onToggleTheme,
   onNewChat,
   onSelectHistoryItem,
+  historyItems = [],
 }) {
   const [userName, setUserName] = useState('Archer');
   const [isRegistered, setIsRegistered] = useState(false);
+  const [localHistoryItems, setLocalHistoryItems] = useState([]);
 
   useEffect(() => {
     try {
@@ -39,9 +41,18 @@ export function DesktopSidebar({
             }
           }
         }
+        const savedChatRaw = window.localStorage.getItem('@spiritual_chat_sessions');
+        if (savedChatRaw) {
+          const parsedSessions = JSON.parse(savedChatRaw);
+          if (Array.isArray(parsedSessions)) {
+            setLocalHistoryItems(parsedSessions);
+          }
+        }
       }
     } catch (e) {}
   }, []);
+
+  const displayHistory = (historyItems && historyItems.length > 0) ? historyItems : localHistoryItems;
 
   const handleProfileClick = () => {
     if (typeof window !== 'undefined') {
@@ -96,8 +107,8 @@ export function DesktopSidebar({
       <View style={styles.historySection}>
         <Text style={[styles.sectionTitle, { color: subTextColor }]}>RECENT CHATS</Text>
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-          {historyItems.length > 0 ? (
-            historyItems.map((item) => (
+          {displayHistory.length > 0 ? (
+            displayHistory.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 style={[styles.historyCard, { backgroundColor: cardBg }]}
