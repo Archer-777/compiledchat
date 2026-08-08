@@ -37,6 +37,12 @@ def health_check():
         "status": "healthy"
     }
 
+@app.get("/api/auth/digital-twin-name", tags=["Digital Twin"])
+def digital_twin_name(name: str = None, email: str = None):
+    clean_name = (name or email or "Archer").strip().split(" ")[0]
+    twin_name = f"{clean_name}_2.0"
+    return {"success": True, "twinName": twin_name, "userName": clean_name}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

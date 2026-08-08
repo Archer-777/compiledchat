@@ -214,11 +214,7 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
         </Defs>
 
         {/* 1. Large, Blazing Solar Aura (Pixel-precise alignment to sunburst center) */}
-        <Circle cx="328" cy="90" r="140" fill="url(#sunSolarAura)" filter="url(#sunBulbGlow)" />
-
-        {/* 2. Defined White-Hot Blazing Core Disc (Pixel-precise alignment) */}
-        <Circle cx="328" cy="90" r="32" fill="url(#sunCoreGrad)" />
-        <Circle cx="328" cy="90" r="22" fill="#ffffff" filter="url(#sunCoreBlur)" />
+        <Circle cx="328" cy="90" r="130" fill="url(#sunSolarAura)" filter="url(#sunBulbGlow)" opacity={0.75} />
 
         {/* 3. Original Hexagonal Lens Flares stretching diagonally */}
         {/* Prism 1: Original soft teal hexagon */}
@@ -245,6 +241,32 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
           filter="url(#flareSoftBlur)"
         />
       </Svg>
+
+      {/* 2. Realistic Glowing Circle Sun Image from Sun.jpeg (Not too bright) */}
+      <View
+        style={{
+          position: "absolute",
+          left: 328 - 32,
+          top: 90 - 32,
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Image
+          source={require("../../assets/Sun.jpeg")}
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            opacity: 0.88,
+          }}
+          resizeMode="cover"
+        />
+      </View>
     </Animated.View>
   );
 }
@@ -300,9 +322,9 @@ function Stars({
   h: number;
 }) {
   const stars = useRef(
-    Array.from({ length: 48 }).map(() => ({
-      px: Math.random(),
-      py: Math.random() * 0.75,
+    Array.from({ length: 38 }).map(() => ({
+      x: Math.random() * w,
+      y: Math.random() * (h * 0.55),
       r: Math.random() * 1.5 + 0.6,
       sparkleFactor: 0.4 + Math.random() * 0.6,
     }))
@@ -311,19 +333,19 @@ function Stars({
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="none">
       {/* Base Still Starlight (0.35 Opacity - Zero Twinkling Normally) */}
-      <Svg width={w} height={h * 0.75}>
+      <Svg width={w} height={h * 0.55}>
         {stars.map((s, i) => (
-          <Circle key={i} cx={s.px * w} cy={s.py * h} r={s.r} fill="#ffffff" opacity={0.35} />
+          <Circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffffff" opacity={0.35} />
         ))}
       </Svg>
-      {/* Happy-Only Random Individual Star Twinkle Burst */}
+      {/* Happy-Only Random Individual Star Twinkle Burst (35-40 Second Sparkle) */}
       <Animated.View style={[StyleSheet.absoluteFill, { opacity: twinkleOpacity }]}>
-        <Svg width={w} height={h * 0.75}>
+        <Svg width={w} height={h * 0.55}>
           {stars.map((s, i) => (
             <Circle
               key={`t-${i}`}
-              cx={s.px * w}
-              cy={s.py * h}
+              cx={s.x}
+              cy={s.y}
               r={s.r * (1 + s.sparkleFactor * 0.6)}
               fill="#ffffff"
               opacity={s.sparkleFactor}

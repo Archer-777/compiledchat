@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { Animated, Image, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Circle, Ellipse, Defs, RadialGradient, Stop } from "react-native-svg";
 import { AuroraCurtains } from '@/components/visuals/AuroraCurtains';
@@ -114,18 +114,41 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
       <Svg width={140} height={140} viewBox="0 0 120 120">
         <Defs>
           <RadialGradient id="happySunGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="#fff8cd" stopOpacity="1" />
-            <Stop offset="45%" stopColor="#ffb703" stopOpacity="0.6" />
+            <Stop offset="0%" stopColor="#fff8cd" stopOpacity="0.8" />
+            <Stop offset="45%" stopColor="#ffb703" stopOpacity="0.45" />
             <Stop offset="100%" stopColor="#fb8500" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* Phase 2: Radiant Golden Aura expands and glows after a few seconds */}
+        {/* Phase 2: Radiant Golden Aura expands and glows */}
         <Circle cx="60" cy="60" r="55" fill="url(#happySunGlow)" />
-
-        {/* Phase 1: Sun Disc emerges cleanly */}
-        <Circle cx="60" cy="60" r="22" fill="#ffffff" />
       </Svg>
+
+      {/* Phase 1: Realistic Glowing Circle Sun Image (Sun.jpeg - Not too bright) */}
+      <View
+        style={{
+          position: "absolute",
+          top: 36,
+          left: 36,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Image
+          source={require("../../../assets/Sun.jpeg")}
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            opacity: 0.88,
+          }}
+          resizeMode="cover"
+        />
+      </View>
     </Animated.View>
   );
 }
@@ -170,18 +193,18 @@ function Moon({ opacity, happyNightOpacity, x }: { opacity: Animated.Value; happ
 
 function Stars({ opacity, happyNightOpacity, w, h }: { opacity: Animated.Value; happyNightOpacity: Animated.Value; w: number; h: number }) {
   const stars = useRef(
-    Array.from({ length: 48 }).map(() => ({
-      px: Math.random(),
-      py: Math.random() * 0.75,
+    Array.from({ length: 30 }).map(() => ({
+      x: Math.random() * w,
+      y: Math.random() * (h * 0.55),
       r: Math.random() * 1.3 + 0.5,
     }))
   ).current;
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity }]} pointerEvents="none">
-      <Svg width={w} height={h * 0.75}>
+      <Svg width={w} height={h * 0.55}>
         {stars.map((s, i) => (
-          <Circle key={i} cx={s.px * w} cy={s.py * h} r={s.r} fill="#ffffff" opacity={0.75} />
+          <Circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#ffffff" opacity={0.75} />
         ))}
       </Svg>
     </Animated.View>

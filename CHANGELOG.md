@@ -28,6 +28,9 @@
 - **Database Foreign Key Safety**: Added parent user and session record upserts in `backend/app/routers/chat.py` to prevent PostgreSQL foreign key constraint errors (`23503`) during guest and default session message persistence.
 - **Sanctuary Button Alignment Fix**: Removed `lg:mx-0` from `EnterHealingButton.jsx` and added `mx-auto flex justify-center items-center` to `HealMeScreen.jsx` so the primary "ENTER HEALING EXPERIENCE" button is mathematically centered on desktop viewports.
 - **Healing Audio Toggle Controls**: Updated `HealingScreen.jsx` and `HealingButton.jsx` so clicking "Begin Healing" starts Solfeggio audio and transforms the button into a red glowing "Stop Healing" (`⏹ STOP HEALING`) control. Clicking it immediately halts audio playback (`stopSolfeggioTone()`) and resets visualizer state.
+- **Digital Twin Auto-Synthesis & Soul Card (`/digital-twin`)**: Integrated automatic `GET /api/auth/digital-twin-name` twin name fetching (`FirstName_2.0`), removed twin name input field in `UnifiedSetupScreen.jsx`, rendered auto-synthesized name glass panel, cleaned up header nav, and fixed logo/typography rendering.
+- **Digital Twin Desktop Workspace (`/chat` / `DigitalTwinChatScreen`)**: Upgraded starlight overlay with 140 twinkling stars across 100vw × 100vh bounds and removed top-right Aurora wave & Golden Moon icon buttons.
+- **Daytime Solar Sun Assets (`Sun.jpeg`)**: Integrated high-fidelity `Sun.jpeg` realistic glowing sun disc across SVG `DaytimeSkyScene.tsx` and web/chatscreen `AmbientBackground.tsx` components.
 
 ---
 

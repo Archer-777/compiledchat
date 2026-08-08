@@ -264,3 +264,19 @@ def face_login(req: FaceLoginRequest):
 @router.get("/me")
 def get_user_profile(current_user: dict = Depends(get_current_user)):
     return {"user": current_user}
+
+@router.get("/digital-twin-name")
+def get_digital_twin_name(name: Optional[str] = None, email: Optional[str] = None):
+    raw_name = name or email or ""
+    if not raw_name:
+        client = get_supabase_client()
+        if client:
+            try:
+                res = client.from_("users").select("first_name, last_name, email").limit(1).execute()
+                if res.data and len(res.data) > 0:
+                    raw_name = res.data[0].get("first_name") or (res.data[0].get("email", "").split("@")[0])
+            except Exception:
+                pass
+    clean_name = (raw_name or "Archer").strip().split(" ")[0]
+    twin_name = f"{clean_name}_2.0"
+    return {"success": True, "twinName": twin_name, "userName": clean_name}

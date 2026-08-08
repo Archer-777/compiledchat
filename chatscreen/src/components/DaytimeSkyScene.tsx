@@ -16,6 +16,8 @@ import Svg, {
   Rect,
   G,
   Circle,
+  ClipPath,
+  Image as SvgImage,
 } from "react-native-svg";
 
 interface DaytimeSkySceneProps {
@@ -82,33 +84,40 @@ export function DaytimeSkyScene({ containerW: W, containerH: H }: DaytimeSkyScen
           <Stop offset="1"   stopColor="#A8C0D4" stopOpacity={0.7}  />
         </RadialGradient>
 
-        {/* Sun glow radial */}
+        {/* Sun soft glow radial */}
         <RadialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5" gradientUnits="objectBoundingBox">
-          <Stop offset="0"    stopColor="#FFFFFF" stopOpacity={1}    />
-          <Stop offset="0.18" stopColor="#FFFDE0" stopOpacity={0.95} />
-          <Stop offset="0.45" stopColor="#FFF5A0" stopOpacity={0.6}  />
-          <Stop offset="0.7"  stopColor="#FFDF60" stopOpacity={0.25} />
-          <Stop offset="1"    stopColor="#FFFFFF"  stopOpacity={0}   />
+          <Stop offset="0"    stopColor="#FFFFFF" stopOpacity={0.85} />
+          <Stop offset="0.25" stopColor="#FFFDE0" stopOpacity={0.7}  />
+          <Stop offset="0.55" stopColor="#FFF5A0" stopOpacity={0.4}  />
+          <Stop offset="0.8"  stopColor="#FFDF60" stopOpacity={0.15} />
+          <Stop offset="1"    stopColor="#FFFFFF" stopOpacity={0}    />
         </RadialGradient>
 
-        {/* Sun inner disc */}
-        <RadialGradient id="sunDisc" cx="0.5" cy="0.5" r="0.5" gradientUnits="objectBoundingBox">
-          <Stop offset="0"   stopColor="#FFFFFF" stopOpacity={1}   />
-          <Stop offset="0.5" stopColor="#FFFBE0" stopOpacity={1}   />
-          <Stop offset="1"   stopColor="#FFE060" stopOpacity={0.9} />
-        </RadialGradient>
+        {/* Sun circle clip path */}
+        <ClipPath id="sunCircleClip">
+          <Circle cx={W * 0.88} cy={H * 0.04} r={S * 26} />
+        </ClipPath>
       </Defs>
 
       {/* ── 1. Sky background gradient ──────────────────────────────────── */}
       <Rect x={0} y={0} width={W} height={H} fill="url(#skyGrad)" />
 
-      {/* ── 2. Sun — top-right corner (matches reference) ──────────────── */}
-      {/* Outer diffuse glow */}
-      <Ellipse cx={W * 0.88} cy={H * 0.04} rx={S * 88} ry={S * 88} fill="url(#sunGlow)" />
-      {/* Inner bright halo */}
-      <Ellipse cx={W * 0.88} cy={H * 0.04} rx={S * 36} ry={S * 36} fill="url(#sunGlow)" />
-      {/* Disc */}
-      <Ellipse cx={W * 0.88} cy={H * 0.04} rx={S * 20} ry={S * 20} fill="url(#sunDisc)" />
+      {/* ── 2. Sun — top-right corner with realistic glowing circle (Sun.jpeg) ── */}
+      {/* Outer soft diffuse glow */}
+      <Ellipse cx={W * 0.88} cy={H * 0.04} rx={S * 75} ry={S * 75} fill="url(#sunGlow)" />
+      {/* Inner soft halo */}
+      <Ellipse cx={W * 0.88} cy={H * 0.04} rx={S * 38} ry={S * 38} fill="url(#sunGlow)" />
+      {/* Realistic Glowing Circle Sun Image */}
+      <SvgImage
+        href={require("../../assets/Sun.jpeg")}
+        x={W * 0.88 - S * 26}
+        y={H * 0.04 - S * 26}
+        width={S * 52}
+        height={S * 52}
+        clipPath="url(#sunCircleClip)"
+        opacity={0.88}
+        preserveAspectRatio="xMidYMid slice"
+      />
 
       {/* ── 3. Cloud cluster — upper-left (large) ──────────────────────── */}
       {/* Shadow base */}

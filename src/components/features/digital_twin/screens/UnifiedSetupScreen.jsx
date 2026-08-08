@@ -46,52 +46,50 @@ export default function UnifiedSetupScreen({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-md mx-auto flex flex-col justify-start text-left px-3 py-2 space-y-3"
+      className="w-full max-w-md mx-auto flex flex-col justify-start text-left px-3 py-2 space-y-3.5"
     >
       {/* ================= SECTION 1: AWAKENING REVEAL ================= */}
-      <div className="text-center space-y-1.5 pt-1">
-        <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md">
+      <div className="text-center space-y-2 pt-1">
+        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full border border-white/20 bg-white/5 backdrop-blur-md">
           <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-          <span className="text-[10px] tracking-wider uppercase font-medium text-white/90">
+          <span className="text-[10px] tracking-widest uppercase font-semibold text-white/90">
             NEXT ARCHER PROTOCOL
           </span>
         </div>
 
-        {/* Compact Sacred Geometry Orb */}
-        <div className="flex justify-center my-1 cursor-pointer" onClick={playHaptic}>
-          <SacredGeometryOrb size={120} />
+        {/* Clean Unsquished Logo */}
+        <div className="flex justify-center my-2 cursor-pointer" onClick={playHaptic}>
+          <img
+            src="/nextarcherlogo.jpeg"
+            alt="Next Archer Logo"
+            className="h-11 w-auto max-w-[160px] object-contain rounded-xl border border-white/20 px-3.5 py-1.5 bg-black/50 shadow-sm transition-transform hover:scale-105"
+            onError={(e) => {
+              e.target.src = '/logo.png';
+              e.target.className = 'h-8 w-auto object-contain filter invert contrast-200';
+            }}
+          />
         </div>
 
-        <h1 className="text-base sm:text-lg font-bold text-white tracking-wide leading-tight">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
           Congratulations!
-          <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white via-spiritual-200 to-spiritual-400">
-            You Have Unlocked Your Digital Twin
-          </span>
         </h1>
-        <p className="text-[11px] text-spiritual-300 font-light max-w-xs mx-auto leading-normal">
-          Name your Digital Twin and upload a gallery photo to synthesize your monochrome soul card.
+        <h2 className="text-base sm:text-lg font-bold text-white/90 tracking-wide mt-1">
+          You Have Unlocked Your Digital Twin
+        </h2>
+        <p className="text-xs sm:text-sm text-spiritual-200 font-normal max-w-sm mx-auto leading-relaxed mt-1.5">
+          Upload a gallery photo to synthesize your monochrome soul card for <span className="font-bold text-white">{twinName || 'Archer_2.0'}</span>.
         </p>
       </div>
 
-      {/* ================= SECTION 2: NAMING YOUR TWIN ================= */}
-      <div className="glass-panel p-3 rounded-xl border border-white/15 space-y-1.5">
-        <label className="text-[11px] font-semibold text-white tracking-wide block">
-          What should be the name of your Digital Twin?
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={twinName}
-            onChange={(e) => setTwinName(e.target.value)}
-            placeholder="Type your twin's name..."
-            maxLength={28}
-            className="w-full px-3 py-2.5 rounded-lg bg-spiritual-900 border border-white/20 text-white placeholder-spiritual-500 focus:outline-none focus:border-white text-xs font-sans"
-          />
-          {twinName && (
-            <div className="absolute right-2.5 top-2.5 text-[10px] text-spiritual-400">
-              {twinName.length}/28
-            </div>
-          )}
+      {/* ================= SECTION 2: SYNTHESIZED DIGITAL TWIN NAME ================= */}
+      <div className="glass-panel p-3.5 rounded-xl border border-white/20 bg-black/60 backdrop-blur-xl shadow-lg relative overflow-hidden">
+        <div className="relative z-10">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-spiritual-400 block mb-0.5">
+            Synthesized Digital Twin Name
+          </span>
+          <span className="text-lg font-extrabold text-white tracking-wide font-sans">
+            {twinName || 'Archer_2.0'}
+          </span>
         </div>
       </div>
 
