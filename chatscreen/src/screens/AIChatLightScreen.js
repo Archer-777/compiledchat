@@ -89,19 +89,36 @@ const AIChatLightScreen = ({ navigation, route }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTenMinModal, setShowTenMinModal] = useState(false);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
+  const [isGuest, setIsGuest] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@spiritual_register_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.isGuest === false && (parsed.email || parsed.firstName)) {
+            setIsGuest(false);
+          }
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => {
         const next = prev + 1;
-        if (next === 120) {
+        if (isGuest && next === 120) {
           setShowTenMinModal(true);
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigation]);
+  }, [isGuest, navigation]);
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
@@ -258,7 +275,58 @@ const AIChatLightScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleMicPress = () => Alert.alert('Voice Input', 'Listening...');
+  const handleMicPress = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('⚠️ Voice input not supported in browser');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      showToast('🎤 Voice input stopped');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        showToast('🎙️ Listening...');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInputText(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
 
   const handleGoBack = () => {
     if (navigation?.goBack) navigation.goBack();
@@ -362,9 +430,11 @@ const AIChatLightScreen = ({ navigation, route }) => {
                   SKY CONSCIOUSNESS • {timeName.toUpperCase()}{solar.auroraActive ? ' • AURORA' : ''}
                 </Text>
                 {isSmallScreen && (
-                  <View style={styles.timerPill}>
-                    <Ionicons name="time-outline" size={10} color="#00ffcc" style={{ marginRight: 2 }} />
-                    <Text style={styles.timerText}>{formatTime(elapsedSeconds)}</Text>
+                  <View style={[styles.timerPill, !isGuest && { backgroundColor: 'rgba(0, 229, 255, 0.2)', borderColor: 'rgba(0, 229, 255, 0.5)' }]}>
+                    <Ionicons name={!isGuest ? "flash-outline" : "time-outline"} size={10} color={!isGuest ? '#00e5ff' : '#00ffcc'} style={{ marginRight: 2 }} />
+                    <Text style={[styles.timerText, !isGuest && { color: '#00e5ff' }]}>
+                      {!isGuest ? '⚡ UNLIMITED' : formatTime(elapsedSeconds)}
+                    </Text>
                   </View>
                 )}
               </View>

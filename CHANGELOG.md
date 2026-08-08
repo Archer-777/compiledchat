@@ -4,6 +4,17 @@
 
 ## [Unreleased] - 2026-08-08
 
+- **Unlimited Chat Duration for Registered Users**:
+  - **Removed Session Timer Cutoff**: Updated `AIChatDarkScreen.js` and `AIChatLightScreen.js` timer logic (`if (isGuest && next === 120)`). Registered users now have **unlimited chat duration** with zero session completion modals or time limits.
+  - **Header Status Badge**: Displayed a cyan **`⚡ UNLIMITED`** status pill in top header for logged-in registered users, signifying active unlimited access.
+  - **Guest Reflection Preserved**: Maintained 2-minute trial reflection countdown modal strictly for unauthenticated guest visitors (`isGuest === true`).
+- **Session Completion Redirect to Register Page**:
+  - **Register Page Redirection**: Updated `Session Completed` modal action button in `AIChatDarkScreen.js` and `AIChatLightScreen.js` to redirect users directly to `http://localhost:3000/register` (`Proceed to Register ✨`).
+  - **Iframe Parent Navigation**: Handled iframe context safely (`window.parent.location.href`), ensuring top-level window redirection when embedded within main app.
+- **Real-Time Voice Input (Web Speech API Integration)**:
+  - Replaced static placeholder alert for microphone button in `AIChatDarkScreen.js` and `AIChatLightScreen.js` with active browser speech recognition (`window.SpeechRecognition` / `window.webkitSpeechRecognition`).
+  - Added real-time speech-to-text transcription directly into chat input field (`inputText`).
+  - Implemented active listening UI feedback (glowing red pulsing mic button & status toasts when listening starts/stops).
 - **Full Chat Database Persistence & New Chat Session Engine**:
   - **Supabase DB & Local Chat Storage**: Implemented `saveChatSession()` and `getChatSessions()` in `storage.js`. Every sent message and AI completion is automatically persisted in real time to both remote Supabase `chat_sessions` DB and local storage.
   - **`+ New Chat` Button Functionality**: Clicking **`+ New Chat`** auto-saves active conversation to history, generates fresh session ID, resets chat screen state, and updates `RECENT CHATS` in real time.

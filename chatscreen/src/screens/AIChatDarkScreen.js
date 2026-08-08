@@ -113,19 +113,22 @@ const AIChatDarkScreen = ({ navigation, route }) => {
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [userProfileName, setUserProfileName] = useState('Archer');
   const [historyItems, setHistoryItems] = useState([]);
+  const [isGuest, setIsGuest] = useState(true);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setElapsedSeconds((prev) => {
         const next = prev + 1;
-        if (next === 120) {
+        if (isGuest && next === 120) {
           setShowTenMinModal(true);
         }
         return next;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigation]);
+  }, [isGuest, navigation]);
 
   useEffect(() => {
     let isMounted = true;
@@ -362,7 +365,58 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleMicPress = () => Alert.alert('Voice Input', 'Listening...');
+  const handleMicPress = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('⚠️ Voice input not supported in browser');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      showToast('🎤 Voice input stopped');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        showToast('🎙️ Listening...');
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInputText(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
 
   const handleGoBack = () => {
     if (navigation?.goBack) navigation.goBack();
@@ -582,15 +636,15 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         {/* Top Center Timer Pill — Hidden on small screens to avoid header collision */}
         {!isSmallScreen && (
           <View style={styles.topCenterTimerContainer} pointerEvents="none">
-            <View style={styles.timerPill}>
+            <View style={[styles.timerPill, !isGuest && { backgroundColor: 'rgba(0, 229, 255, 0.2)', borderColor: 'rgba(0, 229, 255, 0.5)' }]}>
               <Ionicons
-                name="time-outline"
+                name={!isGuest ? "flash-outline" : "time-outline"}
                 size={11}
-                color={isNightOrEvening ? '#ffffff' : '#000000'}
+                color={!isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000')}
                 style={{ marginRight: 3 }}
               />
-              <Text style={[styles.timerText, { color: isNightOrEvening ? '#ffffff' : '#000000' }]}>
-                {formatTime(elapsedSeconds)}
+              <Text style={[styles.timerText, { color: !isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000') }]}>
+                {!isGuest ? '⚡ UNLIMITED' : formatTime(elapsedSeconds)}
               </Text>
             </View>
           </View>
@@ -620,10 +674,10 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   {displayTimeName.toUpperCase()} AMBIENT{solar.auroraActive ? ' • AURORA' : ''}
                 </Text>
                 {isSmallScreen && (
-                  <View style={styles.timerPillInline}>
-                    <Ionicons name="time-outline" size={10} color={isNightOrEvening ? '#ffffff' : '#000000'} style={{ marginRight: 2 }} />
-                    <Text style={[styles.timerTextInline, { color: isNightOrEvening ? '#ffffff' : '#000000' }]}>
-                      {formatTime(elapsedSeconds)}
+                  <View style={[styles.timerPillInline, !isGuest && { backgroundColor: 'rgba(0, 229, 255, 0.2)', borderColor: 'rgba(0, 229, 255, 0.5)' }]}>
+                    <Ionicons name={!isGuest ? "flash-outline" : "time-outline"} size={10} color={!isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000')} style={{ marginRight: 2 }} />
+                    <Text style={[styles.timerTextInline, { color: !isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000') }]}>
+                      {!isGuest ? '⚡ UNLIMITED' : formatTime(elapsedSeconds)}
                     </Text>
                   </View>
                 )}
@@ -794,20 +848,24 @@ const AIChatDarkScreen = ({ navigation, route }) => {
               <Image source={require('../../nextarcherlogo.jpeg')} resizeMode="contain" style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12 }} />
               <Text style={styles.modalTitle}>Session Completed</Text>
               <Text style={styles.modalDesc}>
-                Your 2-minute reflection cycle is complete.
+                Your 2-minute trial reflection cycle is complete. Register for unlimited spiritual AI sessions.
               </Text>
               <TouchableOpacity
                 style={styles.modalBtn}
                 onPress={() => {
                   setShowTenMinModal(false);
                   if (typeof window !== 'undefined') {
-                    window.location.href = 'http://localhost:3000/heal-me';
+                    if (window.parent && window.parent !== window) {
+                      window.parent.location.href = 'http://localhost:3000/register';
+                    } else {
+                      window.location.href = 'http://localhost:3000/register';
+                    }
                   } else if (navigation && navigation.navigate) {
-                    navigation.navigate('HealMe');
+                    navigation.navigate('Register');
                   }
                 }}
               >
-                <Text style={styles.modalBtnText}>Proceed to Heal Me ✨</Text>
+                <Text style={styles.modalBtnText}>Proceed to Register ✨</Text>
               </TouchableOpacity>
             </View>
           </View>
