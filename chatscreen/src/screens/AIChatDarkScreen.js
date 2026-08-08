@@ -141,8 +141,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
           if (nameFromUrl && isMounted) {
             const cleanName = nameFromUrl.trim();
             setUserProfileName(cleanName);
+            setIsGuest(false);
             try {
-              window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanName }));
+              window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanName, isGuest: false }));
             } catch (e) {}
             return;
           }
@@ -164,8 +165,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
             if (dbName) {
               const cleanDbName = dbName.trim();
               setUserProfileName(cleanDbName);
+              setIsGuest(false);
               try {
-                window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanDbName, email: data[0].email }));
+                window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanDbName, email: data[0].email, isGuest: false }));
               } catch (e) {}
               return;
             }
@@ -183,6 +185,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
             const localName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
             if (localName && isMounted) {
               setUserProfileName(localName.trim());
+              if (parsed.isGuest === false || parsed.email) {
+                setIsGuest(false);
+              }
             }
           }
         }

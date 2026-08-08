@@ -1,4 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
+/* Zero White Space Overscroll & Global Dark Theme */
+html, body, #root, #app {
+  background-color: #040814 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100vh !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+/* Eliminate focus outline boxes across all input elements */
+input:focus, textarea:focus, select:focus, div:focus {
+  outline: none !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
 
 /* Global Font Stack */
 body, input, textarea, select, button {
