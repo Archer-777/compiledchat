@@ -1,10 +1,12 @@
 /**
  * Unified API Client for NextArcher / Spiritualize AI
- * Connects frontend to local Python FastAPI backend (http://127.0.0.1:8000)
+ * Connects frontend to local Node Express backend (http://localhost:4000)
  * with graceful fallback to client-side localStorage for guest users.
  */
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
+  ? `${import.meta.env.VITE_BACKEND_URL}/api`
+  : 'http://localhost:4000/api';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;

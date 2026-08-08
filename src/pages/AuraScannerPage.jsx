@@ -23,6 +23,7 @@ import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
 import databaseService from '@/services/databaseService';
 import auraPredictionService from '@/services/auraPredictionService';
+import { seedAnishProfile } from '@/services/seedAnishProfile';
 import { sendPhonePasswordResetOTP, validateOTP } from '@/utils/otp';
 import { resetUserPassword } from '@/utils/storage';
 import { supabase, isSupabaseConfigured } from '@/services/supabaseClient';
@@ -348,31 +349,42 @@ export default function AuraScannerPage() {
 
     setLoginError(null);
 
-    // 2. Supabase User Profile Lookup
+    // 2. Supabase User Profile Lookup in 'users' table
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
-          .from('user_profiles')
+        let { data, error } = await supabase
+          .from('users')
           .select('*')
-          .eq('email', enteredEmail)
-          .single();
+          .eq('email', enteredEmail);
 
-        if (!error && data) {
+        if (error || !data || data.length === 0) {
+          const res = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('email', enteredEmail);
+          data = res.data;
+          error = res.error;
+        }
+
+        if (!error && data && data.length > 0) {
+          const userRow = data[0];
           const userObj = {
-            firstName: data.first_name || (data.full_name ? data.full_name.split(' ')[0] : ''),
-            lastName: data.last_name || (data.full_name ? data.full_name.split(' ').slice(1).join(' ') : ''),
-            fullName: data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-            email: data.email,
-            phone: data.phone || '',
-            age: data.age ? String(data.age) : '',
-            gender: data.gender || '',
-            profession: data.profession || '',
-            registeredAt: data.registered_at || data.updated_at
+            firstName: userRow.first_name || (userRow.full_name ? userRow.full_name.split(' ')[0] : 'Archer'),
+            lastName: userRow.last_name || (userRow.full_name ? userRow.full_name.split(' ').slice(1).join(' ') : ''),
+            fullName: userRow.full_name || `${userRow.first_name || ''} ${userRow.last_name || ''}`.trim(),
+            email: userRow.email,
+            phone: userRow.phone || '',
+            age: userRow.age ? String(userRow.age) : '',
+            gender: userRow.gender || '',
+            profession: userRow.profession || '',
+            registeredAt: userRow.registered_at || userRow.created_at || userRow.updated_at,
+            isGuest: false,
           };
 
-          // Overwrite localStorage with active session data
+          // Store in active session
           if (typeof window !== 'undefined' && window.localStorage) {
             window.localStorage.setItem('@spiritual_register_user', JSON.stringify(userObj));
+            window.localStorage.setItem('@active_auth_session', JSON.stringify(userObj));
           }
 
           setShowManualLoginModal(false);
@@ -381,6 +393,12 @@ export default function AuraScannerPage() {
           setMatchStatus('matched');
           setSemanticAnalysis(`Authenticated as ${userObj.firstName || enteredEmail}. Aura active.`);
           setScanComplete(true);
+          showToast(`Welcome back, ${userObj.firstName || userObj.fullName}! Authenticated from DB.`);
+
+          // Redirect smoothly to chat with authenticated session
+          setTimeout(() => {
+            navigate(`/chat?email=${encodeURIComponent(userObj.email)}`);
+          }, 1200);
           return;
         }
       } catch (err) {
@@ -388,8 +406,8 @@ export default function AuraScannerPage() {
       }
     }
 
-    // 3. If no profile matches the email, smoothly redirect to Registration form
-    showToast('No existing profile found. Redirecting to sign up...');
+    // 3. If no profile matches the email, redirect to Registration form
+    showToast('No existing profile found in DB. Redirecting to sign up...');
     setShowManualLoginModal(false);
     setTimeout(() => {
       navigate('/register');

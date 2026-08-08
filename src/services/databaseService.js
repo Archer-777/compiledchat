@@ -50,7 +50,7 @@ export const databaseService = {
     }
 
     try {
-      const { data, error } = await supabase.from('user_auras').select('id').limit(1);
+      const { data, error } = await supabase.from('face_descriptors').select('id').limit(1);
       if (error && error.code !== 'PGRST116') {
         return { connected: false, mode: 'configured_offline', message: error.message };
       }
@@ -127,17 +127,14 @@ export const databaseService = {
         }
 
         const dbRecord = {
-          image_url: imageUrl || (image && image.startsWith('http') ? image : null),
-          image_data: imageUrl ? null : image, // Save raw base64 only if storage upload fails
-          signature: typeof signature === 'object' ? JSON.stringify(signature) : signature,
-          embedding: rawVector && rawVector.length === 128 ? rawVector : null,
-          frequency: frequency,
-          resonance_score: resonanceScore,
+          user_id: payload.user_id || 'a0a0a0a0-8888-4444-9999-000000000001',
+          embedding: rawVector && rawVector.length === 128 ? JSON.stringify(rawVector) : null,
+          device: 'web',
         };
 
         const { data, error } = await supabase
-          .from('user_auras')
-          .insert([dbRecord])
+          .from('face_descriptors')
+          .upsert([dbRecord], { onConflict: 'user_id' })
           .select();
 
         if (error) {
@@ -170,54 +167,22 @@ export const databaseService = {
 
     const MATCH_THRESHOLD = 0.6;
 
-    // 1. Server-side pgvector distance search via match_aura_scan RPC function
-    if (isSupabaseConfigured) {
-      try {
-        const { data: rpcMatches, error: rpcError } = await supabase.rpc('match_aura_scan', {
-          query_embedding: curDesc,
-          match_threshold: MATCH_THRESHOLD,
-          match_count: 1,
-        });
-
-        if (!rpcError && rpcMatches && rpcMatches.length > 0) {
-          const matchedRow = rpcMatches[0];
-          const confidence = Math.max(0, Math.round((1 - matchedRow.distance / MATCH_THRESHOLD) * 100));
-          console.log(`[DB pgvector RPC] Match found! Distance: ${matchedRow.distance.toFixed(4)}, Confidence: ${confidence}%`);
-          return {
-            match: true,
-            score: confidence,
-            aura: {
-              id: matchedRow.id,
-              image: matchedRow.image_url || matchedRow.image_data,
-              signature: matchedRow.signature,
-              frequency: matchedRow.frequency,
-              resonanceScore: matchedRow.resonance_score,
-            },
-          };
-        }
-      } catch (err) {
-        console.warn('[DB pgvector RPC] Error or RPC not configured:', err);
-      }
-    }
-
-    // 2. Metadata-only query fallback (avoids fetching large base64 image strings)
+    // 1. Direct high-performance query against face_descriptors table
     let savedAuras = [];
 
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
-          .from('user_auras')
-          .select('id, image_url, signature, frequency, resonance_score, created_at')
+          .from('face_descriptors')
+          .select('id, user_id, embedding, device, created_at')
           .order('created_at', { ascending: false })
           .limit(100);
 
         if (!error && data && data.length > 0) {
           savedAuras = data.map((d) => ({
             id: d.id,
-            image: d.image_url,
-            signature: d.signature,
-            frequency: d.frequency,
-            resonanceScore: d.resonance_score,
+            user_id: d.user_id,
+            signature: d.embedding,
             created_at: d.created_at,
           }));
         }
@@ -304,7 +269,7 @@ export const databaseService = {
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
-          .from('user_auras')
+          .from('face_descriptors')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(1);
@@ -314,10 +279,8 @@ export const databaseService = {
           return {
             source: 'supabase',
             aura: {
-              image: aura.image_url || aura.image_data,
-              signature: aura.signature,
-              frequency: aura.frequency,
-              resonanceScore: aura.resonance_score,
+              id: aura.id,
+              signature: aura.embedding,
               timestamp: aura.created_at,
             },
           };
@@ -470,29 +433,39 @@ export const databaseService = {
   async fetchAuthorizedUserProfiles() {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase
-          .from('user_profiles')
+        let { data, error } = await supabase
+          .from('users')
           .select('*')
           .order('updated_at', { ascending: false });
+
+        if (error || !data || data.length === 0) {
+          const res = await supabase
+            .from('user_profiles')
+            .select('*')
+            .order('updated_at', { ascending: false });
+          data = res.data;
+          error = res.error;
+        }
 
         if (!error && data && data.length > 0) {
           const res = {};
           data.forEach(item => {
-            res[item.platform] = {
-              name: item.full_name,
-              handle: item.username,
+            const key = item.platform || 'account';
+            res[key] = {
+              name: item.full_name || item.first_name,
+              handle: item.username || item.email,
               age: item.age,
-              address: item.address,
+              address: item.address || '',
               email: item.email,
-              token: item.access_token,
-              verifiedDate: new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              auraImage: item.aura_image_url,
+              token: item.access_token || '',
+              verifiedDate: new Date(item.updated_at || item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              auraImage: item.aura_image_url || '',
             };
           });
           return res;
         }
       } catch (err) {
-        console.warn('[DB] Error fetching user_profiles from Supabase:', err);
+        console.warn('[DB] Error fetching users from Supabase:', err);
       }
     }
 

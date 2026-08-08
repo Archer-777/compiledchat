@@ -15,6 +15,7 @@ export default function HealingPage() {
         currentChakra={currentChakra}
         onChakraChange={(id) => setCurrentChakra(id)}
         onRegister={() => navigate('/register')}
+        onDigitalTwin={() => navigate('/digital-twin')}
         onBack={() => navigate('/heal-me')}
       />
     </WebsiteLayout>

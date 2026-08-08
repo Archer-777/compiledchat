@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../theme/fonts';
 
+import { getChatSessions } from '../utils/storage';
+
 export function DesktopSidebar({
   isDark = true,
   currentSlot,
@@ -27,13 +29,22 @@ export function DesktopSidebar({
   const [isRegistered, setIsRegistered] = useState(false);
   const [localHistoryItems, setLocalHistoryItems] = useState([]);
 
+  const loadSessions = async () => {
+    try {
+      const sessions = await getChatSessions(null, 'spiritual');
+      if (Array.isArray(sessions)) {
+        setLocalHistoryItems(sessions);
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('@spiritual_register_user');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed.isGuest === false && parsed.email) {
+        const activeAuth = window.localStorage.getItem('@active_auth_session');
+        if (activeAuth) {
+          const parsed = JSON.parse(activeAuth);
+          if (parsed && parsed.email) {
             const name = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
             if (name) {
               setUserName(name.trim());
@@ -41,18 +52,18 @@ export function DesktopSidebar({
             }
           }
         }
-        const savedChatRaw = window.localStorage.getItem('@spiritual_chat_sessions');
-        if (savedChatRaw) {
-          const parsedSessions = JSON.parse(savedChatRaw);
-          if (Array.isArray(parsedSessions)) {
-            setLocalHistoryItems(parsedSessions);
-          }
-        }
       }
     } catch (e) {}
+
+    loadSessions();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('chat-sessions-changed', loadSessions);
+      return () => window.removeEventListener('chat-sessions-changed', loadSessions);
+    }
   }, []);
 
-  const displayHistory = (historyItems && historyItems.length > 0) ? historyItems : localHistoryItems;
+  const displayHistory = localHistoryItems.length > 0 ? localHistoryItems : (historyItems || []);
 
   const handleProfileClick = () => {
     if (typeof window !== 'undefined') {
@@ -71,7 +82,7 @@ export function DesktopSidebar({
       {/* Brand Header */}
       <View style={styles.brandHeader}>
         <View style={styles.brandBadge}>
-          <Image source={require('../../nextarcherlogo.jpeg')} style={styles.brandLogo} />
+          <Image source={require('../../nextarcherlogo.jpeg')} resizeMode="contain" style={styles.brandLogo} />
         </View>
         <View>
           <Text style={[styles.brandTitle, { color: textColor }]}>Next Archer</Text>

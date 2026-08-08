@@ -16,10 +16,10 @@ import './styles/index.css';
 export const checkIsAuthenticated = () => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem('@spiritual_register_user');
+      const raw = window.localStorage.getItem('@active_auth_session');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && (parsed.email || parsed.firstName || parsed.full_name || parsed.fullName)) {
+        if (parsed && parsed.email) {
           return true;
         }
       }
@@ -32,6 +32,7 @@ export const checkIsAuthenticated = () => {
 export const handleLogout = (navigate) => {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('@active_auth_session');
       window.localStorage.removeItem('@spiritual_register_user');
     }
   } catch (e) {}
@@ -44,17 +45,24 @@ export const handleLogout = (navigate) => {
 
 function ChatRedirect() {
   React.useEffect(() => {
+    let email = '';
     let firstName = '';
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('@spiritual_register_user');
+        const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
         if (raw) {
           const parsed = JSON.parse(raw);
-          firstName = parsed.firstName || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+          email = parsed.email || '';
+          firstName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
         }
       }
     } catch (e) {}
-    const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
+
+    const params = new URLSearchParams();
+    if (email) params.set('email', email);
+    if (firstName) params.set('firstName', firstName);
+    const qStr = params.toString();
+    const query = qStr ? `?${qStr}` : '';
     window.location.href = `http://localhost:8081/${query}`;
   }, []);
 

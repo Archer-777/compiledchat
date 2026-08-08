@@ -41,6 +41,16 @@ export default function SoulMatrixPage() {
                   chakras={profile.chakras}
                   onBack={() => navigate(-1)}
                 />
+
+                {/* HEAL MY CHAKRA BUTTON */}
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => navigate('/heal-me')}
+                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-all transform hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 border border-white/20 font-['Poppins']"
+                  >
+                    <span>✨ HEAL MY CHAKRA →</span>
+                  </button>
+                </div>
               </div>
             </div>
 

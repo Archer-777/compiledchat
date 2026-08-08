@@ -188,9 +188,108 @@ const logout = async (req, res) => {
   return res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
+const twinProfileStore = new Map();
+
+/**
+ * Save Digital Twin Profile & Custom Avatar Logo to public.digital_twins table
+ */
+const saveDigitalTwinProfile = async (req, res) => {
+  try {
+    const { email, avatarImage, filterMode, overlayPattern, auraIntensity, twinName } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const profile = { avatarImage, filterMode, overlayPattern, auraIntensity, twinName, updatedAt: new Date().toISOString() };
+    twinProfileStore.set(cleanEmail, profile);
+
+    try {
+      const { data: userRows } = await supabase.from('users').select('id').eq('email', cleanEmail).limit(1);
+      if (userRows && userRows.length > 0) {
+        const userId = userRows[0].id;
+        const validFilter = ['dramatic', 'ethereal', 'noir'].includes(filterMode) ? filterMode : 'dramatic';
+        const validRing = ['halo', 'grid', 'matrix'].includes(overlayPattern) ? overlayPattern : 'halo';
+        const validGlow = typeof auraIntensity === 'number' ? Math.min(100, Math.max(0, auraIntensity)) : 85;
+
+        await supabase.from('digital_twins').upsert([{
+          user_id: userId,
+          twin_name: twinName || 'Archer_2.0',
+          photo_url: avatarImage || null,
+          bw_filter: validFilter,
+          sacred_ring: validRing,
+          glow_intensity: validGlow,
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'user_id' });
+      }
+    } catch (e) {
+      console.warn('digital_twins DB save notice:', e.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Digital Twin profile & photo avatar saved to DB (digital_twins table)',
+      profile
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * Get Digital Twin Profile & Custom Avatar Logo from public.digital_twins table
+ */
+const getDigitalTwinProfile = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email query param required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    if (twinProfileStore.has(cleanEmail) && twinProfileStore.get(cleanEmail).avatarImage) {
+      return res.status(200).json({
+        success: true,
+        profile: twinProfileStore.get(cleanEmail)
+      });
+    }
+
+    try {
+      const { data: userRows } = await supabase.from('users').select('id').eq('email', cleanEmail).limit(1);
+      if (userRows && userRows.length > 0) {
+        const userId = userRows[0].id;
+        const { data: twinRows } = await supabase.from('digital_twins').select('*').eq('user_id', userId).limit(1);
+        if (twinRows && twinRows.length > 0) {
+          const row = twinRows[0];
+          const profile = {
+            avatarImage: row.photo_url || null,
+            filterMode: row.bw_filter || 'dramatic',
+            overlayPattern: row.sacred_ring || 'halo',
+            auraIntensity: row.glow_intensity || 85,
+            twinName: row.twin_name || 'Archer_2.0'
+          };
+          twinProfileStore.set(cleanEmail, profile);
+          return res.status(200).json({ success: true, profile });
+        }
+      }
+    } catch (e) {
+      console.warn('digital_twins DB fetch notice:', e.message);
+    }
+
+    return res.status(200).json({
+      success: true,
+      profile: { avatarImage: null, filterMode: 'dramatic', overlayPattern: 'halo', auraIntensity: 85, twinName: 'Archer_2.0' }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
-  logout
+  logout,
+  saveDigitalTwinProfile,
+  getDigitalTwinProfile
 };

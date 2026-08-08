@@ -33,8 +33,11 @@ app.get('/health', (req, res) => {
 
 // API Routes Mounting
 app.use('/api/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/v1/chat', chatRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/v1/otp', otpRoutes);
 
 // Global 404 Handler
 app.use((req, res) => {

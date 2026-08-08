@@ -156,6 +156,15 @@ export default function RegisterPage() {
     };
     const result = await saveUserData(userData);
     if (result.success) {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('@active_auth_session', JSON.stringify({
+            firstName: formData.firstName,
+            email: formData.email,
+            isGuest: false,
+          }));
+        }
+      } catch (e) {}
       if (result.syncedSupabase) {
         setIsSupabaseSynced(true);
       }
@@ -408,9 +417,9 @@ export default function RegisterPage() {
 
             <button
               className="register-primary-btn"
-              onClick={() => navigate('/digital-twin')}
+              onClick={() => navigate('/soul-matrix')}
             >
-              Proceed to Digital Twin →
+              Proceed to Soul Matrix Dashboard →
             </button>
           </div>
         )}

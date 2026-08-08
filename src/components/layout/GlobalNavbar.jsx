@@ -42,8 +42,13 @@ export default function GlobalNavbar() {
   const handleNavigation = (item) => {
     setMenuOpen(false);
     if (item.path === '/chat') {
-      const firstName = userData?.firstName || (userData?.full_name ? userData.full_name.split(' ')[0] : '');
-      const query = firstName ? `?firstName=${encodeURIComponent(firstName)}` : '';
+      const email = userData?.email || '';
+      const firstName = userData?.firstName || userData?.first_name || (userData?.full_name ? userData.full_name.split(' ')[0] : '');
+      const params = new URLSearchParams();
+      if (email) params.set('email', email);
+      if (firstName) params.set('firstName', firstName);
+      const qStr = params.toString();
+      const query = qStr ? `?${qStr}` : '';
       window.location.href = `http://localhost:8081/${query}`;
     } else {
       navigate(item.path);

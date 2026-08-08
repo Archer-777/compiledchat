@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mic, Flame, MessageSquare, Menu, X, PlusCircle, Cpu, User, Heart, Zap } from 'lucide-react';
+import { MessageSquare, ArrowLeft, Send, Mic, MicOff, Zap, Flame, Menu, X, PlusCircle, Cpu, User, Heart } from 'lucide-react';
+import { getChatSessions, saveChatSession, getChatMessagesForSession, generateUUID } from '../utils/storage';
 import './DigitalTwinChatScreen.css';
 
 // User avatar matching the orange sunflower eyes and smile
@@ -36,8 +37,11 @@ function ProfileIconSvg() {
 
 export default function DigitalTwinChatScreen() {
   const navigate = useNavigate();
+  const [currentSessionId, setCurrentSessionId] = useState(() => generateUUID());
+  const [recentSessions, setRecentSessions] = useState([]);
   const [userProfileName, setUserProfileName] = useState('Archer');
-  const [isGuest, setIsGuest] = useState(false);
+  const [twinAvatarPhoto, setTwinAvatarPhoto] = useState(null);
+  const [isGuest, setIsGuest] = useState(true);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([
     { id: '1', sender: 'twin', text: 'Hello! How are you today?' },
@@ -52,6 +56,42 @@ export default function DigitalTwinChatScreen() {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const recognitionRef = useRef(null);
   const chatEndRef = useRef(null);
+
+  const loadSessions = async () => {
+    try {
+      const sessions = await getChatSessions(null, 'twin');
+      if (Array.isArray(sessions)) {
+        setRecentSessions(sessions);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const fetchTwinAvatar = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = window.localStorage.getItem('@spiritual_digital_twin_profile');
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p && p.avatarImage) {
+              setTwinAvatarPhoto(p.avatarImage);
+            }
+          }
+        }
+        const user = await getUserData();
+        if (user && user.email) {
+          const res = await fetch(`http://localhost:4000/api/v1/auth/digital-twin-profile?email=${encodeURIComponent(user.email)}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.success && json.profile && json.profile.avatarImage) {
+              setTwinAvatarPhoto(json.profile.avatarImage);
+            }
+          }
+        }
+      } catch (e) {}
+    };
+    fetchTwinAvatar();
+  }, []);
 
   const isSmallScreen = windowWidth < 960;
 
@@ -81,67 +121,162 @@ export default function DigitalTwinChatScreen() {
     setStars(starList);
   }, []);
 
-  // Sync profile name
   useEffect(() => {
+    let isMounted = true;
     const fetchLatestAccount = async () => {
+      let targetEmail = '';
+      let targetName = '';
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const nameFromUrl = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
-        if (nameFromUrl) {
-          setUserProfileName(nameFromUrl.trim());
-          setIsGuest(false);
-          return;
-        }
+        targetEmail = urlParams.get('email') || '';
+        targetName = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
       } catch (e) {}
 
       try {
-        const raw = window.localStorage.getItem('@spiritual_register_user');
+        const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
         if (raw) {
           const parsed = JSON.parse(raw);
-          const localName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
-          if (localName) {
-            setUserProfileName(localName.trim());
-            if (parsed.isGuest === false || parsed.email) {
-              setIsGuest(false);
-            }
-            return;
-          }
+          if (!targetEmail) targetEmail = parsed.email || '';
+          if (!targetName) targetName = parsed.firstName || parsed.first_name || '';
         }
       } catch (e) {}
+
+      if (targetEmail && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('@active_auth_session', JSON.stringify({
+          email: targetEmail,
+          firstName: targetName || 'User',
+          isGuest: false
+        }));
+      }
+
+      if (targetName && isMounted) {
+        setUserProfileName(targetName.trim());
+        setIsGuest(false);
+      }
+
+      if (targetEmail) {
+        try {
+          const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bW55b21sZmNoYXphcGtvaGZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTU1MTgzNCwiZXhwIjoyMTAxMTI3ODM0fQ.n-t9bJZ3juSlIK2OrJRrsSRQhZkbaLZFfNs_Zu8ELuY';
+          const endpoint = `https://qwmnyomlfchazapkohfy.supabase.co/rest/v1/users?email=eq.${encodeURIComponent(targetEmail.toLowerCase().trim())}&select=first_name,full_name,email`;
+          const res = await fetch(endpoint, {
+            headers: {
+              'apikey': serviceKey,
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0 && isMounted) {
+              const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
+              if (dbName) {
+                setUserProfileName(dbName.trim());
+                setIsGuest(false);
+              }
+            }
+          }
+        } catch (e) {}
+        return;
+      }
+
+      if (isMounted) {
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.removeItem('@spiritual_register_user');
+            window.localStorage.removeItem('@active_auth_session');
+          }
+        } catch (e) {}
+        setUserProfileName('Archer');
+        setIsGuest(true);
+      }
     };
 
     fetchLatestAccount();
+    loadSessions();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('chat-sessions-changed', loadSessions);
+      return () => {
+        isMounted = false;
+        window.removeEventListener('chat-sessions-changed', loadSessions);
+      };
+    }
+
+    return () => { isMounted = false; };
   }, []);
+
+  useEffect(() => {
+    if (showMobileDrawer) {
+      loadSessions();
+    }
+  }, [showMobileDrawer]);
 
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (e) => {
+  const handleSelectSession = async (sessionItem) => {
+    if (!sessionItem || !sessionItem.id) return;
+    setCurrentSessionId(sessionItem.id);
+    let msgs = sessionItem.messages;
+    if (!msgs || msgs.length === 0) {
+      msgs = await getChatMessagesForSession(sessionItem.id);
+    }
+    if (msgs && msgs.length > 0) {
+      setMessages(msgs);
+    }
+  };
+
+  const handleNewChatSession = () => {
+    const newId = generateUUID();
+    setCurrentSessionId(newId);
+    setMessages([
+      { id: '1', sender: 'twin', text: 'Hello! Welcome to your Digital Twin Workspace. How can I assist you today?' },
+    ]);
+  };
+
+  const handleSend = async (e) => {
     if (e) e.preventDefault();
     if (!inputText.trim()) return;
 
+    const textToSend = inputText.trim();
     const newMsg = {
       id: Date.now().toString(),
       sender: 'user',
-      text: inputText.trim(),
+      text: textToSend,
     };
 
-    setMessages((prev) => [...prev, newMsg]);
+    const updatedUserMsgs = [...messages, newMsg];
+    setMessages(updatedUserMsgs);
     setInputText('');
 
-    // Simulated Digital Twin Response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          sender: 'twin',
-          text: 'My digital twin consciousness has received your message. I am aligning with your energy stream.',
-        },
-      ]);
-    }, 1000);
+    let aiText = 'My digital twin consciousness has received your message. I am aligning with your energy stream.';
+    let aiMsgId = (Date.now() + 1).toString();
+
+    try {
+      const res = await fetch(`http://localhost:4000/api/v1/chat/sessions/${currentSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: textToSend }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        aiText = data.reply || data.message || aiText;
+        aiMsgId = data.message_id || aiMsgId;
+      }
+    } catch (err) {}
+
+    const finalMsgs = [
+      ...updatedUserMsgs,
+      { id: aiMsgId, sender: 'twin', text: aiText }
+    ];
+    setMessages(finalMsgs);
+
+    saveChatSession({
+      id: currentSessionId,
+      title: updatedUserMsgs.find(m => m.sender === 'user')?.text || textToSend,
+      messages: finalMsgs
+    }, 'twin');
   };
 
   const handleMicPress = () => {
@@ -223,18 +358,7 @@ export default function DigitalTwinChatScreen() {
           </div>
 
           {/* New Chat Button */}
-          <button
-            className="new-chat-btn"
-            onClick={() => {
-              setMessages([
-                {
-                  id: '1',
-                  sender: 'twin',
-                  text: 'Welcome to your Digital Twin. How can I assist you today?',
-                },
-              ]);
-            }}
-          >
+          <button className="new-chat-btn" onClick={handleNewChatSession}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="16" />
@@ -247,20 +371,26 @@ export default function DigitalTwinChatScreen() {
           <div className="recents-section">
             <div className="recents-title">RECENT CHATS</div>
             <div className="recents-list">
-              <div className="recent-chat-item">
-                <MessageSquare size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
-                <div className="recent-chat-info">
-                  <div className="recent-chat-name">Morning Alignment</div>
-                  <div className="recent-chat-time">Today</div>
+              {recentSessions.length > 0 ? (
+                recentSessions.map((item) => (
+                  <div
+                    key={item.id}
+                    className="recent-chat-item"
+                    onClick={() => handleSelectSession(item)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <MessageSquare size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                    <div className="recent-chat-info">
+                      <div className="recent-chat-name">{item.title}</div>
+                      <div className="recent-chat-time">{item.time || 'Recent'}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '8px 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                  No past sessions saved.
                 </div>
-              </div>
-              <div className="recent-chat-item">
-                <MessageSquare size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
-                <div className="recent-chat-info">
-                  <div className="recent-chat-name">Deep Focus & Clarity</div>
-                  <div className="recent-chat-time">Yesterday</div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -303,10 +433,6 @@ export default function DigitalTwinChatScreen() {
               </h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                 <p className="header-subtitle">NIGHT AMBIENT</p>
-                <div className="timer-pill-unlimited">
-                  <Zap size={11} color="#00e5ff" />
-                  <span>⚡ UNLIMITED</span>
-                </div>
               </div>
             </div>
           </div>
@@ -336,8 +462,16 @@ export default function DigitalTwinChatScreen() {
             const isTwin = msg.sender === 'twin';
             return (
               <div key={msg.id} className={`message-row ${isTwin ? 'row-left' : 'row-right'}`}>
-                {/* Twin Avatar - simple black circle */}
-                {isTwin && <div className="twin-avatar-circle" />}
+                {/* Twin Avatar Logo - Custom User Gallery Photo or Sacred CPU Icon */}
+                {isTwin && (
+                  <div className="twin-avatar-circle" style={{ overflow: 'hidden', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#050510' }}>
+                    {twinAvatarPhoto ? (
+                      <img src={twinAvatarPhoto} alt="Digital Twin Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Cpu size={16} color="#00ffcc" />
+                    )}
+                  </div>
+                )}
 
                 {/* Message Bubble Box */}
                 <div className={`message-bubble ${isTwin ? 'bubble-twin' : 'bubble-user'}`}>
@@ -442,6 +576,47 @@ export default function DigitalTwinChatScreen() {
                 <Heart size={18} color="#00ffcc" />
                 <span>Heal Me Sanctuary</span>
               </button>
+            </div>
+            
+            {/* Recent Chats Section in Mobile Drawer */}
+            <div className="recents-section" style={{ marginTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.12)', paddingTop: '16px' }}>
+              <div className="recents-title">RECENT CHATS</div>
+              <div className="recents-list">
+                {recentSessions.length > 0 ? (
+                  recentSessions.map((item) => (
+                    <div
+                      key={item.id}
+                      className="recent-chat-item"
+                      onClick={() => {
+                        setShowMobileDrawer(false);
+                        if (!item || !item.id) return;
+                        setCurrentSessionId(item.id);
+                        let msgs = item.messages;
+                        if (msgs && msgs.length > 0) {
+                          setMessages(msgs);
+                        } else {
+                          getChatMessagesForSession(item.id).then(fetchedMsgs => {
+                            if (fetchedMsgs && fetchedMsgs.length > 0) {
+                              setMessages(fetchedMsgs);
+                            }
+                          });
+                        }
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <MessageSquare size={16} style={{ color: 'rgba(255,255,255,0.6)' }} />
+                      <div className="recent-chat-info">
+                        <div className="recent-chat-name">{item.title}</div>
+                        <div className="recent-chat-time">{item.time || 'Recent'}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '8px 0', fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
+                    No past sessions saved.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="twin-drawer-backdrop" onClick={() => setShowMobileDrawer(false)} />

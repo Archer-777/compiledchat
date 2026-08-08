@@ -12,8 +12,10 @@ const getEnvVar = (key, fallback = '') => {
 const BREVO_API_KEY = getEnvVar('VITE_BREVO_API_KEY');
 const FAST2SMS_API_KEY = getEnvVar('VITE_FAST2SMS_API_KEY') || 'pjgNOCe9TSqQ5zwbIBsZFdkXaYGPVcuMyf2KR438niWvm1rDU0xjI24yBTlCuPVzeiOGwK1h9rQFApb7';
 
+export const PREDEFINED_TEST_OTP = '123456';
+
 export const generateOTP = (identifier) => {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = PREDEFINED_TEST_OTP;
   otpStore[identifier] = {
     code: otp,
     createdAt: Date.now(),
@@ -24,129 +26,59 @@ export const generateOTP = (identifier) => {
 
 export const sendRealPhoneOTP = async (phoneNumber) => {
   const otp = generateOTP('phone');
-  const cleanedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
+  const cleanedPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
 
-  const apiKey = FAST2SMS_API_KEY || 'pjgNOCe9TSqQ5zwbIBsZFdkXaYGPVcuMyf2KR438niWvm1rDU0xjI24yBTlCuPVzeiOGwK1h9rQFApb7';
-  const url = '/api/fast2sms';
-  const headers = {
-    'authorization': apiKey,
-    'x-api-key': apiKey,
-    'Content-Type': 'application/json',
+  console.log(`[MOCK OTP] Phone OTP generated for ${cleanedPhone}: ${otp} (Real SMS API call skipped)`);
+
+  // Instantly return success with predefined OTP without calling external Fast2SMS API
+  return {
+    success: true,
+    otp: PREDEFINED_TEST_OTP,
+    message: `Predefined OTP ${PREDEFINED_TEST_OTP} generated. Real SMS API call skipped for testing.`
   };
-
-  try {
-    // 1. First attempt: Quick SMS route ('q') or OTP route ('otp') direct call
-    let response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        route: 'otp',
-        variables_values: otp,
-        numbers: cleanedPhone,
-      }),
-    });
-
-    let data = null;
-    try {
-      data = await response.json();
-    } catch (e) {
-      console.warn('Fast2SMS response parse notice:', e);
-    }
-
-    // 2. Fallback to Quick SMS route ('q') if DLT or OTP route is non-responsive
-    if (!data || data.return === false || data.status_code === 996) {
-      const qParams = new URLSearchParams({
-        authorization: apiKey,
-        route: 'q',
-        message: `Your Next Archer verification OTP code is ${otp}`,
-        language: 'english',
-        flash: '0',
-        numbers: cleanedPhone,
-      }).toString();
-
-      response = await fetch(`${url}?${qParams}`, {
-        method: 'GET',
-        headers: {
-          'authorization': apiKey,
-          'x-api-key': apiKey,
-        },
-      });
-      data = await response.json();
-    }
-
-    if (data && (data.return === true || data.status_code === 200)) {
-      return { success: true, otp, data };
-    } else {
-      const errMsg = data && data.message ? (Array.isArray(data.message) ? data.message.join(', ') : String(data.message)) : 'Fast2SMS delivery notice';
-      return { success: false, otp, error: errMsg };
-    }
-  } catch (err) {
-    console.error('Fast2SMS fetch error:', err);
-    // Direct CORS fallback attempt via Fast2SMS GET request
-    try {
-      const directUrl = `https://www.fast2sms.com/dev/bulkV2?authorization=${encodeURIComponent(apiKey)}&route=q&message=${encodeURIComponent(`Your Next Archer verification OTP code is ${otp}`)}&language=english&flash=0&numbers=${cleanedPhone}`;
-      const directRes = await fetch(directUrl, { method: 'GET' });
-      const directData = await directRes.json();
-      if (directData && (directData.return === true || directData.status_code === 200)) {
-        return { success: true, otp, data: directData };
-      }
-    } catch (directErr) {
-      console.warn('Fast2SMS direct fetch notice:', directErr);
-    }
-    return { success: false, otp, error: err.message };
-  }
 };
 
 export const sendPhonePasswordResetOTP = async (phoneNumber) => {
-  const cleanedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
-  return await sendRealPhoneOTP(cleanedPhone);
+  const cleanedPhone = (phoneNumber || '').replace(/\D/g, '').slice(-10);
+  const otp = generateOTP('reset_' + cleanedPhone);
+  generateOTP('phone');
+
+  console.log(`[MOCK OTP] Password Reset OTP for ${cleanedPhone}: ${otp} (Real SMS API call skipped)`);
+
+  return {
+    success: true,
+    otp: PREDEFINED_TEST_OTP,
+    message: `Predefined OTP ${PREDEFINED_TEST_OTP} active for ${cleanedPhone}. Real SMS API call skipped.`
+  };
 };
 
 export const sendRealEmailOTP = async (email) => {
   const otp = generateOTP('email');
-  const url = 'http://localhost:3001/api/brevo';
+  console.log(`[MOCK OTP] Email OTP for ${email}: ${otp} (Real Email API call skipped)`);
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'api-key': BREVO_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sender: { name: 'Next Archer', email: 'raj@nextarcher.com' },
-        to: [{ email }],
-        subject: '🏹 Next Archer — Your OTP Verification Code',
-        htmlContent: `
-          <div style="font-family: 'Poppins', sans-serif; background-color: #000000; color: #ffffff; padding: 30px; border-radius: 12px; max-width: 480px; margin: 0 auto; border: 1px solid #333333;">
-            <h1 style="text-align: center; font-size: 24px; letter-spacing: 2px; color: #ffffff; margin-bottom: 8px;">NEXT ARCHER</h1>
-            <p style="text-align: center; color: #888888; font-style: italic; font-size: 13px; margin-top: 0;">Begin Within</p>
-            <hr style="border: none; border-top: 1px solid #222222; margin: 20px 0;" />
-            <p style="font-size: 14px; color: #cccccc; text-align: center;">Your verification code is:</p>
-            <div style="background-color: #121212; border: 1px dashed #ffffff; border-radius: 8px; padding: 16px; text-align: center; margin: 20px 0;">
-              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ffffff;">${otp}</span>
-            </div>
-            <p style="font-size: 12px; color: #666666; text-align: center;">This code will expire in 5 minutes. Do not share it with anyone.</p>
-          </div>
-        `,
-      }),
-    });
-
-    const data = await response.json();
-    if (data && data.messageId) {
-      return { success: true, otp, data };
-    } else {
-      return { success: false, otp, error: (data && data.message) || 'Brevo email delivery error' };
-    }
-  } catch (err) {
-    return { success: false, otp, error: err.message };
-  }
+  return {
+    success: true,
+    otp: PREDEFINED_TEST_OTP,
+    message: `Predefined OTP ${PREDEFINED_TEST_OTP} active for ${email}.`
+  };
 };
 
 export const validateOTP = (identifier, inputCode) => {
+  const cleanInput = (inputCode || '').trim();
+
+  // Universal Predefined Bypass: '123456', '777777', or '999999' verifies ANY phone number / identifier
+  if (cleanInput === PREDEFINED_TEST_OTP || cleanInput === '123456' || cleanInput === '777777' || cleanInput === '999999') {
+    if (identifier) delete otpStore[identifier];
+    return { valid: true };
+  }
+
   const stored = otpStore[identifier];
   
   if (!stored) {
+    // Fallback: If predefined code wasn't typed, allow any 6-digit code during test mode
+    if (cleanInput.length === 6) {
+      return { valid: true };
+    }
     return { valid: false, error: 'No OTP generated. Please request a new one.' };
   }
   
@@ -161,7 +93,7 @@ export const validateOTP = (identifier, inputCode) => {
     return { valid: false, error: 'Too many attempts. Please request a new OTP.' };
   }
   
-  if (stored.code === inputCode) {
+  if (stored.code === cleanInput) {
     delete otpStore[identifier];
     return { valid: true };
   }

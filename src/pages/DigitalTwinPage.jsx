@@ -21,38 +21,65 @@ export default function DigitalTwinPage() {
   const [isMobileFrame, setIsMobileFrame] = useState(false);
 
   useEffect(() => {
-    const fetchTwinName = async () => {
+    const syncProfileData = async () => {
       try {
-        const user = await getUserData();
-        const rawName = user?.firstName || (user?.fullName ? user.fullName.split(' ')[0] : '');
-        
-        try {
-          const res = await fetch(`http://localhost:8000/api/auth/digital-twin-name${rawName ? `?name=${encodeURIComponent(rawName)}` : ''}`);
-          const json = await res.json();
-          if (json && json.success && json.twinName) {
-            setTwinName(json.twinName);
-            return;
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const raw = window.localStorage.getItem('@spiritual_digital_twin_profile');
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (p.avatarImage) setAvatarImage(p.avatarImage);
+            if (p.filterMode) setFilterMode(p.filterMode);
+            if (p.overlayPattern) setOverlayPattern(p.overlayPattern);
+            if (p.auraIntensity) setAuraIntensity(p.auraIntensity);
+            if (p.twinName) setTwinName(p.twinName);
           }
-        } catch (e) {
-          try {
-            const res2 = await fetch(`http://localhost:4000/api/auth/digital-twin-name${rawName ? `?name=${encodeURIComponent(rawName)}` : ''}`);
-            const json2 = await res2.json();
-            if (json2 && json2.success && json2.twinName) {
-              setTwinName(json2.twinName);
-              return;
-            }
-          } catch (e2) {}
         }
 
-        const nameBase = rawName || 'Archer';
-        setTwinName(`${nameBase}_2.0`);
-      } catch (e) {
-        setTwinName('Archer_2.0');
-      }
+        const user = await getUserData();
+        if (user && user.email) {
+          const res = await fetch(`http://localhost:4000/api/v1/auth/digital-twin-profile?email=${encodeURIComponent(user.email)}`);
+          if (res.ok) {
+            const json = await res.json();
+            if (json && json.success && json.profile) {
+              const p = json.profile;
+              if (p.avatarImage) setAvatarImage(p.avatarImage);
+              if (p.filterMode) setFilterMode(p.filterMode);
+              if (p.overlayPattern) setOverlayPattern(p.overlayPattern);
+              if (p.auraIntensity) setAuraIntensity(p.auraIntensity);
+              if (p.twinName) setTwinName(p.twinName);
+              if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.setItem('@spiritual_digital_twin_profile', JSON.stringify(p));
+              }
+            }
+          }
+        }
+      } catch (e) {}
     };
-
-    fetchTwinName();
+    syncProfileData();
   }, []);
+
+  const saveTwinProfileToDB = async (newAvatar, newFilter, newPattern, newIntensity, newName) => {
+    try {
+      const p = {
+        avatarImage: newAvatar !== undefined ? newAvatar : avatarImage,
+        filterMode: newFilter || filterMode,
+        overlayPattern: newPattern || overlayPattern,
+        auraIntensity: newIntensity !== undefined ? newIntensity : auraIntensity,
+        twinName: newName || twinName
+      };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('@spiritual_digital_twin_profile', JSON.stringify(p));
+      }
+      const user = await getUserData();
+      if (user && user.email) {
+        await fetch('http://localhost:4000/api/v1/auth/digital-twin-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, ...p })
+        });
+      }
+    } catch (e) {}
+  };
 
   const playHaptic = () => {
     if (!soundEnabled) return;
@@ -103,15 +130,15 @@ export default function DigitalTwinPage() {
                 <UnifiedSetupScreen
                   key="step1"
                   twinName={twinName}
-                  setTwinName={setTwinName}
+                  setTwinName={(val) => { setTwinName(val); saveTwinProfileToDB(undefined, undefined, undefined, undefined, val); }}
                   avatarImage={avatarImage}
-                  setAvatarImage={setAvatarImage}
+                  setAvatarImage={(val) => { setAvatarImage(val); saveTwinProfileToDB(val); }}
                   filterMode={filterMode}
-                  setFilterMode={setFilterMode}
+                  setFilterMode={(val) => { setFilterMode(val); saveTwinProfileToDB(undefined, val); }}
                   overlayPattern={overlayPattern}
-                  setOverlayPattern={setOverlayPattern}
+                  setOverlayPattern={(val) => { setOverlayPattern(val); saveTwinProfileToDB(undefined, undefined, val); }}
                   auraIntensity={auraIntensity}
-                  setAuraIntensity={setAuraIntensity}
+                  setAuraIntensity={(val) => { setAuraIntensity(val); saveTwinProfileToDB(undefined, undefined, undefined, val); }}
                   onUnlock={handleUnlock}
                   playHaptic={playHaptic}
                 />

@@ -23,6 +23,9 @@ import { AmbientBackground } from '../components/AmbientBackground';
 import { DesktopSidebar } from '../components/DesktopSidebar';
 import { useSolarAmbience, computeSolarState } from '../hooks/useSolarAmbience';
 import { Fonts } from '../theme/fonts';
+import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID } from '../utils/storage';
+import { sendToSAIStream } from '../utils/saiApi';
+import { FormattedMarkdown } from '../components/FormattedMarkdown';
 
 // ── Custom Avatars ───────────────────────────────────────────────────────────
 
@@ -134,64 +137,77 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     let isMounted = true;
 
     const fetchLatestAccount = async () => {
+      let targetEmail = '';
+      let targetName = '';
       try {
         if (typeof window !== 'undefined' && window.location) {
           const urlParams = new URLSearchParams(window.location.search);
-          const nameFromUrl = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
-          if (nameFromUrl && isMounted) {
-            const cleanName = nameFromUrl.trim();
-            setUserProfileName(cleanName);
-            setIsGuest(false);
-            try {
-              window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanName, isGuest: false }));
-            } catch (e) {}
-            return;
-          }
+          targetEmail = urlParams.get('email') || '';
+          targetName = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
         }
       } catch (e) {}
 
       try {
-        const endpoint = 'https://qwmnyomlfchazapkohfy.supabase.co/rest/v1/user_profiles?select=first_name,full_name,email,registered_at&order=registered_at.desc&limit=1';
-        const res = await fetch(endpoint, {
-          headers: {
-            'apikey': 'sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv',
-            'Authorization': 'Bearer sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv',
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.length > 0 && isMounted) {
-            const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
-            if (dbName) {
-              const cleanDbName = dbName.trim();
-              setUserProfileName(cleanDbName);
-              setIsGuest(false);
-              try {
-                window.localStorage.setItem('@spiritual_register_user', JSON.stringify({ firstName: cleanDbName, email: data[0].email, isGuest: false }));
-              } catch (e) {}
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Supabase DB fetch error in ChatScreen:', err);
-      }
-
-      try {
         if (typeof window !== 'undefined' && window.localStorage) {
-          const raw = window.localStorage.getItem('@spiritual_register_user');
+          const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
           if (raw) {
             const parsed = JSON.parse(raw);
-            const localName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
-            if (localName && isMounted) {
-              setUserProfileName(localName.trim());
-              if (parsed.isGuest === false || parsed.email) {
+            if (!targetEmail) targetEmail = parsed.email || '';
+            if (!targetName) targetName = parsed.firstName || parsed.first_name || '';
+          }
+        }
+      } catch (e) {}
+
+      if (targetEmail && typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('@active_auth_session', JSON.stringify({
+          email: targetEmail,
+          firstName: targetName || 'User',
+          isGuest: false
+        }));
+      }
+
+      if (targetName && isMounted) {
+        setUserProfileName(targetName.trim());
+        setIsGuest(false);
+      }
+
+      if (targetEmail) {
+        try {
+          const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bW55b21sZmNoYXphcGtvaGZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTU1MTgzNCwiZXhwIjoyMTAxMTI3ODM0fQ.n-t9bJZ3juSlIK2OrJRrsSRQhZkbaLZFfNs_Zu8ELuY';
+          const endpoint = `https://qwmnyomlfchazapkohfy.supabase.co/rest/v1/users?email=eq.${encodeURIComponent(targetEmail.toLowerCase().trim())}&select=first_name,full_name,email`;
+          const res = await fetch(endpoint, {
+            headers: {
+              'apikey': serviceKey,
+              'Authorization': `Bearer ${serviceKey}`,
+            },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0 && isMounted) {
+              const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
+              if (dbName) {
+                setUserProfileName(dbName.trim());
                 setIsGuest(false);
               }
             }
           }
+        } catch (dbErr) {
+          console.warn('Supabase DB fetch failed:', dbErr);
         }
-      } catch (e) {}
+        return;
+      }
+
+      // Default state for unauthenticated visitor: ARCHER in GUEST MODE
+      if (isMounted) {
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.removeItem('@spiritual_register_user');
+            window.localStorage.removeItem('@active_auth_session');
+          }
+        } catch (e) {}
+        setUserProfileName('Archer');
+        setIsGuest(true);
+      }
     };
 
     fetchLatestAccount();
@@ -295,10 +311,57 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     }, 2000);
   };
 
+  const [currentSessionId, setCurrentSessionId] = useState(() => generateUUID());
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([
-    { id: '1', sender: 'ai', text: 'Hello! Welcome to Next Archer. How can I guide your consciousness today?' },
+    { id: '0', sender: 'ai', text: 'Namaste 🙏\n\nI\'m SAI — here to enrich your personal "i" — Insights as you move from Point A to Point B.\n\nSAI = A → i → B' },
   ]);
+
+  const [drawerHistoryItems, setDrawerHistoryItems] = useState([]);
+
+  const loadSessions = async () => {
+    try {
+      const sessions = await getChatSessions(null, 'spiritual');
+      if (Array.isArray(sessions)) {
+        setHistoryItems(sessions);
+        setDrawerHistoryItems(sessions);
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    loadSessions();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('chat-sessions-changed', loadSessions);
+      return () => window.removeEventListener('chat-sessions-changed', loadSessions);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showMobileDrawer) {
+      const syncMobileSessions = async () => {
+        try {
+          const sessions = await getChatSessions(null, 'spiritual');
+          if (Array.isArray(sessions) && sessions.length > 0) {
+            setHistoryItems(sessions);
+            setDrawerHistoryItems(sessions);
+            return;
+          }
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const raw = window.localStorage.getItem('@spiritual_chat_sessions');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setHistoryItems(parsed);
+                setDrawerHistoryItems(parsed);
+              }
+            }
+          }
+        } catch (e) {}
+      };
+      syncMobileSessions();
+    }
+  }, [showMobileDrawer]);
 
   const detectEmotionalWeather = (text) => {
     const isHeavy = HEAVY_PATTERNS.some((pattern) => pattern.test(text));
@@ -325,50 +388,58 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     if (!inputText.trim()) return;
     const textToSend = inputText.trim();
     const newMsg = { id: Date.now().toString(), sender: 'user', text: textToSend };
-    setMessages((prev) => [...prev, newMsg]);
+    const updatedUserMsgs = [...messages, newMsg];
+    setMessages(updatedUserMsgs);
     setInputText('');
     detectEmotionalWeather(textToSend);
 
-    try {
-      const backendUrl = typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_BACKEND_URL
-        ? process.env.EXPO_PUBLIC_BACKEND_URL
-        : 'http://localhost:8000';
-      const res = await fetch(`${backendUrl}/api/v1/chat/sessions/default_session/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: textToSend }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: data.message_id || Date.now().toString(),
-            sender: 'ai',
-            text: data.reply || 'Consciousness expanded. The ambient sky shifts with you...',
-          },
+    // Insert a placeholder AI bubble immediately so the user sees it typing
+    const streamingMsgId = 'streaming_' + Date.now();
+    const withStreaming = [
+      ...updatedUserMsgs,
+      { id: streamingMsgId, sender: 'ai', text: '▍' }
+    ];
+    setMessages(withStreaming);
+
+    sendToSAIStream(
+      updatedUserMsgs,
+      // onChunk — update the placeholder bubble with accumulated text
+      (accumulated) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamingMsgId ? { ...m, text: accumulated + ' ▍' } : m
+          )
+        );
+      },
+      // onDone — finalise and save session
+      (fullText) => {
+        const finalText = fullText || 'Consciousness expanded. The ambient sky shifts with you...';
+        const finalMsgs = updatedUserMsgs.concat([
+          { id: streamingMsgId, sender: 'ai', text: finalText }
         ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            sender: 'ai',
-            text: 'Consciousness expanded. The ambient sky shifts with you...',
-          },
+        setMessages(finalMsgs);
+        saveChatSession({
+          id: currentSessionId,
+          title: updatedUserMsgs.find(m => m.sender === 'user')?.text || textToSend,
+          messages: finalMsgs
+        });
+      },
+      // onError — replace placeholder with fallback
+      (err) => {
+        console.error('SAI stream error:', err);
+        const fallbackMsgs = updatedUserMsgs.concat([
+          { id: streamingMsgId, sender: 'ai', text: 'Consciousness expanded. The ambient sky shifts with you...' }
         ]);
+        setMessages(fallbackMsgs);
+        saveChatSession({
+          id: currentSessionId,
+          title: updatedUserMsgs.find(m => m.sender === 'user')?.text || textToSend,
+          messages: fallbackMsgs
+        });
       }
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          sender: 'ai',
-          text: 'Consciousness expanded. The ambient sky shifts with you...',
-        },
-      ]);
-    }
+    );
   };
+
 
   const handleMicPress = () => {
     if (typeof window === 'undefined') return;
@@ -412,7 +483,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
         if (event.error === 'network') {
-          showToast('⚠️ Network connection issue with Speech API');
+          showToast('🎙️ Web Speech API blocked by browser/adblocker (Use Win+H for Voice Typing)');
         } else if (event.error === 'not-allowed') {
           showToast('⚠️ Mic permission denied in browser settings');
         } else if (event.error !== 'no-speech') {
@@ -436,6 +507,30 @@ const AIChatDarkScreen = ({ navigation, route }) => {
   const handleGoBack = () => {
     if (navigation?.goBack) navigation.goBack();
     else if (navigation?.navigate) navigation.navigate('AIChatLight');
+  };
+
+  const handleEndSession = () => {
+    try {
+      if (Platform.OS === 'web') {
+        const jsonStr = JSON.stringify(messages, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `spiritual_ai_session_${new Date().getTime()}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+      if (isGuest) {
+        window.location.href = 'http://localhost:3000/register';
+      } else {
+        window.location.href = 'http://localhost:3000/twin-chat';
+      }
+    } catch (e) {
+      console.error("End session error", e);
+    }
   };
 
   const h = displaySolar.fractionalHour;
@@ -504,10 +599,16 @@ const AIChatDarkScreen = ({ navigation, route }) => {
           timeIcon={timeIcon}
           manualAurora={manualAurora}
           historyItems={historyItems}
-          onSelectHistoryItem={(item) => {
-            if (item.messages && item.messages.length > 0) {
-              setMessages(item.messages);
-              showToast(`Restored: ${item.title}`);
+          onSelectHistoryItem={async (item) => {
+            if (!item || !item.id) return;
+            setCurrentSessionId(item.id);
+            let msgs = item.messages;
+            if (!msgs || msgs.length === 0) {
+              msgs = await getChatMessagesForSession(item.id);
+            }
+            if (msgs && msgs.length > 0) {
+              setMessages(msgs);
+              showToast(`Restored: ${item.title || 'Chat'}`);
             }
           }}
           onToggleAurora={() => {
@@ -522,6 +623,8 @@ const AIChatDarkScreen = ({ navigation, route }) => {
             }
           }}
           onNewChat={() => {
+            const newId = generateUUID();
+            setCurrentSessionId(newId);
             setMessages([
               {
                 id: '1',
@@ -599,9 +702,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                       {isAI && <AIAvatar timeName={displayTimeName} auroraActive={solar.auroraActive} />}
 
                       <View style={getBubbleStyle(isAI)}>
-                        <Text style={styles.messageText}>
-                          {item.text}
-                        </Text>
+                        <FormattedMarkdown text={item.text} style={styles.messageText} />
                       </View>
 
                       {!isAI && <UserAvatar />}
@@ -649,17 +750,17 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         </SafeAreaView>
 
         {/* Top Center Timer Pill — Hidden on small screens to avoid header collision */}
-        {!isSmallScreen && (
+        {!isSmallScreen && isGuest && (
           <View style={styles.topCenterTimerContainer} pointerEvents="none">
-            <View style={[styles.timerPill, !isGuest && { backgroundColor: 'rgba(0, 229, 255, 0.2)', borderColor: 'rgba(0, 229, 255, 0.5)' }]}>
+            <View style={styles.timerPill}>
               <Ionicons
-                name={!isGuest ? "flash-outline" : "time-outline"}
+                name="time-outline"
                 size={11}
-                color={!isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000')}
+                color={isNightOrEvening ? '#ffffff' : '#000000'}
                 style={{ marginRight: 3 }}
               />
-              <Text style={[styles.timerText, { color: !isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000') }]}>
-                {!isGuest ? '⚡ UNLIMITED' : formatTime(elapsedSeconds)}
+              <Text style={[styles.timerText, { color: isNightOrEvening ? '#ffffff' : '#000000' }]}>
+                {formatTime(elapsedSeconds)}
               </Text>
             </View>
           </View>
@@ -688,11 +789,11 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 <Text style={styles.floatingSubtitle}>
                   {displayTimeName.toUpperCase()} AMBIENT{solar.auroraActive ? ' • AURORA' : ''}
                 </Text>
-                {isSmallScreen && (
-                  <View style={[styles.timerPillInline, !isGuest && { backgroundColor: 'rgba(0, 229, 255, 0.2)', borderColor: 'rgba(0, 229, 255, 0.5)' }]}>
-                    <Ionicons name={!isGuest ? "flash-outline" : "time-outline"} size={10} color={!isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000')} style={{ marginRight: 2 }} />
-                    <Text style={[styles.timerTextInline, { color: !isGuest ? '#00e5ff' : (isNightOrEvening ? '#ffffff' : '#000000') }]}>
-                      {!isGuest ? '⚡ UNLIMITED' : formatTime(elapsedSeconds)}
+                {isSmallScreen && isGuest && (
+                  <View style={styles.timerPillInline}>
+                    <Ionicons name="time-outline" size={10} color={isNightOrEvening ? '#ffffff' : '#000000'} style={{ marginRight: 2 }} />
+                    <Text style={[styles.timerTextInline, { color: isNightOrEvening ? '#ffffff' : '#000000' }]}>
+                      {formatTime(elapsedSeconds)}
                     </Text>
                   </View>
                 )}
@@ -723,6 +824,14 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 activeOpacity={0.7}
               >
                 <Text style={{ fontSize: 18 }}>{currentSlot ? currentSlot.icon : timeIcon}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.iconCircleBtn, { backgroundColor: 'rgba(239, 68, 68, 0.25)', borderColor: 'rgba(239, 68, 68, 0.5)' }]}
+                onPress={handleEndSession}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="stop-circle-outline" size={20} color="#ffb3b3" />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -839,6 +948,57 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   <Ionicons name="heart-outline" size={20} color="#00ffcc" />
                   <Text style={styles.drawerBtnText}>Heal Me Sanctuary</Text>
                 </TouchableOpacity>
+
+                {/* RECENT CHATS Section in Mobile Drawer */}
+                <View style={{ marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.12)', flex: 1, maxHeight: 340 }}>
+                  <Text style={{ fontFamily: Fonts.inter, fontSize: 11, fontWeight: '700', color: 'rgba(255, 255, 255, 0.5)', letterSpacing: 1.2, marginBottom: 12 }}>
+                    RECENT CHATS
+                  </Text>
+                  <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+                    {((drawerHistoryItems && drawerHistoryItems.length > 0) ? drawerHistoryItems : historyItems) && ((drawerHistoryItems && drawerHistoryItems.length > 0) ? drawerHistoryItems : historyItems).length > 0 ? (
+                      ((drawerHistoryItems && drawerHistoryItems.length > 0) ? drawerHistoryItems : historyItems).map((item) => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                            borderRadius: 12,
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            marginBottom: 8,
+                          }}
+                          onPress={async () => {
+                            setShowMobileDrawer(false);
+                            if (!item || !item.id) return;
+                            setCurrentSessionId(item.id);
+                            let msgs = item.messages;
+                            if (!msgs || msgs.length === 0) {
+                              msgs = await getChatMessagesForSession(item.id);
+                            }
+                            if (msgs && msgs.length > 0) {
+                              setMessages(msgs);
+                              showToast(`Restored: ${item.title || 'Chat'}`);
+                            }
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="chatbubble-ellipses-outline" size={16} color="rgba(255, 255, 255, 0.6)" style={{ marginRight: 10 }} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontFamily: Fonts.poppins, fontSize: 13, fontWeight: '600', color: '#ffffff' }} numberOfLines={1}>
+                              {item.title}
+                            </Text>
+                            <Text style={{ fontFamily: Fonts.inter, fontSize: 10, color: 'rgba(255, 255, 255, 0.5)' }}>{item.time}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={{ fontFamily: Fonts.inter, fontSize: 12, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', paddingVertical: 8 }}>
+                        No past sessions saved.
+                      </Text>
+                    )}
+                  </ScrollView>
+                </View>
               </View>
             </BlurView>
             <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setShowMobileDrawer(false)} />
