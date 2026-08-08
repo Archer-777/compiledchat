@@ -70,12 +70,26 @@ export function DesktopSidebar({
 
       {/* New Chat Button */}
       <TouchableOpacity
-        style={[styles.newChatBtn, { backgroundColor: 'rgba(0, 212, 255, 0.18)', borderColor: 'rgba(0, 212, 255, 0.4)' }]}
+        style={[styles.newChatBtn, { backgroundColor: 'rgba(0, 212, 255, 0.18)', borderColor: 'rgba(0, 212, 255, 0.4)', marginBottom: 8 }]}
         onPress={onNewChat}
         activeOpacity={0.7}
       >
         <Ionicons name="add-circle-outline" size={20} color="#00d4ff" />
         <Text style={[styles.newChatBtnText, { color: '#00d4ff' }]}>New Chat</Text>
+      </TouchableOpacity>
+
+      {/* Twin Chat Button */}
+      <TouchableOpacity
+        style={[styles.newChatBtn, { backgroundColor: 'rgba(168, 85, 247, 0.18)', borderColor: 'rgba(168, 85, 247, 0.4)', marginBottom: 20 }]}
+        onPress={() => {
+          if (typeof window !== 'undefined') {
+            window.location.href = 'http://localhost:3000/twin-chat';
+          }
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
+        <Text style={[styles.newChatBtnText, { color: '#a855f7' }]}>Twin Chat</Text>
       </TouchableOpacity>
 
       {/* Chat History Section */}

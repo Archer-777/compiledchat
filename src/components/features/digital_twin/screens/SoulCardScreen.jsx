@@ -219,11 +219,11 @@ export default function SoulCardScreen({
         <button
           onClick={() => {
             if (playHaptic) playHaptic();
-            navigate('/soul-matrix');
+            navigate('/twin-chat');
           }}
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-xs tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] flex items-center justify-center space-x-2 cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
-          <span>Synthesize & View Soul Card</span>
+          <span>Chat With Digital Twin 🤖</span>
           <ArrowRight className="w-4 h-4" />
         </button>
 

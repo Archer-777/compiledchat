@@ -4,6 +4,7 @@ import { getUserData } from '@/utils/storage';
 
 const NAV_ITEMS = [
   { path: '/chat', label: '💬 Chat' },
+  { path: '/twin-chat', label: '🤖 Twin Chat', requiresUser: true },
   { path: '/scan', label: '✨ Scan' },
   { path: '/heal-me', label: '🔮 Heal Me' },
   { path: '/healing', label: '🧘 Chakras' },

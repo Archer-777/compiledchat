@@ -8,6 +8,7 @@ import DigitalTwinPage from './pages/DigitalTwinPage';
 import SoulMatrixPage from './pages/SoulMatrixPage';
 import SuperchargePage from './pages/SuperchargePage';
 import RegisterPage from './pages/RegisterPage';
+import DigitalTwinChatScreen from './pages/DigitalTwinChatScreen';
 import GlobalNavbar from './components/layout/GlobalNavbar';
 import './styles/index.css';
 
@@ -96,6 +97,7 @@ export default function App() {
         {/* Protected Routes: Require valid profile, strictly fallback to /scan if unauthenticated */}
         <Route path="/soul-matrix" element={<ProtectedRoute><SoulMatrixPage /></ProtectedRoute>} />
         <Route path="/digital-twin" element={<ProtectedRoute><DigitalTwinPage /></ProtectedRoute>} />
+        <Route path="/twin-chat" element={<ProtectedRoute><DigitalTwinChatScreen /></ProtectedRoute>} />
         <Route path="/chat" element={<ProtectedRoute><ChatRedirect /></ProtectedRoute>} />
 
         {/* Universal Public Flow Routes */}

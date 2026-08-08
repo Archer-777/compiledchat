@@ -1,5 +1,10 @@
 import os
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+# Load environment variables from backend/.env explicitly
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+load_dotenv(env_path, override=True)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "NextArcher API"
@@ -16,7 +21,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # Groq AI Engine Credentials
-    GROK_API_KEY: str = os.getenv("GROK_API_KEY", "")
+    GROK_API_KEY: str = os.getenv("GROK_API_KEY") or os.getenv("GROQ_API_KEY") or ""
     GROK_MODEL: str = os.getenv("GROK_MODEL", "llama-3.3-70b-versatile")
 
     # Fast2SMS Gateway Credentials

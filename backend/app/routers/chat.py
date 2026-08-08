@@ -89,11 +89,12 @@ async def send_message(session_id: str, req: MessageRequest, current_user: dict 
     reply_text = None
 
     # 1. Attempt Groq AI LLM Completion via OpenAI-compatible endpoint
-    if settings.GROK_API_KEY and len(settings.GROK_API_KEY) > 10:
+    g_key = settings.GROK_API_KEY or ""
+    if len(g_key) > 10:
         try:
-            async with httpx.AsyncClient(timeout=15.0) as http_client:
+            async with httpx.AsyncClient(timeout=20.0) as http_client:
                 groq_payload = {
-                    "model": settings.GROK_MODEL,
+                    "model": settings.GROK_MODEL or "llama-3.3-70b-versatile",
                     "messages": [
                         {
                             "role": "system",
@@ -108,7 +109,7 @@ async def send_message(session_id: str, req: MessageRequest, current_user: dict 
                     "max_tokens": 400
                 }
                 headers = {
-                    "Authorization": f"Bearer {settings.GROK_API_KEY}",
+                    "Authorization": f"Bearer {g_key}",
                     "Content-Type": "application/json"
                 }
                 res = await http_client.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=groq_payload)
@@ -117,6 +118,9 @@ async def send_message(session_id: str, req: MessageRequest, current_user: dict 
                     choices = data.get("choices", [])
                     if choices and len(choices) > 0:
                         reply_text = choices[0].get("message", {}).get("content", "").strip()
+                        print("[Groq AI Success] Live completion generated via llama-3.3-70b-versatile")
+                else:
+                    print(f"[Groq AI Warning] Status {res.status_code}: {res.text}")
         except Exception as e:
             print(f"[Groq AI Error] Fallback to keyword mode: {e}")
 
