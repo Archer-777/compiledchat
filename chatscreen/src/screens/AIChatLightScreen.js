@@ -279,14 +279,14 @@ const AIChatLightScreen = ({ navigation, route }) => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      showToast('⚠️ Voice input not supported in browser');
+      showToast('⚠️ Voice input not supported in browser (Use Chrome/Edge)');
       return;
     }
 
-    if (isListening) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
-      }
+    if (isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
       setIsListening(false);
       showToast('🎤 Voice input stopped');
       return;
@@ -294,26 +294,33 @@ const AIChatLightScreen = ({ navigation, route }) => {
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
         setIsListening(true);
-        showToast('🎙️ Listening...');
+        showToast('🎙️ Listening... Speak now');
       };
 
       recognition.onresult = (event) => {
         let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        for (let i = 0; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
-        setInputText(transcript);
+        if (transcript) {
+          setInputText(transcript);
+        }
       };
 
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
+        if (event.error === 'not-allowed') {
+          showToast('⚠️ Mic permission denied in browser settings');
+        } else if (event.error !== 'no-speech') {
+          showToast(`⚠️ Voice input: ${event.error}`);
+        }
       };
 
       recognition.onend = () => {
@@ -325,6 +332,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
     } catch (err) {
       console.warn('Speech recognition start failed:', err);
       setIsListening(false);
+      showToast('⚠️ Could not access microphone');
     }
   };
 
@@ -536,8 +544,12 @@ const AIChatLightScreen = ({ navigation, route }) => {
                   onChangeText={setInputText}
                   onSubmitEditing={handleSend}
                 />
-                <TouchableOpacity style={styles.micButton} onPress={handleMicPress} activeOpacity={0.7}>
-                  <Ionicons name="mic" size={20} color={isDarkUI ? '#00ffcc' : '#0284c7'} />
+                <TouchableOpacity
+                  style={[styles.micButton, isListening && { backgroundColor: 'rgba(239, 68, 68, 0.2)', borderRadius: 18 }]}
+                  onPress={handleMicPress}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={isListening ? "mic" : "mic-outline"} size={20} color={isListening ? "#ef4444" : (isDarkUI ? '#00ffcc' : '#0284c7')} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.sendButton, !inputText.trim() && styles.sendDisabled]}

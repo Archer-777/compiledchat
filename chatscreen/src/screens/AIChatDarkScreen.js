@@ -374,14 +374,14 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      showToast('⚠️ Voice input not supported in browser');
+      showToast('⚠️ Voice input not supported in browser (Use Chrome/Edge)');
       return;
     }
 
-    if (isListening) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (e) {}
-      }
+    if (isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
       setIsListening(false);
       showToast('🎤 Voice input stopped');
       return;
@@ -389,26 +389,33 @@ const AIChatDarkScreen = ({ navigation, route }) => {
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
         setIsListening(true);
-        showToast('🎙️ Listening...');
+        showToast('🎙️ Listening... Speak now');
       };
 
       recognition.onresult = (event) => {
         let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        for (let i = 0; i < event.results.length; i++) {
           transcript += event.results[i][0].transcript;
         }
-        setInputText(transcript);
+        if (transcript) {
+          setInputText(transcript);
+        }
       };
 
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
+        if (event.error === 'not-allowed') {
+          showToast('⚠️ Mic permission denied in browser settings');
+        } else if (event.error !== 'no-speech') {
+          showToast(`⚠️ Voice input: ${event.error}`);
+        }
       };
 
       recognition.onend = () => {
@@ -420,6 +427,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     } catch (err) {
       console.warn('Speech recognition start failed:', err);
       setIsListening(false);
+      showToast('⚠️ Could not access microphone');
     }
   };
 
