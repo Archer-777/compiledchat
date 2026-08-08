@@ -773,7 +773,6 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         {/* Mobile Navigation Glass Drawer (< 960px) */}
         <Modal visible={showMobileDrawer} transparent animationType="slide">
           <View style={styles.drawerOverlay}>
-            <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setShowMobileDrawer(false)} />
             <BlurView intensity={80} tint="dark" style={styles.drawerContent}>
               <View style={styles.drawerHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -843,6 +842,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               </View>
             </BlurView>
+            <TouchableOpacity style={styles.drawerBackdrop} activeOpacity={1} onPress={() => setShowMobileDrawer(false)} />
           </View>
         </Modal>
 
