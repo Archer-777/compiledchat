@@ -515,6 +515,17 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
+                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/twin-chat';
+                }}
+              >
+                <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
+                <Text style={styles.drawerBtnText}>Twin Chat</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.drawerBtn}
+                onPress={() => {
+                  setShowMobileDrawer(false);
                   if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/soul-matrix';
                 }}
               >
