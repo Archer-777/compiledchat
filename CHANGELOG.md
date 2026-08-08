@@ -4,33 +4,32 @@
 
 ## [Unreleased] - 2026-08-08
 
-### Backend Architecture Migration (Node.js Express → Python FastAPI)
-- **FastAPI Core Application**: Replaced legacy Node.js Express server with Python FastAPI application (`backend/app/main.py`) extracted from the `origin/Backend` branch.
-- **REST Endpoints & Routers**:
-  - `auth.py`: User registration (`/auth/register`), login (`/auth/login`), profile (`/auth/me`).
-  - `chat.py`: Spiritual AI Chat sessions (`/chat/sessions`), real-time messages, and chakra analysis (`/chat/sessions/{id}/end`).
-  - `dashboard.py`: Telemetry (`/dashboard/telemetry`) & dynamic Maslow hierarchy matrix recomputation (`/dashboard/world-balance`).
-  - `twin.py`: Digital Twin profile management (`/twin/profile`) enforcing `FirstName_2.0` rule, and execution queue (`/twin/runs`).
-- **Dependencies & Environment**: Created `requirements.txt` (FastAPI, Uvicorn, Pydantic v2, PyJWT/python-jose, Bcrypt, Supabase, Email-Validator) and local Python `venv`. Added `schema_v2.sql` for PostgreSQL database migrations.
-- **Groq AI Key Integration**: Integrated `GROK_API_KEY` with `llama-3.3-70b-versatile` model into `app/routers/chat.py` for real-time dynamic AI completions.
-- **SMS OTP Router**: Added `app/routers/otp.py` supporting `/api/v1/otp/send` and `/api/v1/otp/verify` with Fast2SMS SMS gateway integration (`FAST2SMS_API_KEY`).
-- **Face ID Login & Vector Registration**: Added `/api/v1/auth/face-register` and `/api/v1/auth/face-login` in `app/routers/auth.py` using 128-D pgvector Euclidean L2 distance matching ($\le 0.6$).
-- **V2 Database Schema**: Updated `backend/schema_v2.sql` with full PostgreSQL schema definition including `pgvector`, `users`, `face_descriptors`, `chat_sessions`, `chat_messages`, `session_analysis`, `user_dashboard`, `digital_twins`, `micro_tasks`.
-- **Environment & URL Alignment**: Configured `backend/.env` with Supabase Service Role Key, Groq API Key, Fast2SMS API Key, and set `VITE_BACKEND_URL=http://localhost:8000` / `EXPO_PUBLIC_BACKEND_URL=http://localhost:8000` across SPA and Expo chatscreen environments.
-- **Universal Responsive Layouts (Mobile, Tablet, Desktop)**:
-  - **Sidebar Breakpoint Fix (< 960px)**: Updated `isSmallScreen` threshold to `960px` in `AIChatDarkScreen.js` & `AIChatLightScreen.js`. `DesktopSidebar` is now automatically hidden on any screen or iframe width under `960px`, allowing the chat container to expand to 100% width with zero text compression or layout overlap.
-  - **Mobile Navigation Drawer**: Added a top-left hamburger menu trigger (`Ionicons name="menu"`) on screens under `960px` to seamlessly open the glass sliding drawer (`showMobileDrawer`).
-  - **Metro Bundler Syntax Fix**: Restored missing `<View style={styles.floatingHeader}>` container tag in `AIChatDarkScreen.js`, resolving Metro HTTP 500 transformation error and restoring `200 OK` bundle response on `http://localhost:8081`.
-  - **Mobile Header & Bubble Alignment Fix**: Moved timer pill into subtitle row on small screens to eliminate top-center collision with "Hey Priya", simplified mobile header right action bar, and adjusted bubble `maxWidth` to `72%` with `paddingHorizontal: 18` so user bubbles ("Hi") are never cut off at the right edge.
-- **Model Selector Dropdown Removal**: Completely removed the model selection dropdown pill ("Spiritualize AI / Digital Twin 🔒") and popover popups from `AIChatDarkScreen.js` and `AIChatLightScreen.js`. Simplified the input bar section to focus exclusively on Spiritualize AI chat.
-- **Localhost Redirect Enforcement**: Replaced all Vercel production redirect links (`https://compiledchat.vercel.app`, `https://nextarcher.vercel.app`) with local port endpoints (`http://localhost:3000` for main app and `http://localhost:8081` for chat screen).
-- **Reflection Cycle Timer Adjustment**: Updated reflection cycle timer threshold from 10 minutes (`600s`) to 2 minutes (`120s`) across both chat screens, with updated modal copy `"Your 2-minute reflection cycle is complete."`.
-- **Database Foreign Key Safety**: Added parent user and session record upserts in `backend/app/routers/chat.py` to prevent PostgreSQL foreign key constraint errors (`23503`) during guest and default session message persistence.
-- **Sanctuary Button Alignment Fix**: Removed `lg:mx-0` from `EnterHealingButton.jsx` and added `mx-auto flex justify-center items-center` to `HealMeScreen.jsx` so the primary "ENTER HEALING EXPERIENCE" button is mathematically centered on desktop viewports.
-- **Healing Audio Toggle Controls**: Updated `HealingScreen.jsx` and `HealingButton.jsx` so clicking "Begin Healing" starts Solfeggio audio and transforms the button into a red glowing "Stop Healing" (`⏹ STOP HEALING`) control. Clicking it immediately halts audio playback (`stopSolfeggioTone()`) and resets visualizer state.
+- **Full Chat Database Persistence & New Chat Session Engine**:
+  - **Supabase DB & Local Chat Storage**: Implemented `saveChatSession()` and `getChatSessions()` in `storage.js`. Every sent message and AI completion is automatically persisted in real time to both remote Supabase `chat_sessions` DB and local storage.
+  - **`+ New Chat` Button Functionality**: Clicking **`+ New Chat`** auto-saves active conversation to history, generates fresh session ID, resets chat screen state, and updates `RECENT CHATS` in real time.
+  - **Chat Session Restoration**: Wired `onSelectHistoryItem()` so clicking any past chat in `RECENT CHATS` instantly loads and restores that complete conversation history.
+- **Chat Screen Text Input Focus Box & Autocomplete Removal**:
+  - **Eliminated Black Focus Box**: Enforced `outlineStyle: 'none'` and `outlineWidth: 0` on TextInput components and added global CSS rules (`input, textarea { outline: none !important; box-shadow: none !important; }`).
+  - **Disabled Browser Autocomplete & Spellcheck Popups**: Added `autoComplete="off"`, `autoCorrect={false}`, and `spellCheck={false}` to TextInput elements, eliminating floating black suggestion tooltips.
+- **Sidebar Navigation Drawer UI Refinement**:
+  - **Removed Light/Dark Theme Switcher Button**: Completely removed `Switch Light Theme` / `Switch Dark Theme` toggle button from chat screens.
+  - **Simplified Button Label**: Renamed `Heal Me Sanctuary` to **`Heal Me`** across chat screens and `GlobalNavbar.jsx` (`🔮 Heal Me`).
+- **Chakra / Healing Screen UI Cleanup**:
+  - **Removed First-Time User Registration Button**: Removed `First-Time User? Complete Registration →` action button from `HealingScreen.jsx` and `TravelModeScreen.jsx` for clean Solfeggio sound therapy.
+- **Left-Aligned Mobile & Overlay Navigation Drawer**:
+  - **Left Side Drawer Slide**: Relocated sliding glass navigation drawer to open on the **LEFT** side of the screen when clicking menu button (`☰`).
+  - **Consistent Left Sidebar Placement**: Ensured both `DesktopSidebar` (desktop view) and mobile glass drawer open cleanly on the **LEFT** side of viewport.
+- **Supabase Database Fetching & Direct Synchronization**:
+  - **Primary Supabase Fetching**: Updated `getUserData()` in `storage.js` to query Supabase `user_profiles` table loading registered names, professions, phones, and metadata directly from DB.
+  - **Automatic Supabase Upsert Sync**: Added `syncUserToSupabase()` in `AuraScannerPage.jsx`, automatically saving authenticated alternative sign-in profiles directly into remote Supabase `user_profiles` table.
+- **Guest Profile Privacy Protection**:
+  - **Strict Guest Session Resolution**: Standardized local session parsing across `storage.js`, `App.jsx`, `DesktopSidebar.js`, `AIChatDarkScreen.js`, and `AIChatLightScreen.js` to enforce `parsed.isGuest === false && parsed.email` before recognizing registered user profiles.
+  - **Profile Footer Hidden for Guests**: Strictly hid user profile footer card (`Priya / Registered User`) at the bottom of `DesktopSidebar.js` for unauthenticated guest users ("Archer").
 - **Digital Twin Auto-Synthesis & Soul Card (`/digital-twin`)**: Integrated automatic `GET /api/auth/digital-twin-name` twin name fetching (`FirstName_2.0`), removed twin name input field in `UnifiedSetupScreen.jsx`, rendered auto-synthesized name glass panel, cleaned up header nav, and fixed logo/typography rendering.
 - **Digital Twin Desktop Workspace (`/chat` / `DigitalTwinChatScreen`)**: Upgraded starlight overlay with 140 twinkling stars across 100vw × 100vh bounds and removed top-right Aurora wave & Golden Moon icon buttons.
 - **Daytime Solar Sun Assets (`Sun.jpeg`)**: Integrated high-fidelity `Sun.jpeg` realistic glowing sun disc across SVG `DaytimeSkyScene.tsx` and web/chatscreen `AmbientBackground.tsx` components.
+- **Sanctuary Button Alignment Fix**: Removed `lg:mx-0` from `EnterHealingButton.jsx` and added `mx-auto flex justify-center items-center` to `HealMeScreen.jsx` so the primary "ENTER HEALING EXPERIENCE" button is mathematically centered on desktop viewports.
+- **Healing Audio Toggle Controls**: Updated `HealingScreen.jsx` and `HealingButton.jsx` so clicking "Begin Healing" starts Solfeggio audio and transforms the button into a red glowing "Stop Healing" (`⏹ STOP HEALING`) control. Clicking it immediately halts audio playback (`stopSolfeggioTone()`) and resets visualizer state.
 
 ---
 

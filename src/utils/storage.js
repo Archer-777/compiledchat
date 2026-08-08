@@ -85,24 +85,30 @@ export const getUserData = async () => {
       const webVal = window.localStorage.getItem(USER_DATA_KEY);
       if (webVal != null) {
         const parsed = JSON.parse(webVal);
-        activeEmail = parsed.email || '';
+        if (parsed.isGuest === false && parsed.email) {
+          activeEmail = parsed.email;
+        } else if (parsed.isGuest) {
+          return parsed;
+        }
       }
     }
   } catch (error) {
     console.error('Error reading local user data:', error);
   }
 
-  // 1. Primary: Fetch active registered user profile from Supabase Database
-  if (isSupabaseConfigured) {
-    try {
-      let query = supabase.from('user_profiles').select('*');
-      if (activeEmail) {
-        query = query.eq('email', activeEmail);
-      } else {
-        query = query.order('registered_at', { ascending: false }).limit(1);
-      }
+  // If guest or no authenticated email, do not query arbitrary DB record
+  if (!activeEmail) {
+    return null;
+  }
 
-      const { data, error } = await query;
+  // 1. Primary: Fetch active registered user profile from Supabase Database by email
+  if (isSupabaseConfigured && activeEmail) {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('email', activeEmail)
+        .limit(1);
 
       if (!error && data && data.length > 0) {
         const row = data[0];
@@ -119,6 +125,7 @@ export const getUserData = async () => {
           phoneVerified: Boolean(row.phone_verified),
           emailVerified: Boolean(row.email_verified),
           registeredAt: row.registered_at || row.updated_at,
+          isGuest: false,
         };
         // Sync active user to localStorage
         try {
@@ -144,6 +151,57 @@ export const getUserData = async () => {
   }
 
   return null;
+};
+
+export const saveChatSession = async (sessionId, messages, title = 'Spiritual AI Chat') => {
+  if (!sessionId || !messages || messages.length === 0) return;
+  const payload = {
+    id: sessionId,
+    title,
+    messages,
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const existingRaw = window.localStorage.getItem('@spiritual_chat_history');
+      let historyList = existingRaw ? JSON.parse(existingRaw) : [];
+      historyList = historyList.filter((item) => item.id !== sessionId);
+      historyList.unshift(payload);
+      window.localStorage.setItem('@spiritual_chat_history', JSON.stringify(historyList));
+    }
+  } catch (e) {
+    console.error('Error saving local chat session:', e);
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const user = await getUserData();
+      const userId = user?.email || 'guest';
+      await supabase.from('chat_sessions').upsert([
+        {
+          id: sessionId,
+          user_id: userId,
+          title,
+          updated_at: payload.updated_at,
+        }
+      ], { onConflict: 'id' });
+    } catch (err) {
+      console.warn('Supabase chat session save error:', err);
+    }
+  }
+};
+
+export const getChatSessions = async () => {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const existingRaw = window.localStorage.getItem('@spiritual_chat_history');
+      if (existingRaw) return JSON.parse(existingRaw);
+    }
+  } catch (e) {
+    console.error('Error reading chat sessions:', e);
+  }
+  return [];
 };
 
 export const clearUserData = async () => {

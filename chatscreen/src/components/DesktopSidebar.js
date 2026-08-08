@@ -22,8 +22,8 @@ export function DesktopSidebar({
   onNewChat,
   onSelectHistoryItem,
 }) {
-  const [userName, setUserName] = useState('Archer User');
-  const [historyItems, setHistoryItems] = useState([]);
+  const [userName, setUserName] = useState('Archer');
+  const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
     try {
@@ -31,8 +31,13 @@ export function DesktopSidebar({
         const raw = window.localStorage.getItem('@spiritual_register_user');
         if (raw) {
           const parsed = JSON.parse(raw);
-          const name = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
-          if (name) setUserName(name.trim());
+          if (parsed.isGuest === false && parsed.email) {
+            const name = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+            if (name) {
+              setUserName(name.trim());
+              setIsRegistered(true);
+            }
+          }
         }
       }
     } catch (e) {}
@@ -104,21 +109,23 @@ export function DesktopSidebar({
         </ScrollView>
       </View>
 
-      {/* User Profile Footer */}
-      <TouchableOpacity
-        style={[styles.userProfileFooter, { borderTopColor: borderColor }]}
-        onPress={handleProfileClick}
-        activeOpacity={0.7}
-      >
-        <View style={styles.userAvatarSmall}>
-          <Ionicons name="person" size={16} color="#ffffff" />
-        </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={[styles.userName, { color: textColor }]}>{userName}</Text>
-          <Text style={[styles.userStatus, { color: subTextColor }]}>Pro Plan • Active</Text>
-        </View>
-        <Ionicons name="chevron-forward-outline" size={14} color={subTextColor} />
-      </TouchableOpacity>
+      {/* User Profile Footer (Only for Registered Users) */}
+      {isRegistered && (
+        <TouchableOpacity
+          style={[styles.userProfileFooter, { borderTopColor: borderColor }]}
+          onPress={handleProfileClick}
+          activeOpacity={0.7}
+        >
+          <View style={styles.userAvatarSmall}>
+            <Ionicons name="person" size={16} color="#ffffff" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={[styles.userName, { color: textColor }]}>{userName}</Text>
+            <Text style={[styles.userStatus, { color: subTextColor }]}>Registered User • Active</Text>
+          </View>
+          <Ionicons name="chevron-forward-outline" size={14} color={subTextColor} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
