@@ -181,6 +181,7 @@ export default function App() {
         </div>
       )}
       <ClerkUserSync />
+      <GlobalNavbar />
       <Routes>
         <Route path="/" element={<Navigate to="/scan" replace />} />
         <Route path="/scan" element={<AuraScannerPage />} />
