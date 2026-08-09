@@ -147,9 +147,48 @@ const getAgentRun = async (req, res) => {
   }
 };
 
+/**
+ * File Download Proxy (Proxies to Digital Twin API)
+ * GET /api/v1/twin/sessions/:sessionId/files/:fileName
+ */
+const downloadTwinFile = async (req, res) => {
+  try {
+    const { sessionId, fileName } = req.params;
+    const user_id = req.user?.sub || req.user?.id || 'guest';
+    
+    const twinApiRes = await fetch(`http://65.2.37.177:8000/sessions/${sessionId}/files/${encodeURIComponent(fileName)}`, {
+      headers: {
+        'Authorization': `Bearer ${user_id}`
+      }
+    });
+
+    if (!twinApiRes.ok) {
+      console.error(`Twin API file download returned status ${twinApiRes.status}`);
+      return res.status(twinApiRes.status).json({ success: false, message: 'File not found on Twin API' });
+    }
+
+    // Set correct headers for binary download
+    twinApiRes.headers.forEach((value, name) => {
+      res.setHeader(name, value);
+    });
+
+    // Stream to client
+    const { Readable } = require('stream');
+    if (twinApiRes.body) {
+      Readable.fromWeb(twinApiRes.body).pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (error) {
+    console.error('downloadTwinFile error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to download file' });
+  }
+};
+
 module.exports = {
   getTwinProfile,
   updateTwinProfile,
   enqueueAgentRun,
-  getAgentRun
+  getAgentRun,
+  downloadTwinFile
 };
