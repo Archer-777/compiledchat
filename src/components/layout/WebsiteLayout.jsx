@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import GlobalNavbar from '@/components/layout/GlobalNavbar';
 
 export default function WebsiteLayout({ children, showFooter = true }) {
   const [stars, setStars] = useState([]);
@@ -20,9 +19,6 @@ export default function WebsiteLayout({ children, showFooter = true }) {
 
   return (
     <div className="relative min-h-screen w-full bg-[#06060E] text-white flex flex-col selection:bg-purple-500 selection:text-white overflow-x-hidden font-['Poppins']">
-      {/* ── Fixed Global Top Navbar Header ── */}
-      <GlobalNavbar />
-
       {/* ── Cosmic Starfield & Background Ambient FX ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         {stars.map((star) => (
