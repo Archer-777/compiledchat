@@ -53,11 +53,22 @@ export default function ChakraFigure({ chakras }) {
             </defs>
 
             {CHAKRA_DEFS.map((c) => {
-              const raw = chakras?.[c.key] ?? 75;
-              const norm = Math.max(0, Math.min(100, raw)) / 100;
-              const r = 3.5 + norm * 2.0;
-              const cy = (c.cyPercent / 100) * 150;
-              const alpha = 0.6 + norm * 0.4;
+              const getChakraScore = (cDef) => {
+                if (!chakras) return 0;
+                if (typeof chakras[cDef.key] === 'number') return chakras[cDef.key];
+                if (typeof chakras[cDef.key]?.score === 'number') return chakras[cDef.key].score;
+                if (Array.isArray(chakras)) {
+                  const found = chakras.find(item => item.id === cDef.key || item.name?.toLowerCase().replace(/\s+/g, '_') === cDef.key);
+                  if (found && typeof found.score === 'number') return found.score;
+                }
+                return 0;
+              };
+
+              const raw = getChakraScore(c);
+              const norm = Math.max(0, Math.min(100, Number(raw) || 0)) / 100;
+              const r = Number(3.5 + norm * 2.0) || 3.5;
+              const cy = Number((c.cyPercent / 100) * 150) || 50;
+              const alpha = Number(0.6 + norm * 0.4) || 0.6;
 
               return (
                 <g key={c.key} aria-label={`${c.label}: ${raw}%`}>

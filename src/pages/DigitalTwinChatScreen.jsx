@@ -1,37 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, ArrowLeft, Send, Mic, MicOff, Zap, Flame, Menu, X, PlusCircle, Cpu, User, Heart } from 'lucide-react';
-import { getChatSessions, saveChatSession, getChatMessagesForSession, generateUUID } from '../utils/storage';
+import { MessageSquare, ArrowLeft, Send, Mic, MicOff, Zap, Flame, Menu, X, PlusCircle, Cpu, User, Heart, Download, FileText } from 'lucide-react';
+import { getChatSessions, saveChatSession, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import './DigitalTwinChatScreen.css';
+
+const TWIN_API_BASE = 'http://65.2.37.177:8000';
+
+// Simple markdown-to-HTML converter for twin responses
+function renderMarkdown(text) {
+  if (!text) return '';
+  let html = text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/\n/g, '<br/>');
+  html = html.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+  return html;
+}
 
 // User avatar matching the orange sunflower eyes and smile
 function UserAvatar() {
   return (
-    <div className="user-avatar-circle">
-      <svg width="28" height="28" viewBox="0 0 32 32">
-        <circle cx="10" cy="11" r="4.5" fill="#ff9500" />
-        <circle cx="10" cy="11" r="2" fill="#000000" />
-        <circle cx="22" cy="11" r="4.5" fill="#ff9500" />
-        <circle cx="22" cy="11" r="2" fill="#000000" />
-        <path
-          d="M 8 20 Q 16 26 24 20"
-          fill="none"
-          stroke="#ff9500"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </svg>
+    <div className="user-avatar-circle" style={{ overflow: 'hidden', borderRadius: '50%', width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src="/user_icon.svg" alt="User Icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     </div>
   );
 }
 
-// Custom profile icon matching person-circle-outline
 function ProfileIconSvg() {
   return (
-    <svg width="22" height="22" viewBox="0 0 512 512" fill="currentColor">
-      <path d="M258.9,330.36c-79.62,0-144,64.39-144,144a16,16,0,0,0,16,16h256a16,16,0,0,0,16-16C402.9,394.75,338.52,330.36,258.9,330.36Z" />
-      <circle cx="258.9" cy="170.36" r="80" />
-    </svg>
+    <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <img src="/user_icon.svg" alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+    </div>
   );
 }
 
@@ -43,12 +49,11 @@ export default function DigitalTwinChatScreen() {
   const [twinAvatarPhoto, setTwinAvatarPhoto] = useState(null);
   const [isGuest, setIsGuest] = useState(true);
   const [inputText, setInputText] = useState('');
+  const [twinName, setTwinName] = useState('Digital Twin');
+  const [userAuthKey, setUserAuthKey] = useState('guest');
+  const [isThinking, setIsThinking] = useState(false);
   const [messages, setMessages] = useState([
-    { id: '1', sender: 'twin', text: 'Hello! How are you today?' },
-    { id: '2', sender: 'user', text: 'Hi' },
-    { id: '3', sender: 'twin', text: 'This would be a normal conversation within 30 words.' },
-    { id: '4', type: 'badge', text: 'Conversation Streak From User' },
-    { id: '5', sender: 'twin', text: 'Knowledge base response for enlightening pleasant surprises and neuron enlightenment' },
+    { id: '1', sender: 'twin', text: "Hello! I'm your Digital Twin. Ask me anything — I can create files, write code, analyze data, and more." },
   ]);
   const [stars, setStars] = useState([]);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
@@ -67,30 +72,24 @@ export default function DigitalTwinChatScreen() {
   };
 
   useEffect(() => {
-    const fetchTwinAvatar = async () => {
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const raw = window.localStorage.getItem('@spiritual_digital_twin_profile');
-          if (raw) {
-            const p = JSON.parse(raw);
-            if (p && p.avatarImage) {
-              setTwinAvatarPhoto(p.avatarImage);
-            }
-          }
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@spiritual_digital_twin_profile');
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p && p.avatarImage) setTwinAvatarPhoto(p.avatarImage);
         }
-        const user = await getUserData();
-        if (user && user.email) {
-          const res = await fetch(`http://localhost:4000/api/v1/auth/digital-twin-profile?email=${encodeURIComponent(user.email)}`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json && json.success && json.profile && json.profile.avatarImage) {
-              setTwinAvatarPhoto(json.profile.avatarImage);
-            }
-          }
+      }
+      
+      // Force Twin Name to First Name + 2.0
+      getUserData().then(user => {
+        if (user) {
+          const firstName = user.firstName || user.first_name || (user.full_name ? user.full_name.split(' ')[0] : 'User');
+          setTwinName(`${firstName} 2.0`);
+          setUserAuthKey(user.id || user.email || 'guest');
         }
-      } catch (e) {}
-    };
-    fetchTwinAvatar();
+      }).catch(e => {});
+    } catch (e) {}
   }, []);
 
   const isSmallScreen = windowWidth < 960;
@@ -237,7 +236,7 @@ export default function DigitalTwinChatScreen() {
 
   const handleSend = async (e) => {
     if (e) e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isThinking) return;
 
     const textToSend = inputText.trim();
     const newMsg = {
@@ -249,26 +248,90 @@ export default function DigitalTwinChatScreen() {
     const updatedUserMsgs = [...messages, newMsg];
     setMessages(updatedUserMsgs);
     setInputText('');
+    setIsThinking(true);
 
-    let aiText = 'My digital twin consciousness has received your message. I am aligning with your energy stream.';
+    let aiText = 'Sorry, I could not process your request. Please try again.';
     let aiMsgId = (Date.now() + 1).toString();
+    let aiFiles = [];
 
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/chat/sessions/${currentSessionId}/messages`, {
+      // 1. Create a run
+      const createRes = await fetch(`${TWIN_API_BASE}/runs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: textToSend }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userAuthKey}`
+        },
+        body: JSON.stringify({
+          session_id: currentSessionId,
+          message: textToSend,
+        }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        aiText = data.reply || data.message || aiText;
-        aiMsgId = data.message_id || aiMsgId;
+
+      if (createRes.ok || createRes.status === 202) {
+        const createData = await createRes.json();
+        const runId = createData.run_id;
+
+        if (runId) {
+          // 2. Poll for completion
+          let completed = false;
+          for (let i = 0; i < 60; i++) {
+            await new Promise(r => setTimeout(r, 3000));
+            try {
+              const pollRes = await fetch(`${TWIN_API_BASE}/runs/${runId}`, {
+                headers: {
+                  'Authorization': `Bearer ${userAuthKey}`
+                }
+              });
+              if (pollRes.ok) {
+                const pollData = await pollRes.json();
+                const status = pollData.status || '';
+                if (status === 'completed' || status === 'success' || status === 'succeeded') {
+                  aiText = pollData.text || pollData.result || pollData.output || pollData.response || pollData.message || pollData.answer || 'Task completed.';
+                  if (typeof aiText === 'object') aiText = JSON.stringify(aiText, null, 2);
+                  aiMsgId = pollData.id || runId;
+                  // Capture only NEW files (filter out files already shown in previous messages)
+                  if (pollData.files && Array.isArray(pollData.files) && pollData.files.length > 0) {
+                    const previousFileNames = new Set();
+                    updatedUserMsgs.forEach(m => {
+                      if (m.files && Array.isArray(m.files)) {
+                        m.files.forEach(f => {
+                          const n = typeof f === 'string' ? f : (f.name || f.filename || '');
+                          if (n) previousFileNames.add(n);
+                        });
+                      }
+                    });
+                    aiFiles = pollData.files.filter(f => {
+                      const n = typeof f === 'string' ? f : (f.name || f.filename || '');
+                      if (n.endsWith('.py')) return false;
+                      return !previousFileNames.has(n);
+                    });
+                  }
+                  completed = true;
+                  break;
+                } else if (status === 'failed' || status === 'error') {
+                  aiText = pollData.error || pollData.message || 'The task encountered an error.';
+                  completed = true;
+                  break;
+                }
+                // else still running, continue polling
+              }
+            } catch (pollErr) {}
+          }
+          if (!completed) {
+            aiText = 'The task is still running. It may complete in the background.';
+          }
+        }
       }
-    } catch (err) {}
+    } catch (err) {
+      aiText = 'Could not connect to the Digital Twin backend. Please check your connection.';
+    }
+
+    setIsThinking(false);
 
     const finalMsgs = [
       ...updatedUserMsgs,
-      { id: aiMsgId, sender: 'twin', text: aiText }
+      { id: aiMsgId, sender: 'twin', text: aiText, files: aiFiles, sessionId: currentSessionId }
     ];
     setMessages(finalMsgs);
 
@@ -349,7 +412,7 @@ export default function DigitalTwinChatScreen() {
           {/* Logo & Header Title */}
           <div className="sidebar-brand">
             <div className="sidebar-logo">
-              <img src="/nextarcherlogo.jpeg" alt="Logo" />
+              <img src="/logo_in_white.svg" alt="Next Archer Logo" />
             </div>
             <div>
               <div className="sidebar-title">Next Archer</div>
@@ -432,7 +495,7 @@ export default function DigitalTwinChatScreen() {
                 Hey <span>{userProfileName}</span>
               </h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                <p className="header-subtitle">NIGHT AMBIENT</p>
+                <p className="header-subtitle">Chatting with {twinName}</p>
               </div>
             </div>
           </div>
@@ -475,7 +538,40 @@ export default function DigitalTwinChatScreen() {
 
                 {/* Message Bubble Box */}
                 <div className={`message-bubble ${isTwin ? 'bubble-twin' : 'bubble-user'}`}>
-                  {msg.text}
+                  {isTwin ? (
+                    <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} />
+                  ) : (
+                    msg.text
+                  )}
+                  {/* File Download Cards */}
+                  {isTwin && msg.files && msg.files.length > 0 && (
+                    <div className="file-download-cards">
+                      {msg.files.map((file, idx) => {
+                        const fileName = typeof file === 'string' ? file : (file.name || file.filename || `file_${idx}`);
+                        const fileSize = typeof file === 'object' ? file.size : null;
+                        const downloadUrl = (typeof file === 'object' && file.download_url)
+                          ? `${TWIN_API_BASE}${file.download_url}`
+                          : `${TWIN_API_BASE}/sessions/${msg.sessionId || currentSessionId}/files/${encodeURIComponent(fileName)}`;
+                        return (
+                          <a
+                            key={idx}
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="file-download-card"
+                            download
+                          >
+                            <FileText size={18} className="file-icon" />
+                            <div className="file-info">
+                              <span className="file-name">{fileName}</span>
+                              {fileSize && <span className="file-size">{fileSize}</span>}
+                            </div>
+                            <Download size={16} className="download-icon" />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* User Avatar - custom sunflower SVG */}
@@ -483,6 +579,21 @@ export default function DigitalTwinChatScreen() {
               </div>
             );
           })}
+          {isThinking && (
+            <div className="message-row row-left">
+              <div className="twin-avatar-circle" style={{ overflow: 'hidden', border: '1.5px solid rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#050510' }}>
+                {twinAvatarPhoto ? (
+                  <img src={twinAvatarPhoto} alt="Twin" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Cpu size={16} color="#00ffcc" />
+                )}
+              </div>
+              <div className="message-bubble bubble-twin" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="thinking-dots">Thinking</span>
+                <span className="dot-animation">...</span>
+              </div>
+            </div>
+          )}
           <div ref={chatEndRef} />
         </main>
 
@@ -524,7 +635,7 @@ export default function DigitalTwinChatScreen() {
           <div className="twin-drawer-content">
             <div className="twin-drawer-header">
               <div className="twin-drawer-brand">
-                <img src="/nextarcherlogo.jpeg" alt="Logo" className="twin-drawer-logo" />
+                <img src="/logo_in_white.svg" alt="Logo" className="twin-drawer-logo" />
                 <span className="twin-drawer-title">Next Archer</span>
               </div>
               <button className="twin-drawer-close" onClick={() => setShowMobileDrawer(false)}>

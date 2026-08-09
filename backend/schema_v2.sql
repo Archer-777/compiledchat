@@ -5,11 +5,11 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Users Table (replaces insecure user_profiles)
+-- 2. Users Table
 CREATE TABLE IF NOT EXISTS public.users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email         TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT DEFAULT '',
     first_name    TEXT NOT NULL,
     last_name     TEXT NOT NULL,
     full_name     TEXT GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED,
@@ -24,6 +24,24 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON public.users (email);
+
+-- 2.1 Backward Compatibility View for user_profiles REST queries
+CREATE OR REPLACE VIEW public.user_profiles AS
+SELECT 
+    id, 
+    email, 
+    first_name, 
+    last_name, 
+    full_name, 
+    age, 
+    gender, 
+    profession, 
+    phone, 
+    phone_verified, 
+    email_verified, 
+    created_at, 
+    updated_at
+FROM public.users;
 
 -- 3. Face Descriptors Table (pgvector 128-D Vector for Face ID Login)
 CREATE TABLE IF NOT EXISTS public.face_descriptors (
@@ -69,12 +87,15 @@ CREATE TABLE IF NOT EXISTS public.chat_sessions (
     user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     title       TEXT DEFAULT 'New Chat',
     status      TEXT DEFAULT 'active' CHECK (status IN ('active', 'ended')),
+    session_type TEXT DEFAULT 'spiritual',
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     ended_at    TIMESTAMPTZ,
     updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON public.chat_sessions (user_id, created_at DESC);
+-- Index for separated chat histories ('spiritual' vs 'twin')
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_type 
+ON public.chat_sessions(user_id, session_type, created_at DESC);
 
 -- 5. Chat Messages Table
 CREATE TABLE IF NOT EXISTS public.chat_messages (
@@ -94,11 +115,11 @@ CREATE TABLE IF NOT EXISTS public.session_analysis (
     session_id                    UUID NOT NULL REFERENCES public.chat_sessions(id) ON DELETE CASCADE,
     user_id                       UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     weak_chakra                   TEXT,
-    chakra_glow_levels            JSONB DEFAULT '{"root":75,"sacral":80,"solar_plexus":65,"heart":45,"throat":90,"third_eye":85,"crown":95}'::jsonb,
+    chakra_glow_levels            JSONB DEFAULT '{"root":0,"sacral":0,"solar_plexus":0,"heart":0,"throat":0,"third_eye":0,"crown":0}'::jsonb,
     psychological_score           JSONB,
-    collective_intelligence_index NUMERIC DEFAULT 40,
-    global_consciousness_score    NUMERIC DEFAULT 60,
-    balanced_talking_ratio        NUMERIC DEFAULT 90,
+    collective_intelligence_index NUMERIC DEFAULT 0,
+    global_consciousness_score    NUMERIC DEFAULT 0,
+    balanced_talking_ratio        NUMERIC DEFAULT 0,
     raw_summary                   TEXT,
     created_at                    TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT                    unique_session_analysis UNIQUE (session_id)
@@ -106,20 +127,20 @@ CREATE TABLE IF NOT EXISTS public.session_analysis (
 
 CREATE INDEX IF NOT EXISTS idx_session_analysis_user ON public.session_analysis (user_id, created_at DESC);
 
--- 7. User Dashboard Telemetry Table
+-- 7. User Dashboard Telemetry Table (Initial Zero-Baseline for New Users)
 CREATE TABLE IF NOT EXISTS public.user_dashboard (
     id                            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id                       UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    karma_rating                  NUMERIC DEFAULT 90,
+    karma_rating                  NUMERIC DEFAULT 0,
     veto_status                   TEXT DEFAULT 'Safe + No Burnout',
-    world_business_pct            NUMERIC DEFAULT 80,
-    world_family_pct              NUMERIC DEFAULT 90,
-    world_friend_pct              NUMERIC DEFAULT 60,
-    maslow_physiological          NUMERIC DEFAULT 85,
-    maslow_safety_order           NUMERIC DEFAULT 70,
-    maslow_belonging              NUMERIC DEFAULT 65,
-    maslow_self_esteem            NUMERIC DEFAULT 80,
-    maslow_actualization          NUMERIC DEFAULT 50,
+    world_business_pct            NUMERIC DEFAULT 0,
+    world_family_pct              NUMERIC DEFAULT 0,
+    world_friend_pct              NUMERIC DEFAULT 0,
+    maslow_physiological          NUMERIC DEFAULT 0,
+    maslow_safety_order           NUMERIC DEFAULT 0,
+    maslow_belonging              NUMERIC DEFAULT 0,
+    maslow_self_esteem            NUMERIC DEFAULT 0,
+    maslow_actualization          NUMERIC DEFAULT 0,
     updated_at                    TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT                    unique_user_dashboard UNIQUE (user_id)
 );

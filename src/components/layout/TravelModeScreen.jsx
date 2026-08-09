@@ -200,13 +200,6 @@ export default function TravelModeScreen({ onBack, onNavigateNext }) {
             </div>
           </div>
 
-          <button
-            onClick={onNavigateNext}
-            className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer font-['Poppins'] shadow-lg"
-          >
-            First-Time User? Complete Registration →
-          </button>
-
         </div>
 
       </div>

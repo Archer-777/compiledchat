@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useClerk } from '@clerk/react';
 import { getUserData } from '@/utils/storage';
 
 const NAV_ITEMS = [
@@ -10,12 +11,12 @@ const NAV_ITEMS = [
   { path: '/healing', label: '🧘 Chakras' },
   { path: '/digital-twin', label: '👤 Digital Twin', requiresUser: true },
   { path: '/soul-matrix', label: '🌌 Soul Matrix' },
-  { path: '/supercharge', label: '⚡ Supercharge' },
 ];
 
 export default function GlobalNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const clerk = useClerk();
   const [userData, setUserData] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -55,13 +56,28 @@ export default function GlobalNavbar() {
     }
   };
 
-  const handleLogoutAction = () => {
+  const handleLogoutAction = async () => {
     setMenuOpen(false);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('@active_auth_session');
         window.localStorage.removeItem('@spiritual_register_user');
+        window.localStorage.removeItem('user_profile');
+        window.localStorage.removeItem('@telemetry_analysis_result');
+        // Reset to Archer Guest Mode
+        const guestSession = { firstName: 'Archer', lastName: '', fullName: 'Archer', isGuest: true };
+        window.localStorage.setItem('@active_auth_session', JSON.stringify(guestSession));
       }
     } catch (e) {}
+
+    try {
+      if (clerk && typeof clerk.signOut === 'function') {
+        await clerk.signOut();
+      }
+    } catch (e) {
+      console.warn("Clerk signOut notice:", e);
+    }
+
     setUserData(null);
     navigate('/scan');
   };
@@ -96,21 +112,24 @@ export default function GlobalNavbar() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
+            gap: '16px',
             cursor: 'pointer',
           }}
         >
           <img
-            src="/logo.png"
+            src="/logo_in_white.svg"
             alt="Next Archer Logo"
-            style={{ width: '30px', height: '30px', borderRadius: '50%' }}
+            style={{ width: '56px', height: '56px', objectFit: 'contain' }}
+            onError={(e) => {
+              e.target.src = '/logo.png';
+            }}
           />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '14px', fontWeight: '800', color: '#00e5ff', letterSpacing: '1px', fontFamily: 'Poppins, sans-serif' }}>
-              NEXT ARCHER
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ fontSize: '24px', fontWeight: '800', color: '#ffffff', letterSpacing: '0.5px', fontFamily: 'Poppins, sans-serif', lineHeight: '1.2' }}>
+              Next Archer
             </span>
             {userData && (
-              <span style={{ fontSize: '10px', color: '#a855f7', fontWeight: '600' }}>
+              <span style={{ fontSize: '14px', color: '#00e5ff', fontWeight: '700', letterSpacing: '0.3px', marginTop: '-1px' }}>
                 ✦ {userData.firstName} {userData.lastName}
               </span>
             )}

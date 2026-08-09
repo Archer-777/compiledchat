@@ -60,9 +60,9 @@ export default function UnifiedSetupScreen({
         {/* Clean Unsquished Logo */}
         <div className="flex justify-center my-2 cursor-pointer" onClick={playHaptic}>
           <img
-            src="/nextarcherlogo.jpeg"
+            src="/logo_in_white.svg"
             alt="Next Archer Logo"
-            className="h-11 w-auto max-w-[160px] object-contain rounded-xl border border-white/20 px-3.5 py-1.5 bg-black/50 shadow-sm transition-transform hover:scale-105"
+            className="h-11 w-auto max-w-[160px] object-contain px-3.5 py-1.5 transition-transform hover:scale-105"
             onError={(e) => {
               e.target.src = '/logo.png';
               e.target.className = 'h-8 w-auto object-contain filter invert contrast-200';

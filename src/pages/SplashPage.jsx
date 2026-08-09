@@ -11,69 +11,37 @@ export default function SplashPage({ isOverlay = false, onFinish }) {
   };
 
   useEffect(() => {
-    if (!isOverlay) {
-      const timer = setTimeout(() => {
-        const route = getTargetRoute();
-        if (onFinish) onFinish(route);
-        else navigate(route);
-      }, 2800);
-
-      return () => clearTimeout(timer);
-    }
-  }, [navigate, isOverlay, onFinish]);
-
-  const handlePress = () => {
-    if (!isOverlay) {
+    const timer = setTimeout(() => {
       const route = getTargetRoute();
       if (onFinish) onFinish(route);
       else navigate(route);
-    }
+    }, 2800);
+
+    return () => clearTimeout(timer);
+  }, [navigate, onFinish]);
+
+  const handlePress = () => {
+    const route = getTargetRoute();
+    if (onFinish) onFinish(route);
+    else navigate(route);
   };
 
   return (
-    <AmbientBackground>
-      <div className="splash-container" onClick={handlePress}>
+    <div style={{ backgroundColor: '#000000', minHeight: '100vh', width: '100%' }}>
+      <div className="splash-container" onClick={handlePress} style={{ backgroundColor: '#000000' }}>
         <div className="splash-centered-content">
-          {/* Main Logo & Typography Group */}
+          {/* Main Logo Image (2.svg) */}
           <div className="splash-logo-container">
-            <div className="splash-halo-wrapper">
-              <svg height="100" width="280" viewBox="0 0 240 90">
-                <ellipse
-                  cx="120"
-                  cy="45"
-                  rx="70"
-                  ry="20"
-                  fill="none"
-                  stroke="#FF9900"
-                  strokeWidth="16"
-                  opacity="0.45"
-                />
-                <ellipse
-                  cx="120"
-                  cy="45"
-                  rx="62"
-                  ry="17"
-                  fill="none"
-                  stroke="#FFE57F"
-                  strokeWidth="3.5"
-                  opacity="0.95"
-                />
-              </svg>
-            </div>
-
-            <div className="splash-ai-text">AI</div>
-
-            <div className="splash-smile-arc">
-              <svg height="45" width="180" viewBox="0 0 160 40">
-                <path
-                  d="M 22 10 Q 80 32 138 10"
-                  fill="none"
-                  stroke="#FFFFFF"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
+            <img
+              src="/2.svg"
+              alt="Spiritualize AI Logo"
+              style={{
+                width: '260px',
+                height: 'auto',
+                maxHeight: '260px',
+                objectFit: 'contain',
+              }}
+            />
           </div>
 
           {/* Title and Subtitle Text Group */}
@@ -114,6 +82,6 @@ export default function SplashPage({ isOverlay = false, onFinish }) {
           </div>
         </div>
       </div>
-    </AmbientBackground>
+    </div>
   );
 }

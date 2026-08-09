@@ -211,11 +211,9 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
 
   try {
     const userData = await getUserData(emailOverride);
-    if (userData && userData.email) {
-      let endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?order=created_at.desc`;
-      if (userData.id) {
-        endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${encodeURIComponent(userData.id)}&order=created_at.desc`;
-      }
+    if (userData && userData.email && userData.id) {
+      const targetUserId = userData.id;
+      const endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${encodeURIComponent(targetUserId)}&order=created_at.desc`;
       const res = await fetch(endpoint, {
         headers: {
           'apikey': SERVICE_KEY,

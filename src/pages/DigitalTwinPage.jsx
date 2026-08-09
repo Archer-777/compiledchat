@@ -31,26 +31,22 @@ export default function DigitalTwinPage() {
             if (p.filterMode) setFilterMode(p.filterMode);
             if (p.overlayPattern) setOverlayPattern(p.overlayPattern);
             if (p.auraIntensity) setAuraIntensity(p.auraIntensity);
-            if (p.twinName) setTwinName(p.twinName);
+            // We do not load twinName from local storage anymore, it is fixed.
           }
         }
 
         const user = await getUserData();
         if (user && user.email) {
-          const res = await fetch(`http://localhost:4000/api/v1/auth/digital-twin-profile?email=${encodeURIComponent(user.email)}`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json && json.success && json.profile) {
-              const p = json.profile;
-              if (p.avatarImage) setAvatarImage(p.avatarImage);
-              if (p.filterMode) setFilterMode(p.filterMode);
-              if (p.overlayPattern) setOverlayPattern(p.overlayPattern);
-              if (p.auraIntensity) setAuraIntensity(p.auraIntensity);
-              if (p.twinName) setTwinName(p.twinName);
-              if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.setItem('@spiritual_digital_twin_profile', JSON.stringify(p));
-              }
-            }
+          const firstName = user.firstName || user.first_name || (user.full_name ? user.full_name.split(' ')[0] : 'User');
+          const generatedName = `${firstName} 2.0`;
+          setTwinName(generatedName);
+          
+          // Overwrite the local storage with the forced name
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const raw = window.localStorage.getItem('@spiritual_digital_twin_profile');
+            const p = raw ? JSON.parse(raw) : {};
+            p.twinName = generatedName;
+            window.localStorage.setItem('@spiritual_digital_twin_profile', JSON.stringify(p));
           }
         }
       } catch (e) {}
@@ -69,14 +65,6 @@ export default function DigitalTwinPage() {
       };
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('@spiritual_digital_twin_profile', JSON.stringify(p));
-      }
-      const user = await getUserData();
-      if (user && user.email) {
-        await fetch('http://localhost:4000/api/v1/auth/digital-twin-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email, ...p })
-        });
       }
     } catch (e) {}
   };

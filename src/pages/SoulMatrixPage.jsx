@@ -9,18 +9,104 @@ import { getUserData } from '@/utils/storage';
 
 export default function SoulMatrixPage() {
   const navigate = useNavigate();
-  const profile = FALLBACK_SOUL_MATRIX_PROFILE;
-  const [userName, setUserName] = useState(profile.user_name);
+  const [profile, setProfile] = useState(FALLBACK_SOUL_MATRIX_PROFILE);
+  const [userName, setUserName] = useState(FALLBACK_SOUL_MATRIX_PROFILE.user_name);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndTelemetry = async () => {
       const data = await getUserData();
       if (data) {
         const name = data.firstName || data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null);
         if (name) setUserName(name);
       }
+
+      try {
+        let storedTelemetry = window.localStorage.getItem('@telemetry_analysis_result');
+        if (typeof window !== 'undefined' && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          const urlTelemetry = params.get('telemetry');
+          if (urlTelemetry) {
+            try {
+              const decoded = JSON.parse(urlTelemetry);
+              window.localStorage.setItem('@telemetry_analysis_result', JSON.stringify(decoded));
+              storedTelemetry = JSON.stringify(decoded);
+            } catch (pErr) {}
+          }
+        }
+
+        if (storedTelemetry) {
+          const telemetry = JSON.parse(storedTelemetry);
+          setProfile(prev => {
+            const updated = { ...prev };
+            if (telemetry.energy?.score) updated.karma_rating = telemetry.energy.score;
+            if (telemetry.world_balance) {
+              updated.my_world_sliders = {
+                business: telemetry.world_balance.business?.score || prev.my_world_sliders.business,
+                family: telemetry.world_balance.family?.score || prev.my_world_sliders.family,
+                friend: telemetry.world_balance.friend?.score || prev.my_world_sliders.friend,
+              };
+            }
+            if (telemetry.growth_consciousness) {
+              if (telemetry.growth_consciousness.collective_intelligence_index?.score !== undefined) {
+                updated.collective_intelligence = telemetry.growth_consciousness.collective_intelligence_index.score;
+              }
+              if (telemetry.growth_consciousness.global_consciousness_score?.score !== undefined) {
+                updated.global_consciousness = telemetry.growth_consciousness.global_consciousness_score.score;
+              }
+              if (telemetry.growth_consciousness.balanced_thinking_ratio?.score !== undefined) {
+                updated.balanced_thinking = telemetry.growth_consciousness.balanced_thinking_ratio.score;
+              }
+            }
+            if (telemetry.chakras) {
+              const weak = telemetry.chakras.weak_chakras || [];
+              const rawChakras = prev.chakras || {};
+              if (Array.isArray(rawChakras)) {
+                updated.chakras = rawChakras.map(c => {
+                  const cKey = c.id || c.name?.toLowerCase().replace(/\s+/g, '_');
+                  const isWeak = weak.includes(cKey) || weak.includes(c.id);
+                  return {
+                    ...c,
+                    is_weak: isWeak,
+                    score: telemetry.chakras[cKey]?.score ?? c.score ?? 0,
+                  };
+                });
+              } else {
+                const mappedObj = {};
+                const keys = ['root', 'sacral', 'solar_plexus', 'heart', 'throat', 'third_eye', 'crown'];
+                keys.forEach(k => {
+                  mappedObj[k] = telemetry.chakras[k]?.score ?? 0;
+                });
+                updated.chakras = mappedObj;
+                updated.weak_chakras = weak;
+              }
+            }
+            if (telemetry.maslow) {
+              const rawMaslow = prev.maslow_levels || {};
+              if (Array.isArray(rawMaslow)) {
+                updated.maslow_levels = rawMaslow.map(m => {
+                  const mKey = m.id || m.name?.toLowerCase().replace(/\s+/g, '_');
+                  return {
+                    ...m,
+                    score: telemetry.maslow[mKey]?.score ?? m.score ?? 0,
+                  };
+                });
+              } else {
+                const mappedMaslow = {};
+                const mKeys = ['physiological', 'safety', 'belonging_love', 'esteem', 'cognitive', 'aesthetic', 'self_actualization', 'transcendence'];
+                mKeys.forEach(k => {
+                  mappedMaslow[k] = telemetry.maslow[k]?.score ?? 0;
+                });
+                updated.maslow_levels = mappedMaslow;
+              }
+            }
+            return updated;
+          });
+        }
+      } catch (e) {
+        console.warn('Telemetry load notice:', e);
+      }
     };
-    fetchUser();
+    fetchUserAndTelemetry();
   }, []);
 
   return (
@@ -96,7 +182,7 @@ export default function SoulMatrixPage() {
                 <DashboardMetrics
                   collectiveIntelligence={profile.collective_intelligence}
                   globalConsciousness={profile.global_consciousness}
-                  balancedThinking={90}
+                  balancedThinking={profile.balanced_thinking || 0}
                 />
               </div>
 

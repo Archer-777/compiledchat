@@ -29,8 +29,8 @@ export const saveUserData = async (data) => {
   // 2. Save to Supabase DB (users table and user_profiles table)
   if (isSupabaseConfigured) {
     try {
-      const record = {
-        full_name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+      // Do not include full_name in users record as full_name is a GENERATED ALWAYS column in PostgreSQL
+      const userRecord = {
         first_name: data.firstName || '',
         last_name: data.lastName || '',
         age: parseInt(data.age, 10) || null,
@@ -46,18 +46,28 @@ export const saveUserData = async (data) => {
 
       const { error } = await supabase
         .from('users')
-        .upsert([record], { onConflict: 'email' });
+        .upsert([userRecord], { onConflict: 'email' });
 
       if (!error) {
         supabaseSuccess = true;
       } else {
-        const { error: profileErr } = await supabase
-          .from('user_profiles')
-          .upsert([{ ...record, platform: 'registration', registered_at: registeredAt }], { onConflict: 'email' });
-        if (!profileErr) {
-          supabaseSuccess = true;
-        } else {
-          supabaseError = error.message || profileErr.message;
+        try {
+          const profileRecord = {
+            ...userRecord,
+            full_name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+            platform: 'registration',
+            registered_at: registeredAt
+          };
+          const { error: profileErr } = await supabase
+            .from('user_profiles')
+            .upsert([profileRecord], { onConflict: 'email' });
+          if (!profileErr) {
+            supabaseSuccess = true;
+          } else {
+            supabaseError = error.message;
+          }
+        } catch (pe) {
+          supabaseError = error.message;
         }
       }
     } catch (err) {
@@ -275,9 +285,12 @@ export const saveChatSession = async (session, chatType = 'spiritual') => {
   try {
     let sessions = await getChatSessions(null, null);
     const index = sessions.findIndex((s) => s.id === validSessionId || s.id === session.id);
+    const userData = await getUserData();
+    const activeEmail = userData?.email || '';
     const updatedSession = {
       id: validSessionId,
       chatType: chatType,
+      userEmail: activeEmail,
       title: session.title || (session.messages && session.messages.find(m => m.sender === 'user')?.text) || (chatType === 'twin' ? 'Digital Twin Chat' : 'Spiritual Chat'),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       messages: session.messages || [],
@@ -296,7 +309,6 @@ export const saveChatSession = async (session, chatType = 'spiritual') => {
     }
 
     // Sync to Supabase DB if user is logged in
-    const userData = await getUserData();
     if (isSupabaseConfigured && userData && userData.email) {
       let userId = userData.id;
       if (!userId) {
@@ -352,10 +364,18 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
   // Query Supabase DB if logged in
   try {
     const userData = await getUserData(emailOverride);
-    if (isSupabaseConfigured && userData && userData.email) {
+    const activeEmail = userData?.email || '';
+
+    if (activeEmail) {
+      sessions = sessions.filter(s => s.userEmail === activeEmail);
+    } else {
+      sessions = sessions.filter(s => !s.userEmail);
+    }
+
+    if (isSupabaseConfigured && activeEmail) {
       let userId = userData.id;
       if (!userId) {
-        userId = await fetchUserIdForEmail(userData.email);
+        userId = await fetchUserIdForEmail(activeEmail);
       }
 
       if (userId) {

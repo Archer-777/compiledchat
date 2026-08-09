@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SignInButton, SignUpButton, UserButton, Show, useUser } from '@clerk/react';
 import { useNavigate } from 'react-router-dom';
 import {
   IoSparkles,
@@ -89,6 +90,7 @@ const stickerThemes = {
 
 export default function AuraScannerPage() {
   const navigate = useNavigate();
+  const { isSignedIn } = useUser();
 
   // Database status
   const [dbInfo, setDbInfo] = useState({ connected: false, mode: 'checking', message: 'Connecting to DB...' });
@@ -170,7 +172,7 @@ export default function AuraScannerPage() {
   const [permissionError, setPermissionError] = useState(null);
 
   // Diagnostic Logs
-  const [analysisLogs, setAnalysisLogs] = useState(["Initializing quantum aura scanner..."]);
+  const [analysisLogs, setAnalysisLogs] = useState(["Initializing sentiment analysis scanner..."]);
   const setSemanticAnalysis = (msg) => {
     if (msg) setAnalysisLogs((prev) => [...prev, msg]);
   };
@@ -207,7 +209,7 @@ export default function AuraScannerPage() {
   useEffect(() => {
     import('../services/faceRecognitionService').then(async (module) => {
       const faceService = module.default;
-      setSemanticAnalysis('Loading aura recognition AI models...');
+      setSemanticAnalysis('Loading sentiment recognition AI models...');
       const loaded = await faceService.loadModels();
       setModelsLoaded(loaded);
       if (loaded) {
@@ -233,7 +235,7 @@ export default function AuraScannerPage() {
 
       const runScanSequence = async () => {
         if (!isSubscribed) return;
-        setSemanticAnalysis('Scanning quantum aura energy field with neural network...');
+        setSemanticAnalysis('Scanning sentiment field with neural network...');
         await new Promise((r) => setTimeout(r, 1800));
 
         if (!isSubscribed || !videoRef.current) return;
@@ -244,7 +246,7 @@ export default function AuraScannerPage() {
 
         while (!faceResult && attempts < 5 && isSubscribed) {
           attempts++;
-          setSemanticAnalysis(`Analyzing aura frequency field... (${attempts}/5)`);
+          setSemanticAnalysis(`Analyzing facial sentiment vectors... (${attempts}/5)`);
 
           if (videoRef.current && canvasRef.current) {
             const drawn = faceService.drawVideoToCanvas(videoRef.current, canvasRef.current);
@@ -267,7 +269,7 @@ export default function AuraScannerPage() {
 
         if (faceResult) {
           const confidence = Math.round(faceResult.score * 100);
-          setSemanticAnalysis(`Facial Emotion & Aura Detected (${confidence}% confidence)...`);
+          setSemanticAnalysis(`Facial Emotion & Sentiment Detected (${confidence}% confidence)...`);
           await new Promise((r) => setTimeout(r, 1500));
 
           const descriptor = Array.from(faceResult.descriptor);
@@ -289,7 +291,7 @@ export default function AuraScannerPage() {
           if (matchResult && matchResult.match) {
             setMatchStatus('matched');
             setCapturedImage(dataUrl);
-            setSemanticAnalysis(`Aura Matched: ${auraPred.archetype} (${auraPred.frequency})`);
+            setSemanticAnalysis(`Sentiment Matched: ${auraPred.archetype} (${auraPred.frequency})`);
           } else {
             await databaseService.saveAuraScan({
               image: dataUrl,
@@ -299,10 +301,10 @@ export default function AuraScannerPage() {
             });
             setMatchStatus('new');
             setCapturedImage(dataUrl);
-            setSemanticAnalysis(`Aura Profile Saved: ${auraPred.archetype} (${auraPred.resonanceScore}% Resonance)`);
+            setSemanticAnalysis(`Sentiment Profile Saved: ${auraPred.archetype} (${auraPred.valenceScore}% Valence)`);
           }
         } else {
-          setSemanticAnalysis('Default Cosmic Aura Profile generated.');
+          setSemanticAnalysis('Default sentiment profile generated.');
           setMatchStatus('matched');
         }
 
@@ -415,7 +417,25 @@ export default function AuraScannerPage() {
   };
 
   const handleContinue = () => {
-    navigate('/supercharge');
+    let email = '';
+    let firstName = '';
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          email = parsed.email || '';
+          firstName = parsed.firstName || parsed.first_name || (parsed.full_name ? parsed.full_name.split(' ')[0] : '');
+        }
+      }
+    } catch (e) {}
+
+    const params = new URLSearchParams();
+    if (email) params.set('email', email);
+    if (firstName) params.set('firstName', firstName);
+    const qStr = params.toString();
+    const query = qStr ? `?${qStr}` : '';
+    window.location.href = `http://localhost:8081/${query}`;
   };
 
   const activeTheme = stickerThemes[stickerTheme] || stickerThemes.violet;
@@ -429,13 +449,13 @@ export default function AuraScannerPage() {
         <div className="scanner-header-bar">
           <div className="scanner-brand-group">
             <img src="/logo.png" alt="Logo" className="scanner-brand-logo" />
-            <h1 className="scanner-brand-title">AURA SCANNER</h1>
+            <h1 className="scanner-brand-title">SENTIMENT ANALYSIS SCANNER</h1>
           </div>
 
           <div className="scanner-status-badge">
             <IoSparkles style={{ color: activeTheme.border }} />
             <span>
-              {matchStatus === 'matched' ? "AURA MATCHED" : matchStatus === 'new' ? "NEW AURA SAVED" : "SCANNER ACTIVE"}
+              {matchStatus === 'matched' ? "SENTIMENT MATCHED" : matchStatus === 'new' ? "NEW SENTIMENT SAVED" : "SCANNER ACTIVE"}
             </span>
           </div>
         </div>
@@ -497,59 +517,222 @@ export default function AuraScannerPage() {
 
           {/* Right Column: Control & Results Panel */}
           <div className="scanner-control-panel">
-            {/* Diagnostic Log */}
-            <div className="scanner-log-card">
-              <div className="scanner-log-header">
-                <MdTerminal size={16} />
-                <span>AI QUANTUM DIAGNOSTIC LOG</span>
-              </div>
-              <div>
-                {analysisLogs.slice(-4).map((log, idx) => (
-                  <div
-                    key={idx}
-                    className={`scanner-log-line ${idx === analysisLogs.slice(-4).length - 1 ? 'active' : ''}`}
-                  >
-                    <span style={{ color: activeTheme.border }}>▶</span>
-                    <span>{log}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Prediction Card */}
-            <div className="scanner-prediction-card">
+            <div style={{
+              background: 'rgba(6, 182, 212, 0.05)',
+              border: '1px solid rgba(6, 182, 212, 0.4)',
+              boxShadow: '0 0 15px rgba(6, 182, 212, 0.15)',
+              borderRadius: '16px',
+              padding: '20px',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 className="scanner-archetype-title">
-                  {currentPrediction?.archetype || activeTheme.archetype}
-                </h3>
-                <span className="scanner-score-badge">
-                  {currentPrediction?.resonanceScore || 98.4}% Resonance
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#00e5ff',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.5)',
+                  borderRadius: '20px',
+                  padding: '4px 12px',
+                  letterSpacing: '0.5px',
+                }}>
+                  {currentPrediction?.categoryTag || '+ NEURAL RESONANCE'}
+                </span>
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#00e5ff',
+                  background: 'rgba(6, 182, 212, 0.15)',
+                  border: '1px solid rgba(6, 182, 212, 0.5)',
+                  borderRadius: '20px',
+                  padding: '4px 14px',
+                }}>
+                  {currentPrediction?.valenceScore || 94.2}% Valence
                 </span>
               </div>
 
-              <p style={{ fontSize: 13, color: '#9ca3af', lineHeight: 1.5 }}>
-                {currentPrediction?.summary || "Your frequency aligns with universal Solfeggio resonance."}
+              <h2 style={{
+                color: '#ffffff',
+                fontSize: 20,
+                fontWeight: 700,
+                margin: '14px 0 8px 0',
+              }}>
+                {currentPrediction?.archetype || 'Serene Equilibrium'}
+              </h2>
+
+              <p style={{
+                color: '#94a3b8',
+                fontSize: 13,
+                lineHeight: 1.5,
+                margin: 0,
+              }}>
+                {currentPrediction?.summary || 'Calm, centered emotional state and crystalline mental clarity.'}
               </p>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <span style={{ fontSize: 11, padding: '4px 10px', background: 'rgba(255,255,255,0.08)', borderRadius: 10 }}>
-                  Frequency: {currentPrediction?.frequency || "528Hz Solfeggio"}
-                </span>
-              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="scanner-action-btn-group">
+            {/* User Authentication Card */}
+            <div style={{
+              background: 'rgba(13, 17, 33, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '16px',
+              padding: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}>
+              <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '1px',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '4px',
+              }}>
+                ✦ USER AUTHENTICATION
+              </div>
+
+              {/* Clerk Sign In / Quick Register Buttons */}
+              {!isSignedIn ? (
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <SignInButton mode="modal">
+                    <button style={{
+                      flex: 1,
+                      background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}>
+                      ⚡ Sign In
+                    </button>
+                  </SignInButton>
+
+                  <SignUpButton mode="modal">
+                    <button style={{
+                      flex: 1,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(6, 182, 212, 0.4)',
+                      color: '#00e5ff',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}>
+                      + Quick Register
+                    </button>
+                  </SignUpButton>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px' }}>
+                  <UserButton afterSignOutUrl="/scan" />
+                  <span style={{ color: '#10b981', fontSize: '12px', fontWeight: '600' }}>✓ Clerk Authenticated</span>
+                </div>
+              )}
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                margin: '4px 0',
+                fontSize: '10px',
+                color: '#64748b',
+                fontWeight: '600',
+                letterSpacing: '1px',
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                OR CREDENTIALS
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+              </div>
+
+              <input
+                type="email"
+                placeholder="Enter email address"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid #333',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  color: '#fff',
+                  fontSize: '13px',
+                }}
+              />
+
+              <input
+                type="password"
+                placeholder="Passcode"
+                value={loginPasscode}
+                onChange={(e) => setLoginPasscode(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid #333',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  color: '#fff',
+                  fontSize: '13px',
+                }}
+              />
+
+              {loginError && <p style={{ color: '#ff4d4d', fontSize: '12px', margin: 0 }}>{loginError}</p>}
 
               <button
-                className="scanner-continue-btn"
-                disabled={!scanComplete}
-                onClick={handleContinue}
+                style={{
+                  background: '#ffffff',
+                  color: '#000000',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  width: '100%',
+                  cursor: 'pointer',
+                  border: 'none',
+                }}
+                onClick={handleManualLoginSubmit}
               >
-                <span>{scanComplete ? 'Continue' : 'Calibrating...'}</span>
-                <IoArrowForward size={18} />
+                Sign In & Load Profile
               </button>
             </div>
+
+            {/* Bottom Action Pill Button */}
+            <button
+              className="scanner-continue-btn"
+              disabled={!scanComplete}
+              onClick={handleContinue}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                color: '#ffffff',
+                padding: '14px 28px',
+                borderRadius: '30px',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                cursor: scanComplete ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>{scanComplete ? 'Continue →' : 'Analyzing Sentiment... →'}</span>
+            </button>
           </div>
         </div>
 
@@ -599,6 +782,52 @@ export default function AuraScannerPage() {
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 20, textAlign: 'center' }}>
                   Sign in with your account credentials
                 </p>
+
+                {/* Clerk Authentication Buttons */}
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
+                  <Show when={(user) => !user}>
+                    <SignInButton mode="modal">
+                      <button style={{
+                        background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                        color: '#fff',
+                        padding: '12px 20px',
+                        borderRadius: 12,
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        border: 'none',
+                        cursor: 'pointer',
+                        flex: 1,
+                      }}>
+                        Sign In
+                      </button>
+                    </SignInButton>
+                    <SignUpButton mode="modal">
+                      <button style={{
+                        background: 'linear-gradient(135deg, #06b6d4, #0ea5e9)',
+                        color: '#fff',
+                        padding: '12px 20px',
+                        borderRadius: 12,
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        border: 'none',
+                        cursor: 'pointer',
+                        flex: 1,
+                      }}>
+                        Sign Up
+                      </button>
+                    </SignUpButton>
+                  </Show>
+                  <Show when={(user) => !!user}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <UserButton afterSignOutUrl="/scan" />
+                      <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>✓ Signed In</span>
+                    </div>
+                  </Show>
+                </div>
+
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginBottom: 4 }}>
+                  <p style={{ fontSize: 11, color: '#666', textAlign: 'center', marginBottom: 12 }}>Or sign in with email</p>
+                </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <input

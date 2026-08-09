@@ -82,7 +82,7 @@ export function DesktopSidebar({
       {/* Brand Header */}
       <View style={styles.brandHeader}>
         <View style={styles.brandBadge}>
-          <Image source={require('../../nextarcherlogo.jpeg')} resizeMode="contain" style={styles.brandLogo} />
+          <Image source={require('../../assets/logo_in_white.svg')} resizeMode="contain" style={styles.brandLogo} />
         </View>
         <View>
           <Text style={[styles.brandTitle, { color: textColor }]}>Next Archer</Text>
@@ -152,8 +152,12 @@ export function DesktopSidebar({
           onPress={handleProfileClick}
           activeOpacity={0.7}
         >
-          <View style={styles.userAvatarSmall}>
-            <Ionicons name="person" size={16} color="#ffffff" />
+          <View style={[styles.userAvatarSmall, { overflow: 'hidden', backgroundColor: 'transparent', borderWidth: 0, padding: 0 }]}>
+            <Image
+              source={require('../../assets/user_icon.svg')}
+              style={{ width: 32, height: 32, borderRadius: 16 }}
+              resizeMode="cover"
+            />
           </View>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={[styles.userName, { color: textColor }]}>{userName}</Text>

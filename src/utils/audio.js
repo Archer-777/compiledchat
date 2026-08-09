@@ -36,20 +36,33 @@ export const playSolfeggioTone = (frequencyHz) => {
 export const stopSolfeggioTone = () => {
   try {
     if (currentGain && audioCtx) {
-      currentGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.2);
-      setTimeout(() => {
-        if (currentOsc) {
-          try { currentOsc.stop(); currentOsc.disconnect(); } catch (e) {}
-          currentOsc = null;
+      try {
+        currentGain.gain.setValueAtTime(currentGain.gain.value || 0.25, audioCtx.currentTime);
+        currentGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+    if (currentOsc) {
+      try {
+        currentOsc.stop();
+        currentOsc.disconnect();
+      } catch (e) {}
+      currentOsc = null;
+    }
+    if (currentGain) {
+      try { currentGain.disconnect(); } catch (e) {}
+      currentGain = null;
+    }
+    if (audioCtx) {
+      try {
+        if (audioCtx.state !== 'closed') {
+          audioCtx.close();
         }
-        if (audioCtx) {
-          try { audioCtx.close(); } catch (e) {}
-          audioCtx = null;
-        }
-      }, 200);
+      } catch (e) {}
+      audioCtx = null;
     }
   } catch (e) {
     currentOsc = null;
+    currentGain = null;
     audioCtx = null;
   }
 };

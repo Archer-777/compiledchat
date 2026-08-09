@@ -65,7 +65,6 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
     } else {
       setIsHealingActive(true);
       setIsPlaying(true);
-      playSolfeggioTone(activeChakra.frequencyNumber || 528);
     }
   };
 
@@ -80,14 +79,12 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
       }}
     >
       {/* Selector Navigation Bar with z-[100] */}
-      <div className="w-full flex items-center justify-between backdrop-blur-md bg-black/40 border border-white/20 p-4 rounded-2xl mb-8 shadow-xl relative z-[100]">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onRegister}
-            className="px-4 py-2 rounded-full bg-purple-600/80 hover:bg-purple-500 border border-purple-400/40 text-white font-bold text-xs transition-all shadow-md cursor-pointer font-['Poppins']"
-          >
-            <span>First-Time User? Complete Registration →</span>
-          </button>
+      <div className="w-full flex items-center justify-between backdrop-blur-md bg-black/40 border border-white/20 p-3 px-5 rounded-2xl mb-8 shadow-xl relative z-[100]">
+        <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md">
+          <span className="w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] animate-pulse" style={{ backgroundColor: activeColor }} />
+          <span className="text-xs font-extrabold tracking-widest text-white uppercase font-['Poppins']">
+            ✦ SOLFEGGIO CHAKRA THERAPY
+          </span>
         </div>
 
         {/* Dropdown Container with relative z-[100] */}
@@ -168,12 +165,6 @@ export default function HealingScreen({ currentChakra = 'heart', onBack, onChakr
               onClick={handleToggleHealing}
               isHealing={isHealingActive || isPlaying}
             />
-            <button
-              onClick={onRegister}
-              className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all cursor-pointer font-['Poppins']"
-            >
-              First-Time User? Complete Registration →
-            </button>
           </div>
         </div>
 

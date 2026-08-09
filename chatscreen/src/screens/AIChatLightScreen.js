@@ -26,46 +26,30 @@ import { Fonts } from '../theme/fonts';
 import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID } from '../utils/storage';
 import { sendToSAIStream } from '../utils/saiApi';
 import { FormattedMarkdown } from '../components/FormattedMarkdown';
+import auroraGlitchImg from '../../assets/aurora_glitch.jpeg';
+import aiLogoSvg from '../../assets/2.svg';
+import userIconSvg from '../../assets/user_icon.svg';
 
-function AIAvatar({ isDarkUI = false }) {
-  const color = isDarkUI ? '#ffffff' : '#0f172a';
+function AIAvatar() {
   return (
-    <View style={styles.avatarContainer}>
-      <Svg width={30} height={30} viewBox="0 0 32 32">
-        <Ellipse cx="16" cy="7" rx="8" ry="2.5" fill="none" stroke={color} strokeWidth="1.6" />
-        <SvgText
-          x="16"
-          y="23"
-          fill={color}
-          fontSize="11"
-          fontWeight="bold"
-          textAnchor="middle"
-          letterSpacing="0.5"
-        >
-          AI
-        </SvgText>
-      </Svg>
+    <View style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 }}>
+      <Image
+        source={aiLogoSvg}
+        style={{ width: 34, height: 34, borderRadius: 17 }}
+        resizeMode="cover"
+      />
     </View>
   );
 }
 
 function UserAvatar() {
-  const orangeColor = '#ff9500';
   return (
-    <View style={styles.avatarContainer}>
-      <Svg width={30} height={30} viewBox="0 0 32 32">
-        <Circle cx="10" cy="11" r="4.5" fill={orangeColor} />
-        <Circle cx="10" cy="11" r="2" fill="#040814" />
-        <Circle cx="22" cy="11" r="4.5" fill={orangeColor} />
-        <Circle cx="22" cy="11" r="2" fill="#040814" />
-        <Path
-          d="M 8 20 Q 16 26 24 20"
-          fill="none"
-          stroke={orangeColor}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </Svg>
+    <View style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 }}>
+      <Image
+        source={userIconSvg}
+        style={{ width: 34, height: 34, borderRadius: 17 }}
+        resizeMode="cover"
+      />
     </View>
   );
 }
@@ -455,7 +439,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
     else if (navigation?.navigate) navigation.navigate('AIChatDark');
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     try {
       if (Platform.OS === 'web') {
         const jsonStr = JSON.stringify(messages, null, 2);
@@ -469,10 +453,31 @@ const AIChatLightScreen = ({ navigation, route }) => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }
+
+      // Trigger SAI CONVERSATION ANALYSIS + CONSCIOUSNESS TELEMETRY ENGINE
+      let telemetryParam = '';
+      try {
+        const email = userData?.email || '';
+        const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, email }),
+        });
+        const data = await res.json();
+        if (data && data.telemetry) {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('@telemetry_analysis_result', JSON.stringify(data.telemetry));
+          }
+          telemetryParam = `?telemetry=${encodeURIComponent(JSON.stringify(data.telemetry))}`;
+        }
+      } catch (err) {
+        console.warn('Telemetry analysis call notice:', err);
+      }
+
       if (isGuest) {
         window.location.href = 'http://localhost:3000/register';
       } else {
-        window.location.href = 'http://localhost:3000/twin-chat';
+        window.location.href = `http://localhost:3000/soul-matrix${telemetryParam}`;
       }
     } catch (e) {
       console.error("End session error", e);
@@ -603,7 +608,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {!isSmallScreen && (
                 <TouchableOpacity
-                  style={[styles.themeToggleBtn, manualAurora && { backgroundColor: 'rgba(0,212,255,0.3)' }]}
+                  style={[styles.themeToggleBtn, { overflow: 'hidden', borderWidth: 0, padding: 0 }]}
                   onPress={() => {
                     const next = !manualAurora;
                     setManualAurora(next);
@@ -611,7 +616,11 @@ const AIChatLightScreen = ({ navigation, route }) => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 16 }}>🌌</Text>
+                  <Image
+                    source={auroraGlitchImg}
+                    style={{ width: 38, height: 38, borderRadius: 19 }}
+                    resizeMode="cover"
+                  />
                 </TouchableOpacity>
               )}
 
@@ -729,7 +738,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
           <BlurView intensity={80} tint="dark" style={styles.drawerContent}>
             <View style={styles.drawerHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Image source={require('../../nextarcherlogo.jpeg')} style={{ width: 36, height: 36, borderRadius: 10 }} />
+                <Image source={require('../../assets/logo_in_white.svg')} resizeMode="contain" style={{ width: 36, height: 36 }} />
                 <Text style={{ fontFamily: Fonts.poppins, fontSize: 16, fontWeight: '700', color: '#ffffff' }}>Next Archer</Text>
               </View>
               <TouchableOpacity onPress={() => setShowMobileDrawer(false)}>
@@ -842,7 +851,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
       <Modal visible={showTenMinModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <Image source={require('../../nextarcherlogo.jpeg')} resizeMode="contain" style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12 }} />
+            <Image source={require('../../assets/logo_in_white.svg')} resizeMode="contain" style={{ width: 44, height: 44, marginBottom: 12 }} />
             <Text style={styles.modalTitle}>Session Completed</Text>
             <Text style={styles.modalDesc}>
               Your 2-minute reflection cycle is complete.

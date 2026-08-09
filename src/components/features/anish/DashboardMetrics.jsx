@@ -2,9 +2,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 export default function DashboardMetrics({
-  collectiveIntelligence = 40,
-  globalConsciousness = 60,
-  balancedThinking = 90,
+  collectiveIntelligence = 0,
+  globalConsciousness = 0,
+  balancedThinking = 0,
 }) {
   const metrics = [
     { label: 'Collective Intelligence Index', val: collectiveIntelligence, color: '#38bdf8' },

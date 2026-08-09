@@ -17,19 +17,19 @@ export default function AppHeader({
           onClick={() => setCurrentStep(1)}
           className="flex items-center space-x-3 cursor-pointer group"
         >
-          <div className="relative w-8 h-8 rounded-full border border-white/20 bg-black flex items-center justify-center overflow-hidden group-hover:border-white/50 transition-colors">
+          <div className="relative w-11 h-11 flex items-center justify-center overflow-hidden">
             <img 
-              src="/logo.png" 
+              src="/logo_in_white.svg" 
               alt="Next Archer" 
-              className="w-6 h-auto filter invert contrast-200"
+              className="w-9 h-9 object-contain"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.target.src = '/logo.png';
               }}
             />
           </div>
           <div>
             <div className="flex items-center space-x-1.5">
-              <span className="text-xs tracking-[0.2em] font-bold text-white uppercase group-hover:text-spiritual-200">
+              <span className="text-sm tracking-[0.05em] font-bold text-white group-hover:text-spiritual-200">
                 Next Archer
               </span>
               <ShieldCheck className="w-3.5 h-3.5 text-spiritual-400" />

@@ -8,11 +8,21 @@ const SLIDER_CONFIGS = [
 ];
 
 export default function MyWorldSliders({ initialValues, userId = 'user_001' }) {
-  const [values, setValues] = useState({
-    business: initialValues?.business ?? 80,
-    family: initialValues?.family ?? 90,
-    friend: initialValues?.friend ?? 60,
+  const [values, setValues] = React.useState({
+    business: initialValues?.business ?? 0,
+    family: initialValues?.family ?? 0,
+    friend: initialValues?.friend ?? 0,
   });
+
+  React.useEffect(() => {
+    if (initialValues) {
+      setValues({
+        business: initialValues.business ?? 0,
+        family: initialValues.family ?? 0,
+        friend: initialValues.friend ?? 0,
+      });
+    }
+  }, [initialValues?.business, initialValues?.family, initialValues?.friend]);
 
   const handleChange = (key, val) => {
     setValues((prev) => ({ ...prev, [key]: val }));

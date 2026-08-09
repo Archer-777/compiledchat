@@ -26,66 +26,32 @@ import { Fonts } from '../theme/fonts';
 import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID } from '../utils/storage';
 import { sendToSAIStream } from '../utils/saiApi';
 import { FormattedMarkdown } from '../components/FormattedMarkdown';
+import auroraGlitchImg from '../../assets/aurora_glitch.jpeg';
+import aiLogoSvg from '../../assets/2.svg';
+import userIconSvg from '../../assets/user_icon.svg';
 
 // ── Custom Avatars ───────────────────────────────────────────────────────────
 
-function AIAvatar({ timeName, auroraActive }) {
-  const isEvening = !auroraActive && timeName === 'Evening';
-  const isNight = auroraActive || timeName === 'Night';
-  const bg = isEvening ? 'rgba(110, 60, 140, 0.85)' : isNight ? 'rgba(22, 32, 58, 0.85)' : '#355a73';
-  const border = isEvening ? 'rgba(255, 255, 255, 0.35)' : isNight ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.3)';
+function AIAvatar() {
   return (
-    <View style={[styles.aiAvatarCircle, { backgroundColor: bg, borderColor: border }]}>
-      <Svg width={32} height={32} viewBox="0 0 36 36">
-        <Ellipse
-          cx="18"
-          cy="7"
-          rx="11"
-          ry="3.2"
-          fill="none"
-          stroke="#ffd700"
-          strokeWidth="2"
-        />
-        <SvgText
-          x="18"
-          y="23"
-          fill="#ffffff"
-          fontSize="13"
-          fontWeight="800"
-          fontFamily={Fonts.poppins}
-          textAnchor="middle"
-        >
-          AI
-        </SvgText>
-        <Path
-          d="M 8 26 Q 18 32 28 26"
-          fill="none"
-          stroke="#ff9500"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-      </Svg>
+    <View style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 }}>
+      <Image
+        source={aiLogoSvg}
+        style={{ width: 34, height: 34, borderRadius: 17 }}
+        resizeMode="cover"
+      />
     </View>
   );
 }
 
 function UserAvatar() {
-  const orangeColor = '#ff9500';
   return (
-    <View style={styles.avatarCircle}>
-      <Svg width={28} height={28} viewBox="0 0 32 32">
-        <Circle cx="10" cy="11" r="4.5" fill={orangeColor} />
-        <Circle cx="10" cy="11" r="2" fill="#040814" />
-        <Circle cx="22" cy="11" r="4.5" fill={orangeColor} />
-        <Circle cx="22" cy="11" r="2" fill="#040814" />
-        <Path
-          d="M 8 20 Q 16 26 24 20"
-          fill="none"
-          stroke={orangeColor}
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-      </Svg>
+    <View style={{ width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 }}>
+      <Image
+        source={userIconSvg}
+        style={{ width: 34, height: 34, borderRadius: 17 }}
+        resizeMode="cover"
+      />
     </View>
   );
 }
@@ -509,7 +475,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
     else if (navigation?.navigate) navigation.navigate('AIChatLight');
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     try {
       if (Platform.OS === 'web') {
         const jsonStr = JSON.stringify(messages, null, 2);
@@ -523,10 +489,31 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }
+
+      // Trigger SAI CONVERSATION ANALYSIS + CONSCIOUSNESS TELEMETRY ENGINE
+      let telemetryParam = '';
+      try {
+        const email = userData?.email || '';
+        const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, email }),
+        });
+        const data = await res.json();
+        if (data && data.telemetry) {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('@telemetry_analysis_result', JSON.stringify(data.telemetry));
+          }
+          telemetryParam = `?telemetry=${encodeURIComponent(JSON.stringify(data.telemetry))}`;
+        }
+      } catch (err) {
+        console.warn('Telemetry analysis call notice:', err);
+      }
+
       if (isGuest) {
         window.location.href = 'http://localhost:3000/register';
       } else {
-        window.location.href = 'http://localhost:3000/twin-chat';
+        window.location.href = `http://localhost:3000/soul-matrix${telemetryParam}`;
       }
     } catch (e) {
       console.error("End session error", e);
@@ -806,7 +793,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {!isSmallScreen && (
                 <TouchableOpacity
-                  style={[styles.iconCircleBtn, manualAurora && { backgroundColor: 'rgba(0,212,255,0.35)' }]}
+                  style={[styles.iconCircleBtn, { overflow: 'hidden', borderWidth: 0, padding: 0 }]}
                   onPress={() => {
                     const next = !manualAurora;
                     setManualAurora(next);
@@ -814,7 +801,11 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontSize: 18 }}>🌌</Text>
+                  <Image
+                    source={auroraGlitchImg}
+                    style={{ width: 38, height: 38, borderRadius: 19 }}
+                    resizeMode="cover"
+                  />
                 </TouchableOpacity>
               )}
 
@@ -835,7 +826,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.iconCircleBtn}
+                style={[styles.iconCircleBtn, { overflow: 'hidden', backgroundColor: 'transparent', borderWidth: 0 }]}
                 onPress={() => {
                   if (typeof window !== 'undefined') {
                     window.location.href = 'http://localhost:3000/soul-matrix';
@@ -845,7 +836,11 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="person-circle-outline" size={22} color="#ffffff" />
+                <Image
+                  source={require('../../assets/user_icon.svg')}
+                  style={{ width: 34, height: 34, borderRadius: 17 }}
+                  resizeMode="cover"
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -869,7 +864,11 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="person-outline" size={18} color="#ffffff" style={{ marginRight: 10 }} />
+                  <Image
+                    source={require('../../assets/user_icon.svg')}
+                    style={{ width: 18, height: 18, borderRadius: 9, marginRight: 10 }}
+                    resizeMode="cover"
+                  />
                   <Text style={styles.profileOptionText}>Profile Settings</Text>
                 </TouchableOpacity>
                 <View style={styles.profileDivider} />
@@ -877,7 +876,19 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   style={styles.profileOption}
                   onPress={() => {
                     setShowProfileDropdown(false);
-                    Alert.alert('Logout', 'Logged out successfully');
+                    try {
+                      if (typeof window !== 'undefined' && window.localStorage) {
+                        window.localStorage.removeItem('@active_auth_session');
+                        window.localStorage.removeItem('@spiritual_register_user');
+                        window.localStorage.removeItem('user_profile');
+                        window.localStorage.removeItem('@telemetry_analysis_result');
+                        const guestSession = { firstName: 'Archer', lastName: '', fullName: 'Archer', isGuest: true };
+                        window.localStorage.setItem('@active_auth_session', JSON.stringify(guestSession));
+                      }
+                    } catch (e) {}
+                    if (typeof window !== 'undefined') {
+                      window.location.href = 'http://localhost:3000/scan';
+                    }
                   }}
                   activeOpacity={0.7}
                 >
@@ -895,7 +906,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
             <BlurView intensity={80} tint="dark" style={styles.drawerContent}>
               <View style={styles.drawerHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Image source={require('../../nextarcherlogo.jpeg')} style={{ width: 36, height: 36, borderRadius: 10 }} />
+                  <Image source={require('../../assets/logo_in_white.svg')} resizeMode="contain" style={{ width: 36, height: 36 }} />
                   <Text style={{ fontFamily: Fonts.poppins, fontSize: 16, fontWeight: '700', color: '#ffffff' }}>Next Archer</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowMobileDrawer(false)}>
@@ -1009,7 +1020,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
         <Modal visible={showTenMinModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
-              <Image source={require('../../nextarcherlogo.jpeg')} resizeMode="contain" style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12 }} />
+              <Image source={require('../../assets/logo_in_white.svg')} resizeMode="contain" style={{ width: 44, height: 44, marginBottom: 12 }} />
               <Text style={styles.modalTitle}>Session Completed</Text>
               <Text style={styles.modalDesc}>
                 Your 2-minute trial reflection cycle is complete. Register for unlimited spiritual AI sessions.

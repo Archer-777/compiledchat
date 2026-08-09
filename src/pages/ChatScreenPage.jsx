@@ -31,7 +31,24 @@ export default function ChatScreenPage() {
 
         <div className="chatscreen-header-actions">
           <button
-            onClick={() => navigate('/heal-me')}
+            onClick={async () => {
+              try {
+                const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ messages: [{ sender: 'user', text: 'End Session analysis request' }] }),
+                });
+                const data = await res.json();
+                if (data && data.telemetry) {
+                  if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem('@telemetry_analysis_result', JSON.stringify(data.telemetry));
+                  }
+                  navigate(`/soul-matrix?telemetry=${encodeURIComponent(JSON.stringify(data.telemetry))}`);
+                  return;
+                }
+              } catch (e) {}
+              navigate('/soul-matrix');
+            }}
             className="chatscreen-external-btn"
             style={{
               background: 'linear-gradient(135deg, #a855f7, #ec4899)',
@@ -42,7 +59,7 @@ export default function ChatScreenPage() {
               marginRight: '10px',
             }}
           >
-            End Session & Heal Me ✨
+            End Session & Soul Matrix ✨
           </button>
           <a
             href="http://localhost:8081"

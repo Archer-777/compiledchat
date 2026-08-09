@@ -124,7 +124,7 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
         <Circle cx="60" cy="60" r="55" fill="url(#happySunGlow)" />
       </Svg>
 
-      {/* Phase 1: Realistic Glowing Circle Sun Image (Sun.jpeg - Not too bright) */}
+      {/* Phase 1: Realistic Glowing Circle Sun Image (Sun.jpeg with glow effect) */}
       <View
         style={{
           position: "absolute",
@@ -133,9 +133,15 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
           width: 48,
           height: 48,
           borderRadius: 24,
-          overflow: "hidden",
+          overflow: "visible", // Allowed for shadow
           alignItems: "center",
           justifyContent: "center",
+          // Glowing effect
+          shadowColor: "#FFD700",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.9,
+          shadowRadius: 25,
+          elevation: 12,
         }}
       >
         <Image
@@ -144,7 +150,7 @@ function GlowingCornerSun({ discOpacity, auraOpacity }: { discOpacity: Animated.
             width: 48,
             height: 48,
             borderRadius: 24,
-            opacity: 0.88,
+            opacity: 1, // Full opacity for the new sun
           }}
           resizeMode="cover"
         />

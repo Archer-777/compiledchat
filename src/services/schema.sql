@@ -129,6 +129,10 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 
 -- Migration rule: Ensure password column exists if user_profiles table already existed
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE public.chat_sessions ADD COLUMN IF NOT EXISTS session_type TEXT DEFAULT 'spiritual';
+
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_type 
+ON public.chat_sessions(user_id, session_type, created_at DESC);
 
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
