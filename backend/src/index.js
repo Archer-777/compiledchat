@@ -27,7 +27,7 @@ app.get('/health', (req, res) => {
     status: 'online',
     service: 'Next Archer Production Backend API',
     timestamp: new Date().toISOString(),
-    aiEngine: 'Grok API (xAI / Groq)',
+    aiEngine: 'DeepSeek (aicredits.in) → Groq fallback',
     version: '1.0.0'
   });
 });

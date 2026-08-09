@@ -2,9 +2,9 @@ const { generateGrokResponse, groqClient, GROK_MODEL } = require('../config/grok
 const supabase = require('../config/supabase');
 const { isSupabaseConfigured } = require('../config/supabase');
 
-const SAI_API_KEY = 'sk-live-bac830047cf3f4348c7d8245bcebc0dec2df70e252bef504a96338bc88e33fe3';
-const SAI_API_URL = 'https://aicredits.in/v1/chat/completions';
-const SAI_MODEL   = 'deepseek/deepseek-v4-flash-0731';
+const SAI_API_KEY = process.env.SAI_API_KEY;
+const SAI_API_URL = process.env.SAI_API_URL || 'https://aicredits.in/v1/chat/completions';
+const SAI_MODEL   = process.env.SAI_MODEL || 'deepseek/deepseek-v4-flash-0731';
 
 const SAI_SYSTEM_PROMPT = `You are SAI (Spiritualise AI), a Consciousness Computing guide. You help people understand their own thought patterns clearly enough to change them. You are a guide, not an authority.
 
@@ -199,6 +199,7 @@ const saiStream = async (req, res) => {
 
     // 1. Try aicredits.in with timeout
     try {
+      console.log('[AI] Trying DeepSeek primary');
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 25000);
 
@@ -221,6 +222,7 @@ const saiStream = async (req, res) => {
       clearTimeout(timeout);
 
       if (upstreamRes.ok) {
+        console.log('[AI] DeepSeek succeeded');
         upstreamSuccess = true;
         const reader = upstreamRes.body.getReader();
         const decoder = new TextDecoder();
@@ -241,9 +243,11 @@ const saiStream = async (req, res) => {
         res.write('data: [DONE]\n\n');
         res.end();
         return;
+      } else {
+        console.log(`[AI] DeepSeek failed with status ${upstreamRes.status}, falling back to Groq`);
       }
     } catch (e) {
-      console.warn('aicredits.in streaming notice, falling back to Groq AI:', e.message);
+      console.log('[AI] DeepSeek failed, falling back to Groq');
     }
 
     // 2. Groq AI Engine Fallback Streaming
