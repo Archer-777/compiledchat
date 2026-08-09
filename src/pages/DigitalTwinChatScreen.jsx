@@ -4,7 +4,9 @@ import { MessageSquare, ArrowLeft, Send, Mic, MicOff, Zap, Flame, Menu, X, PlusC
 import { getChatSessions, saveChatSession, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import './DigitalTwinChatScreen.css';
 
-const TWIN_API_BASE = 'http://65.2.37.177:8000';
+const TWIN_API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
+  ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')}/api/v1/twin`
+  : 'https://compiledchat-production.up.railway.app/api/v1/twin';
 
 // Simple markdown-to-HTML converter for twin responses
 function renderMarkdown(text) {

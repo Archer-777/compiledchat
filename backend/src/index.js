@@ -8,6 +8,7 @@ const corsMiddleware = require('./config/cors');
 const authRoutes = require('./routes/auth.routes');
 const chatRoutes = require('./routes/chat.routes');
 const otpRoutes = require('./routes/otp.routes');
+const twinRoutes = require('./routes/twin.routes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -38,6 +39,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/otp', otpRoutes);
 app.use('/api/v1/otp', otpRoutes);
+app.use('/api/twin', twinRoutes);
+app.use('/api/v1/twin', twinRoutes);
 
 // Global 404 Handler
 app.use((req, res) => {
