@@ -57,7 +57,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Next Archer Production Backend Server running on port ${PORT}`);
   console.log(`⚡ Grok AI Engine initialized with API Key.`);
 });
