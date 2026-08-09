@@ -241,6 +241,28 @@ export default function DigitalTwinChatScreen() {
     ]);
   };
 
+  const handleFileDownload = async (e, url, fileName) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${userAuthKey}` }
+      });
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const objectUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      console.error('Blob download failed, falling back:', err);
+      window.open(url, '_blank');
+    }
+  };
+
   const handleSend = async (e) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || isThinking) return;
@@ -563,10 +585,8 @@ export default function DigitalTwinChatScreen() {
                           <a
                             key={idx}
                             href={downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            onClick={(e) => handleFileDownload(e, downloadUrl, fileName)}
                             className="file-download-card"
-                            download
                           >
                             <FileText size={18} className="file-icon" />
                             <div className="file-info">
