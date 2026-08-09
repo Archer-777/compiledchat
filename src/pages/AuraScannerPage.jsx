@@ -441,25 +441,10 @@ export default function AuraScannerPage() {
   const activeTheme = stickerThemes[stickerTheme] || stickerThemes.violet;
 
   return (
-    <AmbientBackground>
+    <AmbientBackground pureBlack={true}>
       <Toast message={toastMsg} />
 
       <div className="scanner-page-container">
-        {/* Top Header Bar */}
-        <div className="scanner-header-bar">
-          <div className="scanner-brand-group">
-            <img src="/logo.png" alt="Logo" className="scanner-brand-logo" />
-            <h1 className="scanner-brand-title">SENTIMENT ANALYSIS SCANNER</h1>
-          </div>
-
-          <div className="scanner-status-badge">
-            <IoSparkles style={{ color: activeTheme.border }} />
-            <span>
-              {matchStatus === 'matched' ? "SENTIMENT MATCHED" : matchStatus === 'new' ? "NEW SENTIMENT SAVED" : "SCANNER ACTIVE"}
-            </span>
-          </div>
-        </div>
-
         {/* Main Desktop Grid */}
         <div className="scanner-main-grid">
           {/* Left Column: Live Scanner Box */}
@@ -493,18 +478,31 @@ export default function AuraScannerPage() {
               <canvas ref={canvasRef} style={{ display: 'none' }} width="480" height="380" />
 
               {(!cameraGranted || !cameraStream) && (
-                <div style={{ textAlign: 'center', padding: 20 }}>
-                  <IoCamera size={60} color="#ffffff" style={{ marginBottom: 12 }} />
-                  <h3 style={{ fontSize: 16, marginBottom: 6 }}>Webcam Scanner Required</h3>
-                  <p style={{ fontSize: 12, color: '#888888', marginBottom: 16 }}>Enable camera to run neural aura alignment</p>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: 20,
+                  width: '100%',
+                  height: '100%',
+                  zIndex: 10
+                }}>
+                  <IoCamera size={64} color="#ffffff" style={{ marginBottom: 16 }} />
+                  <h3 style={{ fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 8 }}>Webcam Scanner Required</h3>
+                  <p style={{ fontSize: 13, color: '#aaaaaa', marginBottom: 20 }}>Enable camera to run neural aura alignment</p>
                   <button
                     style={{
                       background: '#ffffff',
-                      color: '#000',
-                      padding: '10px 20px',
-                      borderRadius: 20,
+                      color: '#000000',
+                      padding: '12px 28px',
+                      borderRadius: 24,
                       fontWeight: 'bold',
-                      fontSize: 13,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                      border: 'none',
+                      boxShadow: '0 4px 14px rgba(255, 255, 255, 0.2)',
                     }}
                     onClick={requestPermissions}
                   >
@@ -519,9 +517,8 @@ export default function AuraScannerPage() {
           <div className="scanner-control-panel">
             {/* Prediction Card */}
             <div style={{
-              background: 'rgba(6, 182, 212, 0.05)',
-              border: '1px solid rgba(6, 182, 212, 0.4)',
-              boxShadow: '0 0 15px rgba(6, 182, 212, 0.15)',
+              background: '#000000',
+              border: '1.5px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '16px',
               padding: '20px',
             }}>
@@ -529,9 +526,9 @@ export default function AuraScannerPage() {
                 <span style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#00e5ff',
-                  background: 'rgba(6, 182, 212, 0.15)',
-                  border: '1px solid rgba(6, 182, 212, 0.5)',
+                  color: '#ffffff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '20px',
                   padding: '4px 12px',
                   letterSpacing: '0.5px',
@@ -541,9 +538,9 @@ export default function AuraScannerPage() {
                 <span style={{
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#00e5ff',
-                  background: 'rgba(6, 182, 212, 0.15)',
-                  border: '1px solid rgba(6, 182, 212, 0.5)',
+                  color: '#ffffff',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '20px',
                   padding: '4px 14px',
                 }}>
@@ -561,7 +558,7 @@ export default function AuraScannerPage() {
               </h2>
 
               <p style={{
-                color: '#94a3b8',
+                color: '#aaaaaa',
                 fontSize: 13,
                 lineHeight: 1.5,
                 margin: 0,
@@ -572,8 +569,8 @@ export default function AuraScannerPage() {
 
             {/* User Authentication Card */}
             <div style={{
-              background: 'rgba(13, 17, 33, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: '#000000',
+              border: '1.5px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '16px',
               padding: '20px',
               display: 'flex',
@@ -599,8 +596,8 @@ export default function AuraScannerPage() {
                   <SignInButton mode="modal">
                     <button style={{
                       flex: 1,
-                      background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-                      color: '#ffffff',
+                      background: '#ffffff',
+                      color: '#000000',
                       border: 'none',
                       padding: '12px 16px',
                       borderRadius: '10px',
@@ -619,9 +616,9 @@ export default function AuraScannerPage() {
                   <SignUpButton mode="modal">
                     <button style={{
                       flex: 1,
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid rgba(6, 182, 212, 0.4)',
-                      color: '#00e5ff',
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      color: '#ffffff',
                       padding: '12px 16px',
                       borderRadius: '10px',
                       fontWeight: 'bold',
@@ -739,7 +736,6 @@ export default function AuraScannerPage() {
         {/* Permission Modal */}
         <Modal isOpen={showPermissionModal} onClose={() => setShowPermissionModal(false)}>
           <div style={{ textAlign: 'center' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: 48, height: 48, marginBottom: 12 }} />
             <h2 style={{ fontSize: 20, marginBottom: 8 }}>Enable Permissions</h2>
             <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
               To scan your aura, Spiritualize AI requests camera and location access.

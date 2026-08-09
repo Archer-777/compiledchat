@@ -10,7 +10,7 @@ export default function HealingPage() {
   const [currentChakra, setCurrentChakra] = useState(initialChakra);
 
   return (
-    <WebsiteLayout>
+    <WebsiteLayout showFooter={false}>
       <HealingScreen
         currentChakra={currentChakra}
         onChakraChange={(id) => setCurrentChakra(id)}

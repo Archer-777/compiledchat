@@ -111,7 +111,7 @@ export function DesktopSidebar({
         activeOpacity={0.7}
       >
         <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
-        <Text style={[styles.newChatBtnText, { color: '#a855f7' }]}>Twin Chat</Text>
+        <Text style={[styles.newChatBtnText, { color: '#a855f7' }]}>Chat-TWIN</Text>
       </TouchableOpacity>
 
       {/* Chat History Section */}

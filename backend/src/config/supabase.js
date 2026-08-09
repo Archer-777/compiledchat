@@ -8,6 +8,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.warn('⚠️ Supabase credentials missing in backend config!');
 }
 
+const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: false
@@ -15,3 +17,4 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 });
 
 module.exports = supabase;
+module.exports.isSupabaseConfigured = isSupabaseConfigured;

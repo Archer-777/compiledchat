@@ -81,10 +81,10 @@ export default function DashboardHeader({ userName = 'Neha', maslowLevels, chakr
           </button>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight font-['Poppins']">
-              Soul Matrix
+              Life on Dashboard
             </h1>
-            <p className="text-xs text-purple-300 font-medium">
-              Welcome back, <span className="text-cyan-300 font-bold">{userName}</span>
+            <p className="text-xs text-white/90 font-medium">
+              Namaste, <span className="text-white font-bold">{userName}</span>
             </p>
           </div>
         </div>

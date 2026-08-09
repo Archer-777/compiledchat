@@ -4,6 +4,29 @@
 
 ## [Unreleased] - 2026-08-09
 
+- **UI Title & Greeting Update**: Changed header title to **"Life on Dashboard"** and greeting to **"Namaste, [User]"** on [DashboardHeader.jsx](file:///d:/Ansd/src/components/layout/DashboardHeader.jsx). Updated branding to "Life on Dashboard" across all sidebars, navbars, and buttons.
+- **End Session & Instant AI Analysis Telemetry Fix**: Fixed missing `getUserData()` import in `handleEndSession` ([AIChatDarkScreen.js](file:///d:/Ansd/chatscreen/src/screens/AIChatDarkScreen.js) & [AIChatLightScreen.js](file:///d:/Ansd/chatscreen/src/screens/AIChatLightScreen.js)) so user email is passed to backend `/analyze` endpoint. Updated **INSTANT AI ANALYSIS** button on [SoulMatrixPage.jsx](file:///d:/Ansd/src/pages/SoulMatrixPage.jsx) to trigger fresh AI conversation analysis and persist updated scores directly to Supabase DB.
+- **LocalStorage Wiped On Logout**: Implemented full `window.localStorage.clear()` on user logout ([GlobalNavbar.jsx](file:///d:/Ansd/src/components/layout/GlobalNavbar.jsx) & [storage.js](file:///d:/Ansd/src/utils/storage.js)) and strictly isolated chat sessions by active user email to prevent chat history leaking across accounts.
+  - Center-aligned webcam camera logo icon, text, and "Enable Webcam" button vertically and horizontally inside the viewport frame in [AuraScannerPage.jsx](file:///d:/Ansd/src/pages/AuraScannerPage.jsx).
+  - Changed page background to **pure solid black (`#000000`)** by setting `pureBlack={true}` on [AmbientBackground.jsx](file:///d:/Ansd/src/components/visuals/AmbientBackground.jsx).
+  - Renamed **"Digital Twin"** ➔ **"Edit-Digital Twin"** (`👤 Edit-Digital Twin`).
+  - Renamed **"Heal Me"** ➔ **"Act-Heal Me"** (`🔮 Act-Heal Me`).
+  - Changed navigation sidebar drawer background color to **solid pure black (`#000000`)** in [GlobalNavbar.jsx](file:///d:/Ansd/src/components/layout/GlobalNavbar.jsx).
+  - Renamed **"Chat"** ➔ **"Chat-SAI"** (`💬 Chat-SAI`).
+  - Renamed **"Twin Chat"** ➔ **"Chat-TWIN"** (`🤖 Chat-TWIN`).
+  - Configured **"Heal Me"** menu item (`🔮 Heal Me`) to redirect directly to the **Chakra Healing Screen** (`/healing`).
+  - Removed separate **"Chakras"** option (`🧘 Chakras`) from the navigation sidebar ([GlobalNavbar.jsx](file:///d:/Ansd/src/components/layout/GlobalNavbar.jsx)).
+  - Changed user name text color (`✦ [User Name]`) from cyan/blue to **pure white (`#ffffff`)** in [GlobalNavbar.jsx](file:///d:/Ansd/src/components/layout/GlobalNavbar.jsx).
+  - Changed **NAVIGATION** drawer title text color from cyan/blue to **pure white (`#ffffff`)**.
+  - Removed circular logo icon next to the **NAVIGATION** title in the drawer header.
+- **Fix: Bearer Auth Token Username/Display Name**: Updated `DigitalTwinChatScreen.jsx` to pass the human user's display name or username in `Authorization: Bearer <username>` (e.g. `Bearer Ashish` or `Bearer Guest`) instead of a raw UUID, matching AI Team API specifications.
+- **Fix: End Session Sending Real Chat Messages**: Updated `ChatScreenPage.jsx` to read actual conversation messages from `localStorage('@spiritual_chat_sessions')` and pass them with user email to the `/analyze` endpoint, replacing the hardcoded dummy text.
+- **Fix: `getLatestTelemetry` Hardcoded Maslow Scores**: Updated `chatController.js` to check for `telemetry_json` column first (full blob), then fall back to real DB column values instead of hardcoded defaults.
+- **Fix: Full Telemetry JSON Persisted to DB**: `analyzeSession` now also saves `telemetry_json` (complete analysis output) and `balanced_thinking` to the `user_profiles` upsert call.
+- **DB Migration Created**: Added `backend/migration_add_telemetry_columns.sql` to add telemetry columns (`karma_rating`, `my_world_*`, `collective_intelligence`, `global_consciousness`, `balanced_thinking`, `weak_chakras`, `telemetry_json`) to `public.users` table and recreate `user_profiles` view.
+
+- **Spiritualize AI API Connection & Groq Streaming Fallback**: Resolved `TypeError: network error` when calling Spiritualize AI streams. Refactored `backend/src/controllers/chatController.js` and `backend/src/config/grok.js` with a 4-second timeout on primary upstream endpoint and automatic fallback to Groq AI Engine (`groq-sdk` with `llama-3.3-70b-versatile`) streaming for real-time spiritual guidance and telemetry analysis.
+
 - **Twin AI JWT/Bearer Authentication**: Integrated user identification Bearer headers (`Authorization: Bearer <user_id>`) into `DigitalTwinChatScreen.jsx` for all Twin API calls (`/runs` and `/runs/:id`) per backend specification.
 - **Strict Local Chat Session Isolation**: Enforced strict email-based filtering (`userEmail === activeEmail`) in `storage.js` for local chat sessions to prevent untagged local storage sessions from leaking across different user accounts.
 - **Digital Twin Name Auto-Synthesis**: Hardcoded Digital Twin name to dynamically synthesize as `[User First Name] 2.0` across setup screens and Twin Chat screen (`DigitalTwinPage.jsx`, `DigitalTwinChatScreen.jsx`).

@@ -47,8 +47,7 @@ export default function AppHeader({
               onClick={() => setCurrentStep(2)}
               className="px-5 py-2 rounded-full text-xs font-bold transition-all duration-300 flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_28px_rgba(168,85,247,0.7)] hover:scale-105 active:scale-95 cursor-pointer"
             >
-              <span>Proceed to Soul Matrix Card</span>
-              <span className="text-sm">→</span>
+              <span>Proceed to Life on Dashboard</span>
             </button>
           ) : (
             <div className="flex items-center space-x-2">

@@ -23,7 +23,7 @@ import { AmbientBackground } from '../components/AmbientBackground';
 import { DesktopSidebar } from '../components/DesktopSidebar';
 import { useSolarAmbience } from '../hooks/useSolarAmbience';
 import { Fonts } from '../theme/fonts';
-import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID } from '../utils/storage';
+import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import { sendToSAIStream } from '../utils/saiApi';
 import { FormattedMarkdown } from '../components/FormattedMarkdown';
 import auroraGlitchImg from '../../assets/aurora_glitch.jpeg';
@@ -334,6 +334,13 @@ const AIChatLightScreen = ({ navigation, route }) => {
     const updatedUserMsgs = [...messages, newMsg];
     setMessages(updatedUserMsgs);
     setInputText('');
+
+    // Save session immediately so New Chat appears in sidebar history in real time
+    saveChatSession({
+      id: currentSessionId,
+      title: textToSend,
+      messages: updatedUserMsgs,
+    });
     detectEmotionalWeather(textToSend);
 
     const streamingMsgId = 'streaming_' + Date.now();
@@ -441,23 +448,13 @@ const AIChatLightScreen = ({ navigation, route }) => {
 
   const handleEndSession = async () => {
     try {
-      if (Platform.OS === 'web') {
-        const jsonStr = JSON.stringify(messages, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `spiritual_ai_session_${new Date().getTime()}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
+      // Trigger SAI CONVERSATION ANALYSIS + CONSCIOUSNESS TELEMETRY ENGINE
 
       // Trigger SAI CONVERSATION ANALYSIS + CONSCIOUSNESS TELEMETRY ENGINE
       let telemetryParam = '';
       try {
-        const email = userData?.email || '';
+        const uData = await getUserData();
+        const email = uData?.email || '';
         const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -673,7 +670,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                   </View>
                 );
               }
-              const isAI = item.sender === 'ai';
+              const isAI = item.sender === 'ai' || item.sender === 'twin' || item.sender === 'assistant';
               return (
                 <View key={item.id} style={[styles.messageRow, isAI ? styles.rowLeft : styles.rowRight]}>
                   {isAI && <AIAvatar isDarkUI={isDarkUI} />}
@@ -778,18 +775,18 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 }}
               >
                 <Ionicons name="person-outline" size={20} color="#ffffff" />
-                <Text style={styles.drawerBtnText}>Soul Matrix Profile</Text>
+                <Text style={styles.drawerBtnText}>View-Life on DashBoard</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/heal-me';
+                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/healing';
                 }}
               >
                 <Ionicons name="heart-outline" size={20} color="#00ffcc" />
-                <Text style={styles.drawerBtnText}>Heal Me Sanctuary</Text>
+                <Text style={styles.drawerBtnText}>Act-Heal Me</Text>
               </TouchableOpacity>
 
               {/* RECENT CHATS Section in Mobile Drawer */}

@@ -75,13 +75,13 @@ export default function ChakraFigure({ chakras }) {
                   <motion.circle
                     cx={100}
                     cy={cy}
-                    r={r + 3}
+                    r={String(r + 3)}
                     fill="transparent"
                     stroke={c.color}
                     strokeWidth={1.2}
                     strokeOpacity={alpha * 0.5}
                     animate={{
-                      r: [r + 2, r + 6, r + 2],
+                      r: [String(r + 2), String(r + 6), String(r + 2)],
                       strokeOpacity: [alpha * 0.3, alpha * 0.8, alpha * 0.3],
                     }}
                     transition={{

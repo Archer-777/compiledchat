@@ -4,13 +4,12 @@ import { useClerk } from '@clerk/react';
 import { getUserData } from '@/utils/storage';
 
 const NAV_ITEMS = [
-  { path: '/chat', label: '💬 Chat' },
-  { path: '/twin-chat', label: '🤖 Twin Chat', requiresUser: true },
-  { path: '/scan', label: '✨ Scan' },
-  { path: '/heal-me', label: '🔮 Heal Me' },
-  { path: '/healing', label: '🧘 Chakras' },
-  { path: '/digital-twin', label: '👤 Digital Twin', requiresUser: true },
-  { path: '/soul-matrix', label: '🌌 Soul Matrix' },
+  { path: '/chat', label: '💬 Chat-SAI' },
+  { path: '/twin-chat', label: '🤖 Chat-TWIN', requiresUser: true },
+  { path: '/scan', label: '✨ Act-Scan' },
+  { path: '/healing', label: '🔮 Act-Heal Me' },
+  { path: '/digital-twin', label: '👤 Edit-Digital Twin', requiresUser: true },
+  { path: '/soul-matrix', label: '🌌 View-Life on DashBoard' },
 ];
 
 export default function GlobalNavbar() {
@@ -60,10 +59,7 @@ export default function GlobalNavbar() {
     setMenuOpen(false);
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem('@active_auth_session');
-        window.localStorage.removeItem('@spiritual_register_user');
-        window.localStorage.removeItem('user_profile');
-        window.localStorage.removeItem('@telemetry_analysis_result');
+        window.localStorage.clear();
         // Reset to Archer Guest Mode
         const guestSession = { firstName: 'Archer', lastName: '', fullName: 'Archer', isGuest: true };
         window.localStorage.setItem('@active_auth_session', JSON.stringify(guestSession));
@@ -129,7 +125,7 @@ export default function GlobalNavbar() {
               Next Archer
             </span>
             {userData && (
-              <span style={{ fontSize: '14px', color: '#00e5ff', fontWeight: '700', letterSpacing: '0.3px', marginTop: '-1px' }}>
+              <span style={{ fontSize: '14px', color: '#ffffff', fontWeight: '700', letterSpacing: '0.3px', marginTop: '-1px' }}>
                 ✦ {userData.firstName} {userData.lastName}
               </span>
             )}
@@ -144,47 +140,46 @@ export default function GlobalNavbar() {
             background: 'rgba(255, 255, 255, 0.06)',
             border: '1px solid rgba(255, 255, 255, 0.15)',
             borderRadius: '12px',
-            width: '40px',
-            height: '40px',
+            width: '44px',
+            height: '44px',
+            cursor: 'pointer',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '5px',
-            cursor: 'pointer',
-            padding: 0,
+            padding: '10px',
             transition: 'all 0.3s ease',
-            boxShadow: menuOpen ? '0 0 15px rgba(0, 229, 255, 0.4)' : 'none',
           }}
         >
           <span
             style={{
-              width: '20px',
-              height: '2px',
+              width: '22px',
+              height: '2.5px',
               backgroundColor: menuOpen ? '#00e5ff' : '#ffffff',
               borderRadius: '2px',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              transform: menuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none',
+              transition: 'all 0.3s ease',
+              transform: menuOpen ? 'translateY(7.5px) rotate(45deg)' : 'none',
             }}
           />
           <span
             style={{
-              width: '20px',
-              height: '2px',
+              width: '22px',
+              height: '2.5px',
               backgroundColor: menuOpen ? '#00e5ff' : '#ffffff',
               borderRadius: '2px',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              transition: 'all 0.3s ease',
               opacity: menuOpen ? 0 : 1,
             }}
           />
           <span
             style={{
-              width: '20px',
-              height: '2px',
+              width: '22px',
+              height: '2.5px',
               backgroundColor: menuOpen ? '#00e5ff' : '#ffffff',
               borderRadius: '2px',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              transform: menuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none',
+              transition: 'all 0.3s ease',
+              transform: menuOpen ? 'translateY(-7.5px) rotate(-45deg)' : 'none',
             }}
           />
         </button>
@@ -197,10 +192,10 @@ export default function GlobalNavbar() {
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 99998,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
             backdropFilter: 'blur(4px)',
             WebkitBackdropFilter: 'blur(4px)',
+            zIndex: 99998,
             transition: 'opacity 0.3s ease',
           }}
         />
@@ -215,7 +210,7 @@ export default function GlobalNavbar() {
           bottom: 0,
           width: '310px',
           maxWidth: '85vw',
-          backgroundColor: '#0d091e',
+          backgroundColor: '#000000',
           zIndex: 99999,
           boxShadow: '-10px 0 35px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.15)',
           borderLeft: '1px solid rgba(255, 255, 255, 0.12)',
@@ -238,8 +233,7 @@ export default function GlobalNavbar() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '26px', height: '26px', borderRadius: '50%' }} />
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#00e5ff', letterSpacing: '1px', fontFamily: 'Poppins, sans-serif' }}>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: '#ffffff', letterSpacing: '1px', fontFamily: 'Poppins, sans-serif' }}>
               NAVIGATION
             </span>
           </div>

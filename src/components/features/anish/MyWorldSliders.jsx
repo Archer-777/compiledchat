@@ -49,7 +49,19 @@ export default function MyWorldSliders({ initialValues, userId = 'user_001' }) {
                 </span>
               </div>
 
-              <div className="relative flex items-center">
+              <div className="relative flex items-center h-4">
+                {/* Background Empty Track */}
+                <div className="absolute inset-x-0 h-2 bg-white/10 rounded-full pointer-events-none" />
+                {/* Filled Colored Progress Track */}
+                <div
+                  className="absolute left-0 h-2 rounded-full pointer-events-none transition-all duration-150"
+                  style={{
+                    width: `${val}%`,
+                    backgroundColor: cfg.color,
+                    boxShadow: `0 0 12px ${cfg.color}a0`,
+                  }}
+                />
+                {/* Range Control Slider */}
                 <input
                   id={cfg.id}
                   type="range"
@@ -57,7 +69,7 @@ export default function MyWorldSliders({ initialValues, userId = 'user_001' }) {
                   max="100"
                   value={val}
                   onChange={(e) => handleChange(cfg.key, parseInt(e.target.value, 10))}
-                  className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                  className="w-full h-2 bg-transparent appearance-none cursor-pointer accent-cyan-300 relative z-10"
                 />
               </div>
             </div>

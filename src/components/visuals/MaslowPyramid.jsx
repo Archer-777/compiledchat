@@ -10,10 +10,48 @@ const TIERS = [
 ];
 
 export default function MaslowPyramid({ levels }) {
-  const values = useMemo(
-    () => TIERS.map((t) => ({ ...t, value: Math.max(0, Math.min(100, levels?.[t.key] ?? 50)) })),
-    [levels]
-  );
+  const values = useMemo(() => {
+    const getTierValue = (tKey) => {
+      if (!levels) return 70;
+
+      // 1. If levels is an Array
+      if (Array.isArray(levels)) {
+        const item = levels.find(l => 
+          l.id === tKey || 
+          l.key === tKey ||
+          l.name?.toLowerCase().replace(/[\s&]+/g, '_') === tKey ||
+          (tKey === 'love_belonging' && (l.id === 'belonging_love' || l.key === 'belonging_love'))
+        );
+        if (item) {
+          if (typeof item.score === 'number') return item.score;
+          if (typeof item.value === 'number') return item.value;
+          if (typeof item === 'number') return item;
+        }
+      }
+
+      // 2. If levels is an Object
+      if (typeof levels === 'object') {
+        const rawVal = levels[tKey] ?? (tKey === 'love_belonging' ? (levels['belonging_love'] ?? levels['love_belonging']) : undefined);
+        if (typeof rawVal === 'number') return rawVal;
+        if (typeof rawVal?.score === 'number') return rawVal.score;
+        if (typeof rawVal?.value === 'number') return rawVal.value;
+      }
+
+      const defaults = {
+        physiological: 78,
+        safety: 72,
+        love_belonging: 68,
+        esteem: 65,
+        self_actualization: 85,
+      };
+      return defaults[tKey] ?? 70;
+    };
+
+    return TIERS.map((t) => {
+      const val = getTierValue(t.key);
+      return { ...t, value: Math.max(0, Math.min(100, val)) };
+    });
+  }, [levels]);
 
   return (
     <div className="flex flex-col items-center w-full pt-4">
@@ -100,18 +138,6 @@ export default function MaslowPyramid({ levels }) {
               );
             })}
           </svg>
-        </div>
-
-        <div className="w-full flex items-center justify-between border-t border-white/5 pt-3 mt-1">
-          <span
-            className="text-xs font-semibold tracking-[0.25em] uppercase"
-            style={{ color: 'rgba(210, 220, 250, 0.8)', fontFamily: "'Poppins', sans-serif" }}
-          >
-            Consciousness Awareness
-          </span>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-indigo-200/70">
-            Maslow Matrix
-          </span>
         </div>
       </div>
     </div>

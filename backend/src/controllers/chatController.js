@@ -1,5 +1,6 @@
-const { generateGrokResponse } = require('../config/grok');
+const { generateGrokResponse, groqClient, GROK_MODEL } = require('../config/grok');
 const supabase = require('../config/supabase');
+const { isSupabaseConfigured } = require('../config/supabase');
 
 const SAI_API_KEY = 'sk-live-bac830047cf3f4348c7d8245bcebc0dec2df70e252bef504a96338bc88e33fe3';
 const SAI_API_URL = 'https://aicredits.in/v1/chat/completions';
@@ -183,7 +184,7 @@ const saiStream = async (req, res) => {
       { role: 'system', content: SAI_SYSTEM_PROMPT },
       ...messages.map((m) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
-        content: m.text,
+        content: m.text || m.content || '',
       })),
     ];
 
@@ -194,61 +195,87 @@ const saiStream = async (req, res) => {
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    const upstreamRes = await fetch(SAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: SAI_MODEL,
+    let upstreamSuccess = false;
+
+    // 1. Try aicredits.in with timeout
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
+
+      const upstreamRes = await fetch(SAI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: SAI_MODEL,
+          messages: openAIMessages,
+          temperature: 0.8,
+          max_tokens: 1024,
+          stream: true,
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      if (upstreamRes.ok) {
+        upstreamSuccess = true;
+        const reader = upstreamRes.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data:')) {
+              res.write(line + '\n\n');
+            }
+          }
+          if (typeof res.flush === 'function') res.flush();
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+    } catch (e) {
+      console.warn('aicredits.in streaming notice, falling back to Groq AI:', e.message);
+    }
+
+    // 2. Groq AI Engine Fallback Streaming
+    if (!upstreamSuccess && groqClient) {
+      console.log('⚡ Streaming response via Groq AI Engine fallback...');
+      const stream = await groqClient.chat.completions.create({
         messages: openAIMessages,
-        temperature: 0.8,
+        model: GROK_MODEL,
+        temperature: 0.7,
         max_tokens: 1024,
         stream: true,
-      }),
-    });
+      });
 
-    if (!upstreamRes.ok) {
-      const errText = await upstreamRes.text().catch(() => '');
-      res.write(`data: [ERROR] ${upstreamRes.status}: ${errText}\n\n`);
+      for await (const chunk of stream) {
+        const token = chunk.choices[0]?.delta?.content || '';
+        if (token) {
+          const sseData = JSON.stringify({ choices: [{ delta: { content: token } }] });
+          res.write(`data: ${sseData}\n\n`);
+          if (typeof res.flush === 'function') res.flush();
+        }
+      }
+      res.write('data: [DONE]\n\n');
       res.end();
       return;
     }
 
-    const reader = upstreamRes.body.getReader();
-    const decoder = new TextDecoder();
-
-    const pump = async () => {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        // Forward raw SSE lines from aicredits.in to the client
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            res.write(line + '\n\n');
-          }
-        }
-        // Flush if supported
-        if (typeof res.flush === 'function') res.flush();
-      }
-      res.write('data: [DONE]\n\n');
-      res.end();
-    };
-
-    pump().catch((err) => {
-      console.error('SAI stream pump error:', err);
-      res.write('data: [ERROR] stream broken\n\n');
-      res.end();
-    });
-
-    // Clean up if client disconnects
-    req.on('close', () => {
-      reader.cancel().catch(() => {});
-    });
+    // 3. Last-resort fallback text stream
+    const fallbackText = await generateGrokResponse(messages);
+    const data = JSON.stringify({ choices: [{ delta: { content: fallbackText } }] });
+    res.write(`data: ${data}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
 
   } catch (err) {
     console.error('saiStream error:', err);
@@ -375,6 +402,81 @@ Use this exact structure:
   }
 }`;
 
+let latestTelemetryStore = null;
+
+const getLatestTelemetry = async (req, res) => {
+  try {
+    const userEmail = req.user ? req.user.email : (req.query.email || null);
+    
+    if (userEmail && isSupabaseConfigured) {
+      try {
+        const cleanEmail = userEmail.toLowerCase().trim();
+        let { data, error } = await supabase.from('users').select('*').eq('email', cleanEmail).single();
+        if (!data || error || (!data.telemetry_json && !data.karma_rating)) {
+          const res2 = await supabase.from('user_profiles').select('*').eq('email', cleanEmail).single();
+          if (res2.data) data = res2.data;
+        }
+
+        if (data) {
+          // If full telemetry JSON blob exists, return it directly
+          if (data.telemetry_json) {
+            return res.status(200).json({
+              success: true,
+              source: 'database',
+              telemetry: data.telemetry_json
+            });
+          }
+          // Otherwise construct from individual DB columns
+          return res.status(200).json({
+            success: true,
+            source: 'database',
+            telemetry: {
+              maslow: {
+                physiological: { score: data.maslow_physiological || 78 },
+                safety: { score: data.maslow_safety || 72 },
+                belonging_love: { score: data.maslow_belonging_love || 68 },
+                esteem: { score: data.maslow_esteem || 65 },
+                cognitive: { score: data.maslow_cognitive || 82 },
+                aesthetic: { score: data.maslow_aesthetic || 74 },
+                self_actualization: { score: data.maslow_self_actualization || 75 },
+                transcendence: { score: data.maslow_transcendence || 70 }
+              },
+              growth_consciousness: {
+                collective_intelligence_index: { score: data.collective_intelligence || 78 },
+                global_consciousness_score: { score: data.global_consciousness || 75 },
+                balanced_thinking_ratio: { score: data.balanced_thinking || 82 }
+              },
+              world_balance: {
+                business: { score: data.my_world_business || 72 },
+                family: { score: data.my_world_family || 78 },
+                friend: { score: data.my_world_friend || 68 }
+              },
+              energy: { score: data.karma_rating || 74 },
+              chakras: { weak_chakras: data.weak_chakras || ["throat", "solar_plexus"] }
+            }
+          });
+        }
+      } catch (dbErr) {}
+    }
+
+    if (latestTelemetryStore) {
+      return res.status(200).json({
+        success: true,
+        source: 'memory_store',
+        telemetry: latestTelemetryStore.telemetry
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      source: 'default',
+      telemetry: null
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 /**
  * Handle Session End Analysis — Processes conversation transcript using
  * SAI CONVERSATION ANALYSIS + CONSCIOUSNESS TELEMETRY ENGINE and derives
@@ -427,6 +529,23 @@ const analyzeSession = async (req, res) => {
       }
     } catch (aiErr) {
       console.warn('AI analysis call notice:', aiErr.message);
+    }
+
+    // Try Groq AI Analysis Fallback
+    if (!parsedTelemetry) {
+      try {
+        const grokAnalysisText = await generateGrokResponse([
+          { role: 'user', content: `Please analyze this completed conversation and return JSON telemetry only:\n\n${conversationText}` }
+        ], { systemPrompt: SAI_ANALYSIS_SYSTEM_PROMPT });
+
+        let rawContent = grokAnalysisText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsedTelemetry = JSON.parse(jsonMatch[0]);
+        }
+      } catch (grokErr) {
+        console.warn('Grok analysis fallback notice:', grokErr.message);
+      }
     }
 
     // Fallback Telemetry Generator if AI API response is unavailable
@@ -500,22 +619,40 @@ const analyzeSession = async (req, res) => {
       };
     }
 
+    // Save in server memory store
+    latestTelemetryStore = {
+      telemetry: parsedTelemetry,
+      updatedAt: new Date().toISOString()
+    };
+
     // Persist Telemetry Result to Supabase DB if user email exists
     if (userEmail && isSupabaseConfigured) {
+      const telemetryPayload = {
+        my_world_business: parsedTelemetry.world_balance?.business?.score || 72,
+        my_world_family: parsedTelemetry.world_balance?.family?.score || 78,
+        my_world_friend: parsedTelemetry.world_balance?.friend?.score || 68,
+        collective_intelligence: parsedTelemetry.growth_consciousness?.collective_intelligence_index?.score || 78,
+        global_consciousness: parsedTelemetry.growth_consciousness?.global_consciousness_score?.score || 75,
+        balanced_thinking: parsedTelemetry.growth_consciousness?.balanced_thinking_ratio?.score || 82,
+        karma_rating: parsedTelemetry.energy?.score || 74,
+        weak_chakras: parsedTelemetry.chakras?.weak_chakras || ["throat", "solar_plexus"],
+        telemetry_json: parsedTelemetry,
+        updated_at: new Date().toISOString(),
+      };
+
+      try {
+        await supabase.from('users').update(telemetryPayload).eq('email', userEmail.toLowerCase().trim());
+      } catch (dbErr1) {
+        console.warn('Users table telemetry update notice:', dbErr1.message);
+      }
+
       try {
         await supabase.from('user_profiles').upsert([{
-          email: userEmail,
-          my_world_business: parsedTelemetry.world_balance?.business?.score || 72,
-          my_world_family: parsedTelemetry.world_balance?.family?.score || 78,
-          my_world_friend: parsedTelemetry.world_balance?.friend?.score || 68,
-          collective_intelligence: parsedTelemetry.growth_consciousness?.collective_intelligence_index?.score || 78,
-          global_consciousness: parsedTelemetry.growth_consciousness?.global_consciousness_score?.score || 75,
-          karma_rating: parsedTelemetry.energy?.score || 74,
-          weak_chakras: parsedTelemetry.chakras?.weak_chakras || ["throat", "solar_plexus"],
-          updated_at: new Date().toISOString(),
+          email: userEmail.toLowerCase().trim(),
+          ...telemetryPayload
         }], { onConflict: 'email' });
-      } catch (dbErr) {
-        console.warn('Telemetry DB upsert notice:', dbErr.message);
+      } catch (dbErr2) {
+        console.warn('User_profiles table telemetry upsert notice:', dbErr2.message);
       }
     }
 
@@ -538,6 +675,7 @@ module.exports = {
   getChatHistory,
   sessionMessages,
   saiStream,
-  analyzeSession
+  analyzeSession,
+  getLatestTelemetry
 };
 

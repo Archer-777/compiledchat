@@ -34,6 +34,21 @@ export default function SoulMatrixPage() {
           }
         }
 
+        // Fetch latest telemetry directly from Backend DB Endpoint if missing
+        if (!storedTelemetry) {
+          try {
+            const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
+              ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
+              : 'http://localhost:4000';
+            const dbRes = await fetch(`${baseUrl}/api/v1/chat/sai/telemetry${data?.email ? `?email=${encodeURIComponent(data.email)}` : ''}`);
+            const dbData = await dbRes.json();
+            if (dbData && dbData.telemetry) {
+              storedTelemetry = JSON.stringify(dbData.telemetry);
+              window.localStorage.setItem('@telemetry_analysis_result', storedTelemetry);
+            }
+          } catch (dbErr) {}
+        }
+
         if (storedTelemetry) {
           const telemetry = JSON.parse(storedTelemetry);
           setProfile(prev => {
@@ -46,16 +61,18 @@ export default function SoulMatrixPage() {
                 friend: telemetry.world_balance.friend?.score || prev.my_world_sliders.friend,
               };
             }
-            if (telemetry.growth_consciousness) {
-              if (telemetry.growth_consciousness.collective_intelligence_index?.score !== undefined) {
-                updated.collective_intelligence = telemetry.growth_consciousness.collective_intelligence_index.score;
-              }
-              if (telemetry.growth_consciousness.global_consciousness_score?.score !== undefined) {
-                updated.global_consciousness = telemetry.growth_consciousness.global_consciousness_score.score;
-              }
-              if (telemetry.growth_consciousness.balanced_thinking_ratio?.score !== undefined) {
-                updated.balanced_thinking = telemetry.growth_consciousness.balanced_thinking_ratio.score;
-              }
+            if (telemetry.growth_consciousness || telemetry.consciousness) {
+              const gc = telemetry.growth_consciousness || {};
+              const getVal = (v) => typeof v === 'number' ? v : (v?.score ?? undefined);
+              
+              const ci = getVal(gc.collective_intelligence_index) ?? getVal(gc.collective_intelligence) ?? telemetry.consciousness?.Ci?.score;
+              if (ci !== undefined) updated.collective_intelligence = ci;
+              
+              const gcs = getVal(gc.global_consciousness_score) ?? getVal(gc.global_consciousness) ?? telemetry.consciousness?.C?.score;
+              if (gcs !== undefined) updated.global_consciousness = gcs;
+              
+              const bt = getVal(gc.balanced_thinking_ratio) ?? getVal(gc.balanced_thinking) ?? telemetry.truth?.T?.score;
+              if (bt !== undefined) updated.balanced_thinking = bt;
             }
             if (telemetry.chakras) {
               const weak = telemetry.chakras.weak_chakras || [];
@@ -85,9 +102,10 @@ export default function SoulMatrixPage() {
               if (Array.isArray(rawMaslow)) {
                 updated.maslow_levels = rawMaslow.map(m => {
                   const mKey = m.id || m.name?.toLowerCase().replace(/\s+/g, '_');
+                  const scoreVal = telemetry.maslow[mKey]?.score ?? (mKey === 'love_belonging' ? telemetry.maslow['belonging_love']?.score : undefined) ?? m.score ?? 0;
                   return {
                     ...m,
-                    score: telemetry.maslow[mKey]?.score ?? m.score ?? 0,
+                    score: scoreVal,
                   };
                 });
               } else {
@@ -96,6 +114,7 @@ export default function SoulMatrixPage() {
                 mKeys.forEach(k => {
                   mappedMaslow[k] = telemetry.maslow[k]?.score ?? 0;
                 });
+                mappedMaslow['love_belonging'] = telemetry.maslow['belonging_love']?.score ?? telemetry.maslow['love_belonging']?.score ?? 0;
                 updated.maslow_levels = mappedMaslow;
               }
             }
@@ -128,13 +147,40 @@ export default function SoulMatrixPage() {
                   onBack={() => navigate(-1)}
                 />
 
-                {/* HEAL MY CHAKRA BUTTON */}
-                <div className="mt-6 flex justify-center">
+                {/* HEAL MY CHAKRA & INSTANT AI ANALYSIS BUTTONS */}
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
                   <button
-                    onClick={() => navigate('/heal-me')}
-                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-all transform hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 border border-white/20 font-['Poppins']"
+                    onClick={() => navigate('/healing')}
+                    className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(168,85,247,0.4)] transition-all transform hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 border border-white/20 font-['Poppins']"
                   >
                     <span>✨ HEAL MY CHAKRA →</span>
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
+                          ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
+                          : 'http://localhost:4000';
+                        const uData = await getUserData();
+                        const email = uData?.email || '';
+                        const res = await fetch(`${baseUrl}/api/v1/chat/sai/analyze`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email }),
+                        });
+                        const data = await res.json();
+                        if (data && data.telemetry) {
+                          window.localStorage.setItem('@telemetry_analysis_result', JSON.stringify(data.telemetry));
+                          window.location.reload();
+                        }
+                      } catch (e) {
+                        console.error('Instant AI Analysis error:', e);
+                      }
+                    }}
+                    className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-500 hover:from-cyan-500 hover:to-emerald-400 text-white font-extrabold text-sm sm:text-base tracking-wider uppercase shadow-[0_0_25px_rgba(20,184,166,0.4)] transition-all transform hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 border border-white/20 font-['Poppins']"
+                  >
+                    <span>⚡ INSTANT AI ANALYSIS</span>
                   </button>
                 </div>
               </div>
@@ -155,17 +201,14 @@ export default function SoulMatrixPage() {
                     <h2 className="text-base font-extrabold text-white tracking-tight font-['Poppins']">
                       Karma Rating
                     </h2>
-                    <p className="text-xs text-purple-300">
-                      Veto Status: <span className="text-emerald-400 font-semibold">Safe • No Burnout</span>
-                    </p>
                   </div>
                 </div>
 
-                <div className="text-right">
+                <div className="flex items-baseline gap-1">
                   <span className="text-2xl font-extrabold text-amber-300 font-mono">
                     {profile.karma_rating}
                   </span>
-                  <span className="text-xs text-gray-400 block font-sans">/ 100</span>
+                  <span className="text-sm font-semibold text-gray-400 font-sans">/ 100</span>
                 </div>
               </div>
 

@@ -419,7 +419,7 @@ export default function RegisterPage() {
               className="register-primary-btn"
               onClick={() => navigate('/soul-matrix')}
             >
-              Proceed to Soul Matrix Dashboard →
+              Proceed to Life on Dashboard →
             </button>
           </div>
         )}

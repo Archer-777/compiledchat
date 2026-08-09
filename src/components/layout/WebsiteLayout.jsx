@@ -1,41 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import GlobalNavbar from '@/components/layout/GlobalNavbar';
 
-const desktopStars = [
-  { top: '5%', left: '8%', size: '2.5px', opacity: 0.6 },
-  { top: '12%', left: '88%', size: '3px', opacity: 0.8 },
-  { top: '18%', left: '25%', size: '2px', opacity: 0.5 },
-  { top: '28%', left: '75%', size: '3px', opacity: 0.7 },
-  { top: '35%', left: '12%', size: '2px', opacity: 0.7 },
-  { top: '42%', left: '92%', size: '3px', opacity: 0.6 },
-  { top: '55%', left: '5%', size: '2.5px', opacity: 0.6 },
-  { top: '62%', left: '82%', size: '2px', opacity: 0.7 },
-  { top: '72%', left: '18%', size: '3.5px', opacity: 0.8 },
-  { top: '80%', left: '90%', size: '2px', opacity: 0.5 },
-  { top: '88%', left: '30%', size: '3px', opacity: 0.7 },
-  { top: '94%', left: '70%', size: '2px', opacity: 0.5 },
-  { top: '8%', left: '48%', size: '2.5px', opacity: 0.5 },
-  { top: '22%', left: '60%', size: '2px', opacity: 0.6 },
-  { top: '48%', left: '38%', size: '2px', opacity: 0.6 },
-  { top: '68%', left: '68%', size: '3px', opacity: 0.8 },
-  { top: '78%', left: '42%', size: '2px', opacity: 0.5 },
-  { top: '86%', left: '15%', size: '3px', opacity: 0.8 },
-];
+export default function WebsiteLayout({ children, showFooter = true }) {
+  const [stars, setStars] = useState([]);
 
-export default function WebsiteLayout({ children }) {
+  useEffect(() => {
+    // Generate 120 cosmic twinkling stars across layout
+    const generated = Array.from({ length: 120 }, (_, i) => ({
+      id: i,
+      left: `${(Math.random() * 100).toFixed(2)}%`,
+      top: `${(Math.random() * 100).toFixed(2)}%`,
+      size: `${(0.8 + Math.random() * 1.5).toFixed(2)}px`,
+      duration: `${(2 + Math.random() * 4).toFixed(2)}s`,
+      delay: `${(Math.random() * 5).toFixed(2)}s`,
+      opacity: 0.2 + Math.random() * 0.7,
+    }));
+    setStars(generated);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#06060C] text-white flex flex-col relative overflow-x-hidden w-full font-sans pb-16">
-      
-      {/* Full Desktop Outer Background Space Dust / Stars */}
+    <div className="relative min-h-screen w-full bg-[#06060E] text-white flex flex-col selection:bg-purple-500 selection:text-white overflow-x-hidden font-['Poppins']">
+      {/* ── Fixed Global Top Navbar Header ── */}
+      <GlobalNavbar />
+
+      {/* ── Cosmic Starfield & Background Ambient FX ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {desktopStars.map((star, idx) => (
+        {stars.map((star) => (
           <div
-            key={idx}
-            className="absolute bg-white rounded-full animate-pulse"
+            key={star.id}
+            className="absolute rounded-full bg-white animate-pulse"
             style={{
-              top: star.top,
               left: star.left,
+              top: star.top,
               width: star.size,
               height: star.size,
+              animationDuration: star.duration,
+              animationDelay: star.delay,
               opacity: star.opacity,
               boxShadow: '0 0 10px rgba(255, 255, 255, 0.9)',
             }}
@@ -53,13 +53,14 @@ export default function WebsiteLayout({ children }) {
       </main>
 
       {/* Fixed/Pinned Bottom Slogan Banner */}
-      <footer className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#0A0910]/80 backdrop-blur-xl border-t border-white/10 py-3.5 px-6 flex items-center justify-center">
-        <p className="font-semibold tracking-tight text-xs uppercase text-gray-300 font-['Poppins'] flex items-center justify-center gap-1.5 text-center">
-          <span>🛡️</span>
-          <span>I AM NOT PERFECT, LET'S TRANSCEND CONSCIOUSNESS</span>
-        </p>
-      </footer>
-
+      {showFooter && (
+        <footer className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#0A0910]/80 backdrop-blur-xl border-t border-white/10 py-3.5 px-6 flex items-center justify-center">
+          <p className="font-semibold tracking-tight text-xs uppercase text-gray-300 font-['Poppins'] flex items-center justify-center gap-1.5 text-center">
+            <span>🛡️</span>
+            <span>I AM NOT PERFECT, LET'S TRANSCEND CONSCIOUSNESS</span>
+          </p>
+        </footer>
+      )}
     </div>
   );
 }

@@ -33,10 +33,41 @@ export default function ChatScreenPage() {
           <button
             onClick={async () => {
               try {
-                const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+                const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL) 
+                  ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '') 
+                  : 'http://localhost:4000';
+
+                // Read actual chat messages from localStorage
+                let realMessages = [];
+                let userEmail = '';
+                try {
+                  const sessionsRaw = window.localStorage.getItem('@spiritual_chat_sessions');
+                  if (sessionsRaw) {
+                    const sessions = JSON.parse(sessionsRaw);
+                    const latest = Array.isArray(sessions) && sessions.length > 0 ? sessions[0] : null;
+                    if (latest && Array.isArray(latest.messages) && latest.messages.length > 0) {
+                      realMessages = latest.messages;
+                    }
+                    if (latest?.userEmail) userEmail = latest.userEmail;
+                  }
+                  if (!userEmail) {
+                    const userRaw = window.localStorage.getItem('@spiritual_register_user') || window.localStorage.getItem('@active_auth_session');
+                    if (userRaw) {
+                      const u = JSON.parse(userRaw);
+                      userEmail = u?.email || '';
+                    }
+                  }
+                } catch (lsErr) {}
+
+                // Fallback if no real messages found
+                if (realMessages.length === 0) {
+                  realMessages = [{ sender: 'user', text: 'User completed a session exploring mindfulness and emotional balance.' }];
+                }
+
+                const res = await fetch(`${baseUrl}/api/v1/chat/sai/analyze`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ messages: [{ sender: 'user', text: 'End Session analysis request' }] }),
+                  body: JSON.stringify({ messages: realMessages, email: userEmail }),
                 });
                 const data = await res.json();
                 if (data && data.telemetry) {
@@ -59,7 +90,7 @@ export default function ChatScreenPage() {
               marginRight: '10px',
             }}
           >
-            End Session & Soul Matrix ✨
+            End Session & Life on Dashboard ✨
           </button>
           <a
             href="http://localhost:8081"

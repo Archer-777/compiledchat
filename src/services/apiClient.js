@@ -5,7 +5,7 @@
  */
 
 const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-  ? `${import.meta.env.VITE_BACKEND_URL}/api`
+  ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')}/api`
   : 'http://localhost:4000/api';
 
 const getAuthHeaders = () => {

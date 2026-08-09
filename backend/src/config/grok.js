@@ -24,7 +24,7 @@ const generateGrokResponse = async (messages, options = {}) => {
 
   const systemPrompt = {
     role: 'system',
-    content: 'You are Spiritualize AI — an empathetic, elevated consciousness AI companion for Next Archer. Provide inspiring, concise, and deep reflections.'
+    content: options.systemPrompt || 'You are Spiritualize AI — an empathetic, elevated consciousness AI companion for Next Archer. Provide inspiring, concise, and deep reflections.'
   };
 
   const formattedMessages = [

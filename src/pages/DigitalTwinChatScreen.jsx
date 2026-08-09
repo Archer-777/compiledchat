@@ -84,9 +84,10 @@ export default function DigitalTwinChatScreen() {
       // Force Twin Name to First Name + 2.0
       getUserData().then(user => {
         if (user) {
-          const firstName = user.firstName || user.first_name || (user.full_name ? user.full_name.split(' ')[0] : 'User');
-          setTwinName(`${firstName} 2.0`);
-          setUserAuthKey(user.id || user.email || 'guest');
+          const firstName = user.firstName || user.first_name || (user.full_name ? user.full_name.split(' ')[0] : '');
+          const displayName = firstName || (user.fullName ? user.fullName.split(' ')[0] : '') || 'Guest';
+          setTwinName(`${displayName !== 'Guest' ? displayName : 'User'} 2.0`);
+          setUserAuthKey(displayName);
         }
       }).catch(e => {});
     } catch (e) {}
@@ -149,7 +150,9 @@ export default function DigitalTwinChatScreen() {
       }
 
       if (targetName && isMounted) {
-        setUserProfileName(targetName.trim());
+        const cleanName = targetName.trim();
+        setUserProfileName(cleanName);
+        setUserAuthKey(cleanName);
         setIsGuest(false);
       }
 
@@ -168,7 +171,9 @@ export default function DigitalTwinChatScreen() {
             if (data && data.length > 0 && isMounted) {
               const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
               if (dbName) {
-                setUserProfileName(dbName.trim());
+                const cleanDbName = dbName.trim();
+                setUserProfileName(cleanDbName);
+                setUserAuthKey(cleanDbName);
                 setIsGuest(false);
               }
             }
@@ -522,7 +527,7 @@ export default function DigitalTwinChatScreen() {
               );
             }
 
-            const isTwin = msg.sender === 'twin';
+            const isTwin = msg.sender === 'twin' || msg.sender === 'ai' || msg.sender === 'assistant';
             return (
               <div key={msg.id} className={`message-row ${isTwin ? 'row-left' : 'row-right'}`}>
                 {/* Twin Avatar Logo - Custom User Gallery Photo or Sacred CPU Icon */}
@@ -663,7 +668,7 @@ export default function DigitalTwinChatScreen() {
                 }}
               >
                 <Cpu size={18} color="#a855f7" />
-                <span>Twin Chat</span>
+                <span>Chat-TWIN</span>
               </button>
 
               <button
@@ -674,18 +679,18 @@ export default function DigitalTwinChatScreen() {
                 }}
               >
                 <User size={18} color="#ffffff" />
-                <span>Soul Matrix Profile</span>
+                <span>View-Life on DashBoard</span>
               </button>
 
               <button
                 className="twin-drawer-btn"
                 onClick={() => {
                   setShowMobileDrawer(false);
-                  navigate('/heal-me');
+                  navigate('/healing');
                 }}
               >
                 <Heart size={18} color="#00ffcc" />
-                <span>Heal Me Sanctuary</span>
+                <span>Act-Heal Me</span>
               </button>
             </div>
             

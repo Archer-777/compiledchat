@@ -109,166 +109,190 @@ export const getUserData = async (emailTarget = null) => {
   };
 };
 
+/**
+  * Helper to get or create a valid user_id UUID from Supabase users table
+  */
+export const getOrCreateUserId = async (userData) => {
+  if (userData && userData.id && isValidUUID(userData.id)) {
+    return userData.id;
+  }
+
+  const email = userData?.email ? userData.email.toLowerCase().trim() : '';
+  if (!email) {
+    return null;
+  }
+
+  try {
+    // 1. Fetch user by email
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, {
+      headers: {
+        'apikey': SERVICE_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0 && data[0].id && isValidUUID(data[0].id)) {
+        return data[0].id;
+      }
+    }
+
+    // 2. If not found in users table, upsert user row
+    const newId = generateUUID();
+    const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+      method: 'POST',
+      headers: {
+        'apikey': SERVICE_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation,resolution=merge-duplicates',
+      },
+      body: JSON.stringify([{
+        id: newId,
+        email: email,
+        first_name: userData?.firstName || 'Archer',
+        last_name: userData?.lastName || '',
+      }]),
+    });
+
+    if (createRes.ok) {
+      const created = await createRes.json();
+      if (created && created.length > 0 && created[0].id) {
+        return created[0].id;
+      }
+    }
+    return newId;
+  } catch (err) {
+    console.error('getOrCreateUserId error:', err);
+  }
+  return null;
+};
+
 export const saveChatSession = async (session, chatType = 'spiritual') => {
   if (!session) return;
   const validSessionId = isValidUUID(session.id) ? session.id : generateUUID();
+
   try {
-    let sessions = await getChatSessions(null, null);
-    const index = sessions.findIndex((s) => s.id === validSessionId || s.id === session.id);
-    const updatedSession = {
+    const userData = await getUserData();
+    const userId = await getOrCreateUserId(userData);
+
+    if (!userId) {
+      console.warn('saveChatSession: No valid user_id found');
+      return;
+    }
+
+    const titleText = session.title || (session.messages && session.messages.find(m => m.sender === 'user' || m.role === 'user')?.text) || (chatType === 'twin' ? 'Digital Twin Chat' : 'Spiritual Chat');
+
+    const sessionPayload = {
       id: validSessionId,
-      chatType: chatType,
-      title: session.title || (session.messages && session.messages.find(m => m.sender === 'user')?.text) || (chatType === 'twin' ? 'Digital Twin Chat' : 'Spiritual Chat'),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      messages: session.messages || [],
-      updatedAt: new Date().toISOString()
+      user_id: userId,
+      title: (titleText || 'New Chat').substring(0, 100),
+      status: 'active',
+      session_type: chatType,
+      updated_at: new Date().toISOString(),
     };
 
-    if (index >= 0) {
-      sessions[index] = { ...sessions[index], ...updatedSession };
-    } else {
-      sessions.unshift(updatedSession);
+    // 1. Upsert session into Supabase DB
+    const sessRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
+      method: 'POST',
+      headers: {
+        'apikey': SERVICE_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify([sessionPayload]),
+    });
+
+    if (!sessRes.ok) {
+      console.error('Supabase chat_sessions save error:', await sessRes.text());
     }
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions.slice(0, 50)));
-      window.dispatchEvent(new CustomEvent('chat-sessions-changed', { detail: { chatType } }));
-    }
+    // 2. Upsert messages into Supabase DB
+    if (Array.isArray(session.messages) && session.messages.length > 0) {
+      const msgPayload = session.messages.map((msg) => ({
+        id: isValidUUID(msg.id) ? msg.id : generateUUID(),
+        session_id: validSessionId,
+        user_id: userId,
+        role: (msg.sender === 'user' || msg.sender === 'human' || msg.role === 'user') ? 'user' : 'assistant',
+        content: msg.text || msg.content || '',
+        created_at: new Date().toISOString(),
+      }));
 
-    const userData = await getUserData();
-    if (userData && userData.email) {
-      try {
-        const userId = userData.id && isValidUUID(userData.id) ? userData.id : null;
-        const sessionPayload = {
-          id: validSessionId,
-          title: updatedSession.title,
-          status: chatType,
-          session_type: chatType,
-          updated_at: new Date().toISOString(),
-        };
-        if (userId) {
-          sessionPayload.user_id = userId;
-        }
+      const msgRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
+        method: 'POST',
+        headers: {
+          'apikey': SERVICE_KEY,
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(msgPayload),
+      });
 
-        // Upsert session
-        await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
-          method: 'POST',
-          headers: {
-            'apikey': SERVICE_KEY,
-            'Authorization': `Bearer ${SERVICE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify([sessionPayload])
-        });
-
-        // Upsert messages
-        if (Array.isArray(session.messages)) {
-          const msgPayload = session.messages.map(msg => {
-            const m = {
-              id: isValidUUID(msg.id) ? msg.id : generateUUID(),
-              session_id: validSessionId,
-              role: (msg.sender === 'user' || msg.sender === 'human') ? 'user' : 'assistant',
-              content: msg.text,
-              created_at: new Date().toISOString()
-            };
-            if (userId) m.user_id = userId;
-            return m;
-          });
-          
-          await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
-            method: 'POST',
-            headers: {
-              'apikey': SERVICE_KEY,
-              'Authorization': `Bearer ${SERVICE_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify(msgPayload)
-          });
-        }
-      } catch (e) {
-        console.warn('Supabase chat session save notice:', e);
+      if (!msgRes.ok) {
+        console.error('Supabase chat_messages save error:', await msgRes.text());
       }
     }
+
+    // Dispatch event so RECENT CHATS sidebar reloads immediately from Supabase DB!
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('chat-sessions-changed', { detail: { chatType } }));
+    }
   } catch (err) {
-    console.error('Error saving chat session:', err);
+    console.error('Error saving chat session to Supabase DB:', err);
   }
 };
 
 export const getChatSessions = async (emailOverride = null, filterType = null) => {
-  let sessions = [];
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem(CHAT_SESSIONS_KEY);
-      if (raw) {
-        sessions = JSON.parse(raw) || [];
-      }
-    }
-  } catch (e) {
-    console.error('Error reading local chat sessions:', e);
-  }
-
   try {
     const userData = await getUserData(emailOverride);
-    if (userData && userData.email && userData.id) {
-      const targetUserId = userData.id;
-      const endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${encodeURIComponent(targetUserId)}&order=created_at.desc`;
-      const res = await fetch(endpoint, {
-        headers: {
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-        },
-      });
+    const userId = await getOrCreateUserId(userData);
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const dbSessions = data.map((row) => ({
-            id: row.id,
-            chatType: row.status === 'twin' || row.session_type === 'twin' ? 'twin' : (row.title?.toLowerCase().includes('twin') ? 'twin' : 'spiritual'),
-            title: row.title || 'Chat Session',
-            time: new Date(row.created_at || row.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            createdAt: row.created_at || row.updated_at,
-          }));
+    if (!userId) {
+      return [];
+    }
 
-          const merged = [...dbSessions];
-          sessions.forEach((s) => {
-            if (!merged.some((m) => m.id === s.id)) {
-              merged.push(s);
+    let endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`;
+
+    const res = await fetch(endpoint, {
+      headers: {
+        'apikey': SERVICE_KEY,
+        'Authorization': `Bearer ${SERVICE_KEY}`,
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        let list = data.map((row) => ({
+          id: row.id,
+          chatType: row.session_type || row.status || 'spiritual',
+          title: row.title || 'Chat Session',
+          time: new Date(row.created_at || row.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: row.created_at || row.updated_at,
+        }));
+
+        if (filterType) {
+          list = list.filter((item) => {
+            if (filterType === 'spiritual') {
+              return item.chatType !== 'twin';
             }
+            return item.chatType === filterType;
           });
-          sessions = merged;
         }
+        return list;
       }
     }
   } catch (e) {
-    console.warn('getChatSessions Supabase notice:', e);
+    console.error('getChatSessions Supabase DB error:', e);
   }
 
-  if (filterType) {
-    return sessions.filter(s => {
-      const sType = s.chatType || s.session_type || (s.title?.toLowerCase().includes('twin') ? 'twin' : 'spiritual');
-      if (filterType === 'spiritual') {
-        return sType !== 'twin';
-      }
-      return sType === filterType;
-    });
-  }
-
-  return sessions;
+  return [];
 };
 
 export const getChatMessagesForSession = async (sessionId) => {
   if (!sessionId) return [];
-
-  try {
-    const sessions = await getChatSessions();
-    const target = sessions.find((s) => s.id === sessionId);
-    if (target && target.messages && target.messages.length > 0) {
-      return target.messages;
-    }
-  } catch (e) {}
 
   try {
     const endpoint = `${SUPABASE_URL}/rest/v1/chat_messages?session_id=eq.${encodeURIComponent(sessionId)}&order=created_at.asc`;
@@ -281,7 +305,7 @@ export const getChatMessagesForSession = async (sessionId) => {
 
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0) {
+      if (Array.isArray(data) && data.length > 0) {
         return data.map((row) => ({
           id: row.id,
           sender: row.role === 'assistant' ? 'ai' : 'user',
@@ -290,7 +314,7 @@ export const getChatMessagesForSession = async (sessionId) => {
       }
     }
   } catch (e) {
-    console.warn('getChatMessagesForSession Supabase notice:', e);
+    console.warn('getChatMessagesForSession Supabase DB notice:', e);
   }
 
   return [];
