@@ -7,16 +7,16 @@ export default function DashboardMetrics({
   balancedThinking = 0,
 }) {
   const metrics = [
-    { label: 'Collective Intelligence Index', val: collectiveIntelligence, color: '#38bdf8' },
-    { label: 'Global Consciousness Score', val: globalConsciousness, color: '#c084fc' },
-    { label: 'Balanced Thinking Ratio', val: balancedThinking, color: '#4ade80' },
+    { label: 'Truth', val: collectiveIntelligence, color: '#38bdf8' },
+    { label: 'Conciousness', val: globalConsciousness, color: '#c084fc' },
+    { label: 'Energy', val: balancedThinking, color: '#4ade80' },
   ];
 
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h3 className="text-xs font-extrabold text-white uppercase tracking-widest font-['Poppins'] flex items-center gap-2">
-          <span>✨</span> Growth & Consciousness
+          <span>✨</span> Karma Rating
         </h3>
         <span className="text-[10px] text-purple-300 font-mono">Real-time Metrics</span>
       </div>
