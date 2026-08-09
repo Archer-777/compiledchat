@@ -88,20 +88,31 @@ const updateTwinProfile = async (req, res) => {
 };
 
 /**
- * Enqueue Agent Run (Mock/Stub matching Python implementation)
+ * Enqueue Agent Run (Proxies to Digital Twin API)
  * POST /api/v1/twin/runs
  */
 const enqueueAgentRun = async (req, res) => {
   try {
     const { session_id, message } = req.body;
-    const run_id = `run_${crypto.randomUUID().replace(/-/g, '')}`;
+    const user_id = req.user?.sub || req.user?.id || 'guest';
     
-    return res.status(200).json({
-      run_id,
-      status: 'queued',
-      session_id,
-      message
+    // Forward to the actual Digital Twin Python API
+    const twinApiRes = await fetch('http://65.2.37.177:8000/runs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${user_id}`
+      },
+      body: JSON.stringify({ session_id, message })
     });
+
+    if (!twinApiRes.ok) {
+      console.error(`Twin API returned status ${twinApiRes.status}`);
+      return res.status(twinApiRes.status).json({ success: false, message: 'Digital Twin API error' });
+    }
+
+    const data = await twinApiRes.json();
+    return res.status(200).json(data);
   } catch (error) {
     console.error('enqueueAgentRun error:', error);
     return res.status(500).json({ success: false, message: 'Failed to enqueue run' });
@@ -109,18 +120,27 @@ const enqueueAgentRun = async (req, res) => {
 };
 
 /**
- * Polling Endpoint (Mock to satisfy frontend expectations if needed)
+ * Polling Endpoint (Proxies to Digital Twin API)
  * GET /api/v1/twin/runs/:runId
  */
 const getAgentRun = async (req, res) => {
   try {
-    // Return a dummy completion since we aren't running an actual async worker for now
-    // This matches the frontend's expectation in DigitalTwinChatScreen.jsx
-    return res.status(200).json({
-      id: req.params.runId,
-      status: 'completed',
-      result: 'The twin agent has received your instructions. Synchronization complete.'
+    const runId = req.params.runId;
+    const user_id = req.user?.sub || req.user?.id || 'guest';
+
+    const twinApiRes = await fetch(`http://65.2.37.177:8000/runs/${runId}`, {
+      headers: {
+        'Authorization': `Bearer ${user_id}`
+      }
     });
+
+    if (!twinApiRes.ok) {
+      console.error(`Twin API returned status ${twinApiRes.status}`);
+      return res.status(twinApiRes.status).json({ success: false, message: 'Digital Twin API error' });
+    }
+
+    const data = await twinApiRes.json();
+    return res.status(200).json(data);
   } catch (error) {
     console.error('getAgentRun error:', error);
     return res.status(500).json({ success: false, message: 'Failed to check run' });
