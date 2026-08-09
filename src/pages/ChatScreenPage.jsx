@@ -93,7 +93,7 @@ export default function ChatScreenPage() {
             End Session & Life on Dashboard ✨
           </button>
           <a
-            href="http://localhost:8081"
+            href="https://chat.sai.nextarcher.com"
             target="_blank"
             rel="noopener noreferrer"
             className="chatscreen-external-btn"

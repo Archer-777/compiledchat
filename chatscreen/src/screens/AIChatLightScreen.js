@@ -455,7 +455,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
       try {
         const uData = await getUserData();
         const email = uData?.email || '';
-        const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+        const res = await fetch('https://compiledchat-production.up.railway.app/api/v1/chat/sai/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages, email }),
@@ -472,9 +472,9 @@ const AIChatLightScreen = ({ navigation, route }) => {
       }
 
       if (isGuest) {
-        window.location.href = 'http://localhost:3000/register';
+        window.location.href = 'https://sai.nextarcher.com/register';
       } else {
-        window.location.href = `http://localhost:3000/soul-matrix${telemetryParam}`;
+        window.location.href = `https://sai.nextarcher.com/soul-matrix${telemetryParam}`;
       }
     } catch (e) {
       console.error("End session error", e);
@@ -760,7 +760,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/twin-chat';
+                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/twin-chat';
                 }}
               >
                 <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
@@ -771,7 +771,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/soul-matrix';
+                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/soul-matrix';
                 }}
               >
                 <Ionicons name="person-outline" size={20} color="#ffffff" />
@@ -782,7 +782,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/healing';
+                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/healing';
                 }}
               >
                 <Ionicons name="heart-outline" size={20} color="#00ffcc" />
@@ -858,7 +858,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
               onPress={() => {
                 setShowTenMinModal(false);
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'http://localhost:3000/heal-me';
+                  window.location.href = 'https://sai.nextarcher.com/heal-me';
                 } else if (navigation && navigation.navigate) {
                   navigation.navigate('HealMe');
                 }

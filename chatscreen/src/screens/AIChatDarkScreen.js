@@ -489,7 +489,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
       try {
         const uData = await getUserData();
         const email = uData?.email || '';
-        const res = await fetch('http://localhost:4000/api/v1/chat/sai/analyze', {
+        const res = await fetch('https://compiledchat-production.up.railway.app/api/v1/chat/sai/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages, email }),
@@ -506,9 +506,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
       }
 
       if (isGuest) {
-        window.location.href = 'http://localhost:3000/register';
+        window.location.href = 'https://sai.nextarcher.com/register';
       } else {
-        window.location.href = `http://localhost:3000/soul-matrix${telemetryParam}`;
+        window.location.href = `https://sai.nextarcher.com/soul-matrix${telemetryParam}`;
       }
     } catch (e) {
       console.error("End session error", e);
@@ -824,7 +824,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                 style={[styles.iconCircleBtn, { overflow: 'hidden', backgroundColor: 'transparent', borderWidth: 0 }]}
                 onPress={() => {
                   if (typeof window !== 'undefined') {
-                    window.location.href = 'http://localhost:3000/soul-matrix';
+                    window.location.href = 'https://sai.nextarcher.com/soul-matrix';
                   } else {
                     setShowProfileDropdown(true);
                   }
@@ -854,7 +854,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   onPress={() => {
                     setShowProfileDropdown(false);
                     if (typeof window !== 'undefined') {
-                      window.location.href = 'http://localhost:3000/soul-matrix';
+                      window.location.href = 'https://sai.nextarcher.com/soul-matrix';
                     }
                   }}
                   activeOpacity={0.7}
@@ -882,7 +882,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                       }
                     } catch (e) {}
                     if (typeof window !== 'undefined') {
-                      window.location.href = 'http://localhost:3000/scan';
+                      window.location.href = 'https://sai.nextarcher.com/scan';
                     }
                   }}
                   activeOpacity={0.7}
@@ -926,7 +926,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   style={styles.drawerBtn}
                   onPress={() => {
                     setShowMobileDrawer(false);
-                    if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/twin-chat';
+                    if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/twin-chat';
                   }}
                 >
                   <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
@@ -937,7 +937,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   style={styles.drawerBtn}
                   onPress={() => {
                     setShowMobileDrawer(false);
-                    if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/soul-matrix';
+                    if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/soul-matrix';
                   }}
                 >
                   <Ionicons name="person-outline" size={20} color="#ffffff" />
@@ -948,7 +948,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   style={styles.drawerBtn}
                   onPress={() => {
                     setShowMobileDrawer(false);
-                    if (typeof window !== 'undefined') window.location.href = 'http://localhost:3000/healing';
+                    if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/healing';
                   }}
                 >
                   <Ionicons name="heart-outline" size={20} color="#00ffcc" />
@@ -1026,9 +1026,9 @@ const AIChatDarkScreen = ({ navigation, route }) => {
                   setShowTenMinModal(false);
                   if (typeof window !== 'undefined') {
                     if (window.parent && window.parent !== window) {
-                      window.parent.location.href = 'http://localhost:3000/register';
+                      window.parent.location.href = 'https://sai.nextarcher.com/register';
                     } else {
-                      window.location.href = 'http://localhost:3000/register';
+                      window.location.href = 'https://sai.nextarcher.com/register';
                     }
                   } else if (navigation && navigation.navigate) {
                     navigation.navigate('Register');

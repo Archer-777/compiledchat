@@ -31,7 +31,7 @@ export const snapKitService = {
     if (typeof window !== 'undefined' && window.location) {
       return `${window.location.protocol}//${window.location.host}`;
     }
-    return 'http://localhost:8081';
+    return 'https://chat.sai.nextarcher.com';
   },
 
   /**

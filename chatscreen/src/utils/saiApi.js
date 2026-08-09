@@ -9,7 +9,7 @@
  * stream smoothly word-by-word / token-by-token instead of dumping all text at once.
  */
 
-const BACKEND_STREAM_URL = 'http://localhost:4000/api/v1/chat/sai/stream';
+const BACKEND_STREAM_URL = 'https://compiledchat-production.up.railway.app/api/v1/chat/sai/stream';
 
 /**
  * Stream SAI response tokens smoothly to the caller via callbacks.

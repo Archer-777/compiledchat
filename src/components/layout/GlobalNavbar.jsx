@@ -49,7 +49,7 @@ export default function GlobalNavbar() {
       if (firstName) params.set('firstName', firstName);
       const qStr = params.toString();
       const query = qStr ? `?${qStr}` : '';
-      window.location.href = `http://localhost:8081/${query}`;
+      window.location.href = `https://chat.sai.nextarcher.com/${query}`;
     } else {
       navigate(item.path);
     }

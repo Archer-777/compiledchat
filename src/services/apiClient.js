@@ -6,7 +6,7 @@
 
 const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
   ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')}/api`
-  : 'http://localhost:4000/api';
+  : 'https://compiledchat-production.up.railway.app/api/v1';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;

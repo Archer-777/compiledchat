@@ -67,7 +67,7 @@ export function DesktopSidebar({
 
   const handleProfileClick = () => {
     if (typeof window !== 'undefined') {
-      window.location.href = 'http://localhost:3000/soul-matrix';
+      window.location.href = 'https://sai.nextarcher.com/soul-matrix';
     }
   };
 
@@ -105,7 +105,7 @@ export function DesktopSidebar({
         style={[styles.newChatBtn, { backgroundColor: 'rgba(168, 85, 247, 0.18)', borderColor: 'rgba(168, 85, 247, 0.4)', marginBottom: 20 }]}
         onPress={() => {
           if (typeof window !== 'undefined') {
-            window.location.href = 'http://localhost:3000/twin-chat';
+            window.location.href = 'https://sai.nextarcher.com/twin-chat';
           }
         }}
         activeOpacity={0.7}
