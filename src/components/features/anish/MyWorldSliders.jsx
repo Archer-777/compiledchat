@@ -32,7 +32,7 @@ export default function MyWorldSliders({ initialValues, userId = 'user_001' }) {
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h3 className="text-xs font-extrabold text-white uppercase tracking-widest font-['Poppins'] flex items-center gap-2">
-          <span>🌐</span> My World Balance
+          <span>🌐</span> My World
         </h3>
         <span className="text-[10px] text-cyan-300 font-mono">Live Telemetry</span>
       </div>

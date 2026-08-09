@@ -16,7 +16,7 @@ export default function DashboardMetrics({
     <div className="flex flex-col gap-4 w-full">
       <div className="flex items-center justify-between border-b border-white/10 pb-2">
         <h3 className="text-xs font-extrabold text-white uppercase tracking-widest font-['Poppins'] flex items-center gap-2">
-          <span>✨</span> Karma Rating
+          <span>✨</span> Current Life Score
         </h3>
         <span className="text-[10px] text-purple-300 font-mono">Real-time Metrics</span>
       </div>
