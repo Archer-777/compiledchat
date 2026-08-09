@@ -3,6 +3,10 @@ const SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && import.meta.env
   ? import.meta.env.VITE_SUPABASE_ANON_KEY
   : 'sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv';
 
+const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
+  ? import.meta.env.VITE_BACKEND_URL
+  : 'https://compiledchat-production.up.railway.app';
+
 const CHAT_SESSIONS_KEY = '@spiritual_chat_sessions';
 const USER_DATA_KEY = '@spiritual_register_user';
 
@@ -125,45 +129,24 @@ export const getOrCreateUserId = async (userData) => {
   }
 
   try {
-    // 1. Fetch user by email
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=id`, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
+    const res = await fetch(`${BACKEND_URL}/api/v1/chat/sync-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: generateUUID(),
+        email: email,
+        firstName: userData?.firstName || 'Archer',
+        lastName: userData?.lastName || ''
+      })
     });
+    
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0 && data[0].id && isValidUUID(data[0].id)) {
+      if (Array.isArray(data) && data.length > 0 && data[0].id) {
         return data[0].id;
       }
     }
-
-    // 2. If not found in users table, upsert user row
-    const newId = generateUUID();
-    const createRes = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation,resolution=merge-duplicates',
-      },
-      body: JSON.stringify([{
-        id: newId,
-        email: email,
-        first_name: userData?.firstName || 'Archer',
-        last_name: userData?.lastName || '',
-      }]),
-    });
-
-    if (createRes.ok) {
-      const created = await createRes.json();
-      if (created && created.length > 0 && created[0].id) {
-        return created[0].id;
-      }
-    }
-    return newId;
+    return generateUUID();
   } catch (err) {
     console.error('getOrCreateUserId error:', err);
   }
@@ -194,47 +177,25 @@ export const saveChatSession = async (session, chatType = 'spiritual') => {
       updated_at: new Date().toISOString(),
     };
 
-    // 1. Upsert session into Supabase DB
-    const sessRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_sessions`, {
+    // Upsert session and messages via Backend Proxy
+    const proxyRes = await fetch(`${BACKEND_URL}/api/v1/chat/sync-session`, {
       method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
-      },
-      body: JSON.stringify([sessionPayload]),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionPayload,
+        msgPayload: (Array.isArray(session.messages) && session.messages.length > 0) ? session.messages.map((msg) => ({
+          id: isValidUUID(msg.id) ? msg.id : generateUUID(),
+          session_id: validSessionId,
+          user_id: userId,
+          role: (msg.sender === 'user' || msg.sender === 'human' || msg.role === 'user') ? 'user' : 'assistant',
+          content: msg.text || msg.content || '',
+          created_at: new Date().toISOString(),
+        })) : []
+      })
     });
 
-    if (!sessRes.ok) {
-      console.error('Supabase chat_sessions save error:', await sessRes.text());
-    }
-
-    // 2. Upsert messages into Supabase DB
-    if (Array.isArray(session.messages) && session.messages.length > 0) {
-      const msgPayload = session.messages.map((msg) => ({
-        id: isValidUUID(msg.id) ? msg.id : generateUUID(),
-        session_id: validSessionId,
-        user_id: userId,
-        role: (msg.sender === 'user' || msg.sender === 'human' || msg.role === 'user') ? 'user' : 'assistant',
-        content: msg.text || msg.content || '',
-        created_at: new Date().toISOString(),
-      }));
-
-      const msgRes = await fetch(`${SUPABASE_URL}/rest/v1/chat_messages`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates',
-        },
-        body: JSON.stringify(msgPayload),
-      });
-
-      if (!msgRes.ok) {
-        console.error('Supabase chat_messages save error:', await msgRes.text());
-      }
+    if (!proxyRes.ok) {
+      console.error('Backend proxy sync-session error:', await proxyRes.text());
     }
 
     // Dispatch event so RECENT CHATS sidebar reloads immediately from Supabase DB!
@@ -255,14 +216,9 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
       return [];
     }
 
-    let endpoint = `${SUPABASE_URL}/rest/v1/chat_sessions?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc`;
+    let endpoint = `${BACKEND_URL}/api/v1/chat/sessions?user_id=${encodeURIComponent(userId)}`;
 
-    const res = await fetch(endpoint, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    });
+    const res = await fetch(endpoint);
 
     if (res.ok) {
       const data = await res.json();
@@ -297,13 +253,8 @@ export const getChatMessagesForSession = async (sessionId) => {
   if (!sessionId) return [];
 
   try {
-    const endpoint = `${SUPABASE_URL}/rest/v1/chat_messages?session_id=eq.${encodeURIComponent(sessionId)}&order=created_at.asc`;
-    const res = await fetch(endpoint, {
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    });
+    const endpoint = `${BACKEND_URL}/api/v1/chat/sessions/${encodeURIComponent(sessionId)}/messages-proxy`;
+    const res = await fetch(endpoint);
 
     if (res.ok) {
       const data = await res.json();

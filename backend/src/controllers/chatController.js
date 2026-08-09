@@ -674,12 +674,127 @@ const analyzeSession = async (req, res) => {
   }
 };
 
+/**
+ * PROXY: Sync User (getOrCreateUserId equivalent)
+ * POST /api/v1/chat/sync-user
+ */
+const syncUserProxy = async (req, res) => {
+  try {
+    const { email, firstName, lastName, id } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    
+    const { data: existing, error: fetchErr } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .limit(1);
+
+    if (!fetchErr && existing && existing.length > 0) {
+      return res.status(200).json([existing[0]]); // storage.js expects an array
+    }
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('users')
+      .upsert([{
+        id: id,
+        email: email,
+        first_name: firstName || 'Archer',
+        last_name: lastName || ''
+      }], { onConflict: 'email' })
+      .select('id');
+      
+    if (insertErr) throw insertErr;
+    return res.status(200).json(inserted || []);
+  } catch (err) {
+    console.error('syncUserProxy error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * PROXY: Sync Session & Messages (saveChatSession equivalent)
+ * POST /api/v1/chat/sync-session
+ */
+const syncSessionProxy = async (req, res) => {
+  try {
+    const { sessionPayload, msgPayload } = req.body;
+    if (!sessionPayload) return res.status(400).json({ error: 'Session payload required' });
+    
+    const { error: sessErr } = await supabase
+      .from('chat_sessions')
+      .upsert([sessionPayload], { onConflict: 'id' });
+    if (sessErr) throw sessErr;
+
+    if (msgPayload && msgPayload.length > 0) {
+      const { error: msgErr } = await supabase
+        .from('chat_messages')
+        .upsert(msgPayload, { onConflict: 'id' });
+      if (msgErr) throw msgErr;
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('syncSessionProxy error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * PROXY: Get Chat Sessions
+ * GET /api/v1/chat/sessions
+ */
+const getSessionsProxy = async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    if (!user_id) return res.status(400).json({ error: 'user_id required' });
+
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .select('*')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.status(200).json(data || []);
+  } catch (err) {
+    console.error('getSessionsProxy error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * PROXY: Get Chat Messages
+ * GET /api/v1/chat/sessions/:sessionId/messages-proxy
+ */
+const getMessagesProxy = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return res.status(200).json(data || []);
+  } catch (err) {
+    console.error('getMessagesProxy error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   chatCompletion,
   getChatHistory,
   sessionMessages,
   saiStream,
   analyzeSession,
-  getLatestTelemetry
+  getLatestTelemetry,
+  syncUserProxy,
+  syncSessionProxy,
+  getSessionsProxy,
+  getMessagesProxy
 };
 
