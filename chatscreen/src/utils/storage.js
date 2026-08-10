@@ -65,8 +65,8 @@ export const getUserData = async (emailTarget = null) => {
       let endpoint = `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(cleanEmail)}&select=*`;
       let res = await fetch(endpoint, {
         headers: {
-          'apikey': SERVICE_KEY,
-          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
       });
       let data = res.ok ? await res.json() : [];
@@ -74,8 +74,8 @@ export const getUserData = async (emailTarget = null) => {
         endpoint = `${SUPABASE_URL}/rest/v1/user_profiles?email=eq.${encodeURIComponent(cleanEmail)}&select=*`;
         res = await fetch(endpoint, {
           headers: {
-            'apikey': SERVICE_KEY,
-            'Authorization': `Bearer ${SERVICE_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         });
         data = res.ok ? await res.json() : [];
