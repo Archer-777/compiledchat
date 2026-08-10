@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@clerk/react';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
 import SplashPage from './pages/SplashPage';
@@ -165,23 +165,15 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-export default function App() {
-  const [showSplash, setShowSplash] = React.useState(true);
+function AppLayout() {
+  const location = useLocation();
+  const hideNavbarRoutes = ['/twin-chat', '/chat'];
+  const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
   return (
-    <BrowserRouter>
-      {showSplash && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 999999,
-          backgroundColor: '#000000',
-        }}>
-          <SplashPage isOverlay={true} onFinish={() => setShowSplash(false)} />
-        </div>
-      )}
+    <>
       <ClerkUserSync />
-      <GlobalNavbar />
+      {showNavbar && <GlobalNavbar />}
       <Routes>
         <Route path="/" element={<Navigate to="/scan" replace />} />
         <Route path="/scan" element={<AuraScannerPage />} />
@@ -200,6 +192,26 @@ export default function App() {
         
         <Route path="*" element={<Navigate to="/scan" replace />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
+  return (
+    <BrowserRouter>
+      {showSplash && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999999,
+          backgroundColor: '#000000',
+        }}>
+          <SplashPage isOverlay={true} onFinish={() => setShowSplash(false)} />
+        </div>
+      )}
+      <AppLayout />
     </BrowserRouter>
   );
 }
