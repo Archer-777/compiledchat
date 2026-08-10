@@ -53,7 +53,10 @@ const optionalAuth = (req, res, next) => {
       req.user = jwt.verify(token, JWT_SECRET);
     } catch (e) {
       req.user = null;
+      req.rawToken = token;
     }
+  } else {
+    req.rawToken = null;
   }
   next();
 };

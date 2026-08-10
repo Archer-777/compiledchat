@@ -94,7 +94,7 @@ const updateTwinProfile = async (req, res) => {
 const enqueueAgentRun = async (req, res) => {
   try {
     const { session_id, message } = req.body;
-    const user_id = req.user?.sub || req.user?.id || 'guest';
+    const user_id = req.user?.sub || req.user?.id || req.rawToken || 'guest';
     
     // Forward to the actual Digital Twin Python API
     const twinApiRes = await fetch('http://65.2.37.177:8000/runs', {
@@ -120,13 +120,13 @@ const enqueueAgentRun = async (req, res) => {
 };
 
 /**
- * Polling Endpoint (Proxies to Digital Twin API)
+ * Get Agent Run Status (Proxies to Digital Twin API)
  * GET /api/v1/twin/runs/:runId
  */
 const getAgentRun = async (req, res) => {
   try {
-    const runId = req.params.runId;
-    const user_id = req.user?.sub || req.user?.id || 'guest';
+    const { runId } = req.params;
+    const user_id = req.user?.sub || req.user?.id || req.rawToken || 'guest';
 
     const twinApiRes = await fetch(`http://65.2.37.177:8000/runs/${runId}`, {
       headers: {
@@ -136,25 +136,25 @@ const getAgentRun = async (req, res) => {
 
     if (!twinApiRes.ok) {
       console.error(`Twin API returned status ${twinApiRes.status}`);
-      return res.status(twinApiRes.status).json({ success: false, message: 'Digital Twin API error' });
+      return res.status(twinApiRes.status).json({ success: false, message: 'Twin API run fetch failed' });
     }
 
     const data = await twinApiRes.json();
     return res.status(200).json(data);
   } catch (error) {
     console.error('getAgentRun error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to check run' });
+    return res.status(500).json({ success: false, message: 'Failed to fetch run status' });
   }
 };
 
 /**
- * File Download Proxy (Proxies to Digital Twin API)
+ * Download a generated file from a Twin Session
  * GET /api/v1/twin/sessions/:sessionId/files/:fileName
  */
 const downloadTwinFile = async (req, res) => {
   try {
     const { sessionId, fileName } = req.params;
-    const user_id = req.user?.sub || req.user?.id || 'guest';
+    const user_id = req.user?.sub || req.user?.id || req.rawToken || 'guest';
     
     const twinApiRes = await fetch(`http://65.2.37.177:8000/sessions/${sessionId}/files/${encodeURIComponent(fileName)}`, {
       headers: {
