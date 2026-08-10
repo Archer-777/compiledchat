@@ -280,7 +280,7 @@ const AIChatDarkScreen = ({ navigation, route }) => {
   const [currentSessionId, setCurrentSessionId] = useState(() => generateUUID());
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([
-    { id: '0', sender: 'ai', text: 'Namaste 🙏\n\nI\'m SAI — here to enrich your personal "i" — Insights as you move from Point A to Point B.\n\nSAI = A → i → B' },
+    { id: '0', sender: 'ai', text: 'Namaste 🙏\n\nI\'m SAI — here to enrich your personal "i" — Insights as you move from Point A to Point B.' },
   ]);
 
   const [drawerHistoryItems, setDrawerHistoryItems] = useState([]);
