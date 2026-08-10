@@ -510,13 +510,9 @@ export default function DigitalTwinChatScreen() {
         <header className="twin-chat-header">
           {/* Left: Back Arrow / Hamburger & Greeting */}
           <div className="header-left">
-            {isSmallScreen ? (
+            {isSmallScreen && (
               <button className="back-btn" onClick={() => setShowMobileDrawer(true)}>
                 <Menu size={20} />
-              </button>
-            ) : (
-              <button className="back-btn" onClick={handleGoBack}>
-                <ArrowLeft size={20} />
               </button>
             )}
             <div>

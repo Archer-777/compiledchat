@@ -559,13 +559,9 @@ const AIChatLightScreen = ({ navigation, route }) => {
             tint={isDarkUI ? 'dark' : 'light'}
             style={styles.topBar}
           >
-            {isSmallScreen ? (
+            {isSmallScreen && (
               <TouchableOpacity style={styles.backButton} onPress={() => setShowMobileDrawer(true)} activeOpacity={0.7}>
                 <Ionicons name="menu" size={24} color={isDarkUI ? '#ffffff' : '#0f172a'} />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.backButton} onPress={handleGoBack} activeOpacity={0.7}>
-                <Ionicons name="arrow-back" size={24} color={isDarkUI ? '#ffffff' : '#0f172a'} />
               </TouchableOpacity>
             )}
 

@@ -750,15 +750,11 @@ const AIChatDarkScreen = ({ navigation, route }) => {
 
         {/* Floating Transparent Header */}
         <View style={styles.floatingHeader}>
-          {/* Left Side: Hamburger Drawer Trigger (<960px) or Back Arrow + Greeting */}
+          {/* Left Side: Hamburger Drawer Trigger (<960px) or Greeting */}
           <View style={styles.floatingLeft}>
-            {isSmallScreen ? (
+            {isSmallScreen && (
               <TouchableOpacity style={styles.iconCircleBtn} onPress={() => setShowMobileDrawer(true)} activeOpacity={0.7}>
                 <Ionicons name="menu" size={22} color="#ffffff" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.iconCircleBtn} onPress={handleGoBack} activeOpacity={0.7}>
-                <Ionicons name="arrow-back" size={22} color="#ffffff" />
               </TouchableOpacity>
             )}
 
