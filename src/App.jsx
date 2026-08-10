@@ -1,17 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '@clerk/react';
 import { supabase, isSupabaseConfigured } from './services/supabaseClient';
-import SplashPage from './pages/SplashPage';
-import AuraScannerPage from './pages/AuraScannerPage';
-import HealMePage from './pages/HealMePage';
-import HealingPage from './pages/HealingPage';
-import DigitalTwinPage from './pages/DigitalTwinPage';
-import SoulMatrixPage from './pages/SoulMatrixPage';
-import SuperchargePage from './pages/SuperchargePage';
-import RegisterPage from './pages/RegisterPage';
-import DigitalTwinChatScreen from './pages/DigitalTwinChatScreen';
 import GlobalNavbar from './components/layout/GlobalNavbar';
+
+const SplashPage = lazy(() => import('./pages/SplashPage'));
+const AuraScannerPage = lazy(() => import('./pages/AuraScannerPage'));
+const HealMePage = lazy(() => import('./pages/HealMePage'));
+const HealingPage = lazy(() => import('./pages/HealingPage'));
+const DigitalTwinPage = lazy(() => import('./pages/DigitalTwinPage'));
+const SoulMatrixPage = lazy(() => import('./pages/SoulMatrixPage'));
+const SuperchargePage = lazy(() => import('./pages/SuperchargePage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const DigitalTwinChatScreen = lazy(() => import('./pages/DigitalTwinChatScreen'));
 import './styles/index.css';
 
 // Helper to check if a valid user session exists in localStorage
@@ -174,24 +175,26 @@ function AppLayout() {
     <>
       <ClerkUserSync />
       {showNavbar && <GlobalNavbar />}
-      <Routes>
-        <Route path="/" element={<Navigate to="/scan" replace />} />
-        <Route path="/scan" element={<AuraScannerPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        
-        {/* Protected Routes: Require valid profile, strictly fallback to /scan if unauthenticated */}
-        <Route path="/soul-matrix" element={<ProtectedRoute><SoulMatrixPage /></ProtectedRoute>} />
-        <Route path="/digital-twin" element={<ProtectedRoute><DigitalTwinPage /></ProtectedRoute>} />
-        <Route path="/twin-chat" element={<ProtectedRoute><DigitalTwinChatScreen /></ProtectedRoute>} />
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#000' }} />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/scan" replace />} />
+          <Route path="/scan" element={<AuraScannerPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          
+          {/* Protected Routes: Require valid profile, strictly fallback to /scan if unauthenticated */}
+          <Route path="/soul-matrix" element={<ProtectedRoute><SoulMatrixPage /></ProtectedRoute>} />
+          <Route path="/digital-twin" element={<ProtectedRoute><DigitalTwinPage /></ProtectedRoute>} />
+          <Route path="/twin-chat" element={<ProtectedRoute><DigitalTwinChatScreen /></ProtectedRoute>} />
 
-        {/* Universal Public Flow Routes */}
-        <Route path="/chat" element={<ChatRedirect />} />
-        <Route path="/heal-me" element={<HealMePage />} />
-        <Route path="/healing" element={<HealingPage />} />
-        <Route path="/supercharge" element={<SuperchargePage />} />
-        
-        <Route path="*" element={<Navigate to="/scan" replace />} />
-      </Routes>
+          {/* Universal Public Flow Routes */}
+          <Route path="/chat" element={<ChatRedirect />} />
+          <Route path="/heal-me" element={<HealMePage />} />
+          <Route path="/healing" element={<HealingPage />} />
+          <Route path="/supercharge" element={<SuperchargePage />} />
+          
+          <Route path="*" element={<Navigate to="/scan" replace />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }
