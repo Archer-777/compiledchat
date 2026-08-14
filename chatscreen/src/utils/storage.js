@@ -1,14 +1,14 @@
+import { getBackendUrl } from '../config/urls';
+
 const SUPABASE_URL = 'https://qwmnyomlfchazapkohfy.supabase.co';
 const SUPABASE_ANON_KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY)
   ? import.meta.env.VITE_SUPABASE_ANON_KEY
-  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bW55b21sZmNoYXphcGtvaGZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTU1MTgzNCwiZXhwIjoyMTAxMTI3ODM0fQ.n-t9bJZ3juSlIK2OrJRrsSRQhZkbaLZFfNs_Zu8ELuY';
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bW55b21sZmNoYXphcGtvaGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1NTE4MzQsImV4cCI6MjEwMTEyNzgzNH0.dfL1HAxw3WFRCwW7eYI7wF2pW5QEf7-LEqkbIzFKxCE';
 
-const BACKEND_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-  ? import.meta.env.VITE_BACKEND_URL
-  : 'https://compiledchat-production.up.railway.app';
+const BACKEND_URL = getBackendUrl();
 
-const CHAT_SESSIONS_KEY = '@spiritual_chat_sessions';
 const USER_DATA_KEY = '@spiritual_register_user';
+const ACTIVE_AUTH_KEY = '@active_auth_session';
 
 export const generateUUID = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -26,9 +26,10 @@ const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4
 export const getUserData = async (emailTarget = null) => {
   let activeEmail = emailTarget || '';
   let localData = null;
+
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const activeAuthRaw = window.localStorage.getItem('@active_auth_session');
+      const activeAuthRaw = window.localStorage.getItem(ACTIVE_AUTH_KEY);
       const regUserRaw = window.localStorage.getItem(USER_DATA_KEY);
       const userProfRaw = window.localStorage.getItem('user_profile');
 
@@ -62,45 +63,52 @@ export const getUserData = async (emailTarget = null) => {
   if (activeEmail) {
     try {
       const cleanEmail = activeEmail.toLowerCase().trim();
-      let endpoint = `${SUPABASE_URL}/rest/v1/users?email=eq.${encodeURIComponent(cleanEmail)}&select=*`;
-      let res = await fetch(endpoint, {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
+      const res = await fetch(`${BACKEND_URL}/api/v1/chat/sync-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          firstName: localData?.firstName || 'Archer',
+          lastName: localData?.lastName || '',
+        })
       });
-      let data = res.ok ? await res.json() : [];
-      if (!data || data.length === 0) {
-        endpoint = `${SUPABASE_URL}/rest/v1/user_profiles?email=eq.${encodeURIComponent(cleanEmail)}&select=*`;
-        res = await fetch(endpoint, {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
-        data = res.ok ? await res.json() : [];
-      }
-      if (data && data.length > 0) {
-        const row = data[0];
-        const userObj = {
-          id: row.id || localData?.id,
-          firstName: row.first_name || (row.full_name ? row.full_name.split(' ')[0] : 'Archer'),
-          lastName: row.last_name || (row.full_name ? row.full_name.split(' ').slice(1).join(' ') : ''),
-          fullName: row.full_name || `${row.first_name || 'Archer'} ${row.last_name || ''}`.trim(),
-          email: row.email || activeEmail,
-          isGuest: false,
-        };
-        try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(USER_DATA_KEY, JSON.stringify(userObj));
-            window.localStorage.setItem('@active_auth_session', JSON.stringify(userObj));
-          }
-        } catch (e) {}
-        return userObj;
+
+      if (res.ok) {
+        const dbArr = await res.json();
+        if (Array.isArray(dbArr) && dbArr.length > 0) {
+          const row = dbArr[0];
+          const userObj = {
+            id: row.id || localData?.id || generateUUID(),
+            firstName: row.first_name || localData?.firstName || 'Archer',
+            lastName: row.last_name || localData?.lastName || '',
+            fullName: `${row.first_name || localData?.firstName || 'Archer'} ${row.last_name || localData?.lastName || ''}`.trim(),
+            email: row.email || cleanEmail,
+            isGuest: false,
+          };
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              window.localStorage.setItem(USER_DATA_KEY, JSON.stringify(userObj));
+              window.localStorage.setItem(ACTIVE_AUTH_KEY, JSON.stringify(userObj));
+            }
+          } catch (e) {}
+          return userObj;
+        }
       }
     } catch (e) {
-      console.warn('Supabase DB fetch error in getUserData:', e);
+      console.warn('Backend sync-user check in getUserData notice:', e);
     }
+
+    if (localData && localData.email) {
+      return { ...localData, isGuest: false };
+    }
+    return {
+      id: localData?.id || generateUUID(),
+      firstName: localData?.firstName || 'Archer',
+      lastName: localData?.lastName || '',
+      fullName: localData?.fullName || 'Archer',
+      email: activeEmail,
+      isGuest: false,
+    };
   }
 
   if (localData && localData.email) {
@@ -116,8 +124,8 @@ export const getUserData = async (emailTarget = null) => {
 };
 
 /**
-  * Helper to get or create a valid user_id UUID from Supabase users table
-  */
+ * Helper to get or create a valid user_id UUID from Supabase users table
+ */
 export const getOrCreateUserId = async (userData) => {
   if (userData && userData.id && isValidUUID(userData.id)) {
     return userData.id;
@@ -146,11 +154,10 @@ export const getOrCreateUserId = async (userData) => {
         return data[0].id;
       }
     }
-    return generateUUID();
   } catch (err) {
     console.error('getOrCreateUserId error:', err);
   }
-  return null;
+  return generateUUID();
 };
 
 export const saveChatSession = async (session, chatType = 'spiritual') => {
@@ -160,70 +167,109 @@ export const saveChatSession = async (session, chatType = 'spiritual') => {
   try {
     const userData = await getUserData();
     const userId = await getOrCreateUserId(userData);
-
-    if (!userId) {
-      console.warn('saveChatSession: No valid user_id found');
-      return;
-    }
+    const userEmail = userData?.email || '';
 
     const titleText = session.title || (session.messages && session.messages.find(m => m.sender === 'user' || m.role === 'user')?.text) || (chatType === 'twin' ? 'Digital Twin Chat' : 'Spiritual Chat');
 
     const sessionPayload = {
       id: validSessionId,
-      user_id: userId,
+      user_id: userId || generateUUID(),
       title: (titleText || 'New Chat').substring(0, 100),
       status: 'active',
       session_type: chatType,
       updated_at: new Date().toISOString(),
     };
 
-    // Upsert session and messages via Backend Proxy
-    const proxyRes = await fetch(`${BACKEND_URL}/api/v1/chat/sync-session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionPayload,
-        msgPayload: (Array.isArray(session.messages) && session.messages.length > 0) ? session.messages.map((msg) => ({
+    const msgPayload = (Array.isArray(session.messages) && session.messages.length > 0)
+      ? session.messages.map((msg) => ({
           id: isValidUUID(msg.id) ? msg.id : generateUUID(),
           session_id: validSessionId,
-          user_id: userId,
+          user_id: userId || sessionPayload.user_id,
           role: (msg.sender === 'user' || msg.sender === 'human' || msg.role === 'user') ? 'user' : 'assistant',
-          content: msg.text || msg.content || '',
+          content: typeof msg.text === 'string' ? msg.text : (msg.content || JSON.stringify(msg)),
           created_at: new Date().toISOString(),
-        })) : []
-      })
-    });
+        }))
+      : [];
 
-    if (!proxyRes.ok) {
-      console.error('Backend proxy sync-session error:', await proxyRes.text());
+    // 1. Local Cache Backup for seamless refresh recovery
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(`@chat_session_msgs_${validSessionId}`, JSON.stringify(session.messages || []));
+
+        const cacheKey = `@chat_sessions_${chatType}_${userEmail ? userEmail.toLowerCase().trim() : 'guest'}`;
+        const rawExisting = window.localStorage.getItem(cacheKey);
+        let list = rawExisting ? JSON.parse(rawExisting) : [];
+        const existingIdx = list.findIndex(s => s.id === validSessionId);
+        const itemObj = {
+          id: validSessionId,
+          chatType: chatType,
+          title: sessionPayload.title,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          createdAt: sessionPayload.updated_at,
+          messages: session.messages,
+        };
+        if (existingIdx >= 0) {
+          list[existingIdx] = itemObj;
+        } else {
+          list.unshift(itemObj);
+        }
+        window.localStorage.setItem(cacheKey, JSON.stringify(list.slice(0, 50)));
+      }
+    } catch (cacheErr) {
+      console.warn('Local chat cache notice in chatscreen:', cacheErr);
     }
 
-    // Dispatch event so RECENT CHATS sidebar reloads immediately from Supabase DB!
+    // 2. Upsert session and messages via Backend Proxy
+    try {
+      await fetch(`${BACKEND_URL}/api/v1/chat/sync-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionPayload,
+          msgPayload,
+          email: userEmail,
+        })
+      });
+    } catch (proxyErr) {
+      console.warn('Backend sync-session notice in chatscreen:', proxyErr);
+    }
+
+    // 3. Dispatch event so RECENT CHATS sidebar reloads immediately
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('chat-sessions-changed', { detail: { chatType } }));
+      window.dispatchEvent(new CustomEvent('chat-sessions-changed', { detail: { chatType, sessionId: validSessionId } }));
     }
   } catch (err) {
-    console.error('Error saving chat session to Supabase DB:', err);
+    console.error('Error saving chat session in chatscreen:', err);
   }
 };
 
 export const getChatSessions = async (emailOverride = null, filterType = null) => {
+  let cachedList = [];
   try {
     const userData = await getUserData(emailOverride);
-    const userId = await getOrCreateUserId(userData);
+    const userEmail = userData?.email ? userData.email.toLowerCase().trim() : (emailOverride ? emailOverride.toLowerCase().trim() : 'guest');
+    const userId = userData?.id;
 
-    if (!userId) {
-      return [];
+    const cacheKey = `@chat_sessions_${filterType || 'all'}_${userEmail}`;
+
+    // 1. Read Local Cache
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(cacheKey);
+      if (raw) {
+        try {
+          cachedList = JSON.parse(raw);
+        } catch (e) {}
+      }
     }
 
-    let endpoint = `${BACKEND_URL}/api/v1/chat/sessions?user_id=${encodeURIComponent(userId)}`;
-
+    // 2. Fetch from Backend
+    let endpoint = `${BACKEND_URL}/api/v1/chat/sessions?user_id=${encodeURIComponent(userId || '')}&email=${encodeURIComponent(userEmail || '')}&session_type=${encodeURIComponent(filterType || '')}`;
     const res = await fetch(endpoint);
 
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) {
-        let list = data.map((row) => ({
+      if (Array.isArray(data) && data.length > 0) {
+        const remoteList = data.map((row) => ({
           id: row.id,
           chatType: row.session_type || row.status || 'spiritual',
           title: row.title || 'Chat Session',
@@ -231,27 +277,39 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
           createdAt: row.created_at || row.updated_at,
         }));
 
-        if (filterType) {
-          list = list.filter((item) => {
-            if (filterType === 'spiritual') {
-              return item.chatType !== 'twin';
-            }
-            return item.chatType === filterType;
-          });
-        }
-        return list;
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(cacheKey, JSON.stringify(remoteList.slice(0, 50)));
+          }
+        } catch (e) {}
+
+        return remoteList;
       }
     }
   } catch (e) {
-    console.error('getChatSessions Supabase DB error:', e);
+    console.warn('getChatSessions error in chatscreen:', e);
   }
 
-  return [];
+  return cachedList;
 };
 
 export const getChatMessagesForSession = async (sessionId) => {
   if (!sessionId) return [];
 
+  // 1. Check Local Cache first
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const cached = window.localStorage.getItem(`@chat_session_msgs_${sessionId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 2. Fetch from Backend Proxy
   try {
     const endpoint = `${BACKEND_URL}/api/v1/chat/sessions/${encodeURIComponent(sessionId)}/messages-proxy`;
     const res = await fetch(endpoint);
@@ -259,15 +317,23 @@ export const getChatMessagesForSession = async (sessionId) => {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        return data.map((row) => ({
+        const msgs = data.map((row) => ({
           id: row.id,
           sender: row.role === 'assistant' ? 'ai' : 'user',
           text: row.content,
         }));
+
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(`@chat_session_msgs_${sessionId}`, JSON.stringify(msgs));
+          }
+        } catch (e) {}
+
+        return msgs;
       }
     }
   } catch (e) {
-    console.warn('getChatMessagesForSession Supabase DB notice:', e);
+    console.warn('getChatMessagesForSession notice in chatscreen:', e);
   }
 
   return [];

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getChatAppUrl } from '@/config/urls';
 import './ChatScreenPage.css';
 
 export default function ChatScreenPage() {
@@ -93,7 +94,7 @@ export default function ChatScreenPage() {
             End Session & Life on Dashboard ✨
           </button>
           <a
-            href="https://chat.sai.nextarcher.com"
+            href={getChatAppUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="chatscreen-external-btn"

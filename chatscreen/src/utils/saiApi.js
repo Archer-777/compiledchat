@@ -8,8 +8,9 @@
  * Includes a smooth Typewriter Pacer so fast models like deepseek-v4-flash
  * stream smoothly word-by-word / token-by-token instead of dumping all text at once.
  */
+import { getBackendUrl } from '../config/urls';
 
-const BACKEND_STREAM_URL = 'https://compiledchat-production.up.railway.app/api/v1/chat/sai/stream';
+const BACKEND_STREAM_URL = getBackendUrl('/api/v1/chat/sai/stream');
 
 /**
  * Stream SAI response tokens smoothly to the caller via callbacks.

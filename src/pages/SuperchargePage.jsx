@@ -6,6 +6,7 @@ import { IoIosFlash } from 'react-icons/io';
 import { IoShieldCheckmarkOutline, IoSparkles } from 'react-icons/io5';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import Toast from '@/components/common/Toast';
+import { getChatAppUrl } from '@/config/urls';
 import './SuperchargePage.css';
 
 export default function SuperchargePage() {
@@ -36,7 +37,7 @@ export default function SuperchargePage() {
     if (firstName) params.set('firstName', firstName);
     const qStr = params.toString();
     const query = qStr ? `?${qStr}` : '';
-    window.location.href = `https://chat.sai.nextarcher.com/${query}`;
+    window.location.href = getChatAppUrl(query);
   };
 
   const handleStartSupercharge = () => {

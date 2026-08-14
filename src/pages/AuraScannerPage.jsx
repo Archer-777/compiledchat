@@ -2,12 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { SignInButton, SignUpButton, UserButton, Show, useUser } from '@clerk/react';
 import { useNavigate } from 'react-router-dom';
 import {
-  IoSparkles,
   IoCamera,
-  IoLocation,
-  IoKeyOutline,
-  IoCheckmarkCircle,
-  IoShareSocial,
   IoDownloadOutline,
   IoClose,
   IoArrowForward,
@@ -15,18 +10,14 @@ import {
   IoLogoSnapchat,
   IoLogoWhatsapp,
   IoLogoTwitter,
-  IoPaperPlane,
-  IoCopyOutline,
+  IoRefreshOutline,
 } from 'react-icons/io5';
-import { MdTerminal } from 'react-icons/md';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
 import databaseService from '@/services/databaseService';
+import { getChatAppUrl } from '@/config/urls';
 import auraPredictionService from '@/services/auraPredictionService';
-import { seedAnishProfile } from '@/services/seedAnishProfile';
-import { sendPhonePasswordResetOTP, validateOTP } from '@/utils/otp';
-import { resetUserPassword } from '@/utils/storage';
 import { supabase, isSupabaseConfigured } from '@/services/supabaseClient';
 import './AuraScannerPage.css';
 
@@ -90,80 +81,13 @@ const stickerThemes = {
 
 export default function AuraScannerPage() {
   const navigate = useNavigate();
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
 
   // Database status
   const [dbInfo, setDbInfo] = useState({ connected: false, mode: 'checking', message: 'Connecting to DB...' });
 
-  // Permissions & Login Modals
+  // Permissions Modal
   const [showPermissionModal, setShowPermissionModal] = useState(true);
-  const [showManualLoginModal, setShowManualLoginModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPasscode, setLoginPasscode] = useState('');
-  const [loginError, setLoginError] = useState(null);
-
-  // Forgot Password & Phone OTP states
-  const [isForgotMode, setIsForgotMode] = useState(false);
-  const [resetStep, setResetStep] = useState(1);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetOTPInput, setResetOTPInput] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [resetError, setResetError] = useState(null);
-  const [isResetSending, setIsResetSending] = useState(false);
-
-  const handleSendResetEmail = async () => {
-    if (!resetEmail.trim()) {
-      setResetError('Please enter your 10-digit phone number or email.');
-      return;
-    }
-    setResetError(null);
-    setIsResetSending(true);
-
-    const res = await sendPhonePasswordResetOTP(resetEmail.trim());
-    setIsResetSending(false);
-
-    if (res.success) {
-      showToast(`SMS reset OTP code dispatched to ${resetEmail.trim()}`);
-      if (res.otp) {
-        showToast(`Reset OTP: ${res.otp}`);
-      }
-      setResetStep(2);
-    } else {
-      setResetError(res.error || 'Failed to send SMS reset code.');
-    }
-  };
-
-  const handleResetPasswordSubmit = async () => {
-    if (!resetOTPInput.trim() || resetOTPInput.trim().length < 6) {
-      setResetError('Enter valid 6-digit OTP code.');
-      return;
-    }
-    if (!newPassword || newPassword.length < 6) {
-      setResetError('New password must be at least 6 characters.');
-      return;
-    }
-
-    const otpValidation = validateOTP('reset_' + resetEmail.trim(), resetOTPInput.trim());
-    if (!otpValidation.valid) {
-      setResetError(otpValidation.error || 'Invalid OTP code.');
-      return;
-    }
-
-    setResetError(null);
-    const resetRes = await resetUserPassword(resetEmail.trim(), newPassword);
-    if (resetRes.success) {
-      showToast('Password reset successfully!');
-      setIsForgotMode(false);
-      setShowManualLoginModal(false);
-      setShowPermissionModal(false);
-      setCameraGranted(true);
-      setMatchStatus('matched');
-      setSemanticAnalysis(`Password reset & authenticated as ${resetEmail.trim()}. Aura active.`);
-      setScanComplete(true);
-    } else {
-      setResetError('Failed to reset password. Please try again.');
-    }
-  };
 
   // Camera & Location
   const [cameraGranted, setCameraGranted] = useState(false);
@@ -180,6 +104,10 @@ export default function AuraScannerPage() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const stickerCanvasRef = useRef(null);
+
+  // Single-execution Guards for Scan
+  const hasScannedRef = useRef(false);
+  const isScanningRef = useRef(false);
 
   // Face Matching & Calibration
   const [calibrationConfirmed, setCalibrationConfirmed] = useState(true);
@@ -205,7 +133,50 @@ export default function AuraScannerPage() {
     databaseService.checkConnection().then(setDbInfo);
   }, []);
 
-  // 2. Load face-api.js ML Models
+  // 2. Clerk Authentication Sync — strictly through Clerk login
+  useEffect(() => {
+    if (isSignedIn && user) {
+      const email = user.primaryEmailAddress?.emailAddress || '';
+      const firstName = user.firstName || (user.fullName ? user.fullName.split(' ')[0] : 'Archer');
+      const lastName = user.lastName || '';
+      const fullName = user.fullName || `${firstName} ${lastName}`.trim();
+
+      const userObj = {
+        firstName,
+        lastName,
+        fullName,
+        email,
+        isGuest: false,
+      };
+
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('@spiritual_register_user', JSON.stringify(userObj));
+          window.localStorage.setItem('@active_auth_session', JSON.stringify(userObj));
+          window.localStorage.setItem('user_profile', JSON.stringify(userObj));
+        }
+      } catch (e) {}
+
+      if (firstName) {
+        setStickerUsername(`@${firstName.toLowerCase()}`);
+      }
+
+      setSemanticAnalysis(`Authenticated via Clerk as ${fullName}.`);
+
+      // Auto-upsert to Supabase users table
+      if (isSupabaseConfigured && email) {
+        supabase.from('users').upsert([{
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          password_hash: '',
+          updated_at: new Date().toISOString(),
+        }], { onConflict: 'email' }).then(() => {}).catch(() => {});
+      }
+    }
+  }, [isSignedIn, user]);
+
+  // 3. Load face-api.js ML Models
   useEffect(() => {
     import('../services/faceRecognitionService').then(async (module) => {
       const faceService = module.default;
@@ -220,7 +191,7 @@ export default function AuraScannerPage() {
     });
   }, []);
 
-  // 3. Camera Feed binding
+  // 4. Camera Feed binding
   useEffect(() => {
     if (cameraStream && videoRef.current) {
       videoRef.current.srcObject = cameraStream;
@@ -228,17 +199,21 @@ export default function AuraScannerPage() {
     }
   }, [cameraStream, cameraGranted]);
 
-  // 4. Face Recognition Loop
+  // 5. Face Recognition Loop — Runs strictly ONCE when logging in / opening scanner
   useEffect(() => {
-    if (cameraGranted && cameraStream && calibrationConfirmed && modelsLoaded) {
+    if (cameraGranted && cameraStream && calibrationConfirmed && modelsLoaded && !hasScannedRef.current && !isScanningRef.current && !scanComplete) {
       let isSubscribed = true;
+      isScanningRef.current = true;
 
       const runScanSequence = async () => {
         if (!isSubscribed) return;
         setSemanticAnalysis('Scanning sentiment field with neural network...');
         await new Promise((r) => setTimeout(r, 1800));
 
-        if (!isSubscribed || !videoRef.current) return;
+        if (!isSubscribed || !videoRef.current) {
+          isScanningRef.current = false;
+          return;
+        }
 
         const faceService = (await import('../services/faceRecognitionService')).default;
         let faceResult = null;
@@ -257,7 +232,10 @@ export default function AuraScannerPage() {
           if (!faceResult) await new Promise((r) => setTimeout(r, 1000));
         }
 
-        if (!isSubscribed) return;
+        if (!isSubscribed) {
+          isScanningRef.current = false;
+          return;
+        }
 
         // Predict Aura (with or without detected face)
         const auraPred = auraPredictionService.predictAura(faceResult);
@@ -309,14 +287,29 @@ export default function AuraScannerPage() {
         }
 
         if (isSubscribed) {
+          hasScannedRef.current = true;
+          isScanningRef.current = false;
           setScanComplete(true);
         }
       };
 
       runScanSequence();
-      return () => { isSubscribed = false; };
+      return () => {
+        isSubscribed = false;
+        isScanningRef.current = false;
+      };
     }
-  }, [cameraGranted, cameraStream, calibrationConfirmed, modelsLoaded]);
+  }, [cameraGranted, cameraStream, calibrationConfirmed, modelsLoaded, scanComplete]);
+
+  // Optional manual rescan
+  const handleRescan = () => {
+    hasScannedRef.current = false;
+    isScanningRef.current = false;
+    setScanComplete(false);
+    setMatchStatus(null);
+    setCapturedImage(null);
+    setSemanticAnalysis('Initiating fresh sentiment alignment scan...');
+  };
 
   // Permission Request
   const requestPermissions = async () => {
@@ -339,83 +332,6 @@ export default function AuraScannerPage() {
     setShowPermissionModal(false);
   };
 
-  const handleManualLoginSubmit = async () => {
-    const enteredEmail = loginEmail.toLowerCase().trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    // 1. Strict Email Format Validation
-    if (!enteredEmail || !emailRegex.test(enteredEmail)) {
-      setLoginError("Please enter a valid email address");
-      return;
-    }
-
-    setLoginError(null);
-
-    // 2. Supabase User Profile Lookup in 'users' table
-    if (isSupabaseConfigured) {
-      try {
-        let { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', enteredEmail);
-
-        if (error || !data || data.length === 0) {
-          const res = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('email', enteredEmail);
-          data = res.data;
-          error = res.error;
-        }
-
-        if (!error && data && data.length > 0) {
-          const userRow = data[0];
-          const userObj = {
-            firstName: userRow.first_name || (userRow.full_name ? userRow.full_name.split(' ')[0] : 'Archer'),
-            lastName: userRow.last_name || (userRow.full_name ? userRow.full_name.split(' ').slice(1).join(' ') : ''),
-            fullName: userRow.full_name || `${userRow.first_name || ''} ${userRow.last_name || ''}`.trim(),
-            email: userRow.email,
-            phone: userRow.phone || '',
-            age: userRow.age ? String(userRow.age) : '',
-            gender: userRow.gender || '',
-            profession: userRow.profession || '',
-            registeredAt: userRow.registered_at || userRow.created_at || userRow.updated_at,
-            isGuest: false,
-          };
-
-          // Store in active session
-          if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem('@spiritual_register_user', JSON.stringify(userObj));
-            window.localStorage.setItem('@active_auth_session', JSON.stringify(userObj));
-          }
-
-          setShowManualLoginModal(false);
-          setShowPermissionModal(false);
-          setCameraGranted(true);
-          setMatchStatus('matched');
-          setSemanticAnalysis(`Authenticated as ${userObj.firstName || enteredEmail}. Aura active.`);
-          setScanComplete(true);
-          showToast(`Welcome back, ${userObj.firstName || userObj.fullName}! Authenticated from DB.`);
-
-          // Redirect smoothly to chat with authenticated session
-          setTimeout(() => {
-            navigate(`/chat?email=${encodeURIComponent(userObj.email)}`);
-          }, 1200);
-          return;
-        }
-      } catch (err) {
-        console.warn('Supabase profile lookup error:', err);
-      }
-    }
-
-    // 3. If no profile matches the email, redirect to Registration form
-    showToast('No existing profile found in DB. Redirecting to sign up...');
-    setShowManualLoginModal(false);
-    setTimeout(() => {
-      navigate('/register');
-    }, 1000);
-  };
-
   const handleContinue = () => {
     let email = '';
     let firstName = '';
@@ -435,7 +351,7 @@ export default function AuraScannerPage() {
     if (firstName) params.set('firstName', firstName);
     const qStr = params.toString();
     const query = qStr ? `?${qStr}` : '';
-    window.location.href = `https://chat.sai.nextarcher.com/${query}`;
+    window.location.href = getChatAppUrl(query);
   };
 
   const activeTheme = stickerThemes[stickerTheme] || stickerThemes.violet;
@@ -464,8 +380,7 @@ export default function AuraScannerPage() {
                 <img src={capturedImage} alt="Captured Aura" className="scanner-captured-img" />
               )}
 
-
-              {cameraGranted && cameraStream && (
+              {cameraGranted && cameraStream && !scanComplete && (
                 <div className="scanner-laser-line" />
               )}
 
@@ -509,6 +424,34 @@ export default function AuraScannerPage() {
                     Enable Webcam
                   </button>
                 </div>
+              )}
+
+              {/* Manual Rescan Trigger Button in HUD */}
+              {scanComplete && (
+                <button
+                  onClick={handleRescan}
+                  style={{
+                    position: 'absolute',
+                    bottom: '16px',
+                    left: '16px',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    color: '#ffffff',
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 15,
+                  }}
+                >
+                  <IoRefreshOutline size={14} />
+                  <span>Rescan Aura</span>
+                </button>
               )}
             </div>
           </div>
@@ -567,7 +510,32 @@ export default function AuraScannerPage() {
               </p>
             </div>
 
-            {/* User Authentication Card */}
+            {/* Neural Sentiment Diagnostic Logs */}
+            <div style={{
+              background: '#000000',
+              border: '1.5px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              color: '#94a3b8',
+              maxHeight: '120px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+            }}>
+              <div style={{ color: '#00e5ff', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px', letterSpacing: '1px' }}>
+                // NEURAL SENTIMENT LOGS
+              </div>
+              {analysisLogs.map((log, index) => (
+                <div key={index} style={{ opacity: index === analysisLogs.length - 1 ? 1 : 0.65 }}>
+                  &gt; {log}
+                </div>
+              ))}
+            </div>
+
+            {/* User Authentication Card — Pure Clerk Authentication */}
             <div style={{
               background: '#000000',
               border: '1.5px solid rgba(255, 255, 255, 0.15)',
@@ -585,22 +553,21 @@ export default function AuraScannerPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                marginBottom: '4px',
               }}>
-                ✦ USER AUTHENTICATION
+                ✦ CLERK AUTHENTICATION
               </div>
 
-              {/* Clerk Sign In / Quick Register Buttons */}
+              {/* Clerk Sign In / Sign Up Buttons */}
               {!isSignedIn ? (
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <SignInButton mode="modal">
                     <button style={{
                       flex: 1,
-                      background: '#ffffff',
-                      color: '#000000',
+                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                      color: '#ffffff',
                       border: 'none',
                       padding: '12px 16px',
-                      borderRadius: '10px',
+                      borderRadius: '12px',
                       fontWeight: 'bold',
                       fontSize: '13px',
                       cursor: 'pointer',
@@ -608,6 +575,7 @@ export default function AuraScannerPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
+                      boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
                     }}>
                       ⚡ Sign In
                     </button>
@@ -620,7 +588,7 @@ export default function AuraScannerPage() {
                       border: '1px solid rgba(255, 255, 255, 0.3)',
                       color: '#ffffff',
                       padding: '12px 16px',
-                      borderRadius: '10px',
+                      borderRadius: '12px',
                       fontWeight: 'bold',
                       fontSize: '13px',
                       cursor: 'pointer',
@@ -629,82 +597,31 @@ export default function AuraScannerPage() {
                       justifyContent: 'center',
                       gap: '6px',
                     }}>
-                      + Quick Register
+                      + Sign Up
                     </button>
                   </SignUpButton>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '12px',
+                }}>
                   <UserButton afterSignOutUrl="/scan" />
-                  <span style={{ color: '#10b981', fontSize: '12px', fontWeight: '600' }}>✓ Clerk Authenticated</span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '700' }}>
+                      ✓ Signed In via Clerk
+                    </span>
+                    <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                      {user?.primaryEmailAddress?.emailAddress || user?.fullName || 'Active Session'}
+                    </span>
+                  </div>
                 </div>
               )}
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                margin: '4px 0',
-                fontSize: '10px',
-                color: '#64748b',
-                fontWeight: '600',
-                letterSpacing: '1px',
-              }}>
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-                OR CREDENTIALS
-                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
-              </div>
-
-              <input
-                type="email"
-                placeholder="Enter email address"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid #333',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  fontSize: '13px',
-                }}
-              />
-
-              <input
-                type="password"
-                placeholder="Passcode"
-                value={loginPasscode}
-                onChange={(e) => setLoginPasscode(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid #333',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  color: '#fff',
-                  fontSize: '13px',
-                }}
-              />
-
-              {loginError && <p style={{ color: '#ff4d4d', fontSize: '12px', margin: 0 }}>{loginError}</p>}
-
-              <button
-                style={{
-                  background: '#ffffff',
-                  color: '#000000',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  fontWeight: 'bold',
-                  fontSize: '13px',
-                  width: '100%',
-                  cursor: 'pointer',
-                  border: 'none',
-                }}
-                onClick={handleManualLoginSubmit}
-              >
-                Sign In & Load Profile
-              </button>
             </div>
 
             {/* Bottom Action Pill Button */}
@@ -714,9 +631,13 @@ export default function AuraScannerPage() {
               onClick={handleContinue}
               style={{
                 width: '100%',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: '1.5px solid rgba(255, 255, 255, 0.3)',
-                color: '#ffffff',
+                background: scanComplete
+                  ? 'linear-gradient(135deg, #00e5ff, #a855f7)'
+                  : 'rgba(255, 255, 255, 0.08)',
+                border: scanComplete
+                  ? 'none'
+                  : '1.5px solid rgba(255, 255, 255, 0.3)',
+                color: scanComplete ? '#000000' : '#ffffff',
                 padding: '14px 28px',
                 borderRadius: '30px',
                 fontWeight: 'bold',
@@ -726,9 +647,11 @@ export default function AuraScannerPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
+                boxShadow: scanComplete ? '0 0 20px rgba(0, 229, 255, 0.4)' : 'none',
+                transition: 'all 0.3s ease',
               }}
             >
-              <span>{scanComplete ? 'Continue →' : 'Analyzing Sentiment... →'}</span>
+              <span>{scanComplete ? 'Continue to Chat →' : 'Analyzing Sentiment... →'}</span>
             </button>
           </div>
         </div>
@@ -736,9 +659,9 @@ export default function AuraScannerPage() {
         {/* Permission Modal */}
         <Modal isOpen={showPermissionModal} onClose={() => setShowPermissionModal(false)}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: 20, marginBottom: 8 }}>Enable Permissions</h2>
+            <h2 style={{ fontSize: 20, marginBottom: 8, color: '#ffffff' }}>Enable Permissions</h2>
             <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-              To scan your aura, Spiritualize AI requests camera and location access.
+              To scan your aura, Next Archer requests camera and location access.
             </p>
 
             <button
@@ -750,273 +673,13 @@ export default function AuraScannerPage() {
                 borderRadius: 14,
                 fontWeight: 'bold',
                 fontSize: 14,
-                marginBottom: 12,
+                cursor: 'pointer',
+                border: 'none',
               }}
               onClick={requestPermissions}
             >
               Allow Camera & Location
             </button>
-
-            <button
-              style={{ color: '#888', fontSize: 13 }}
-              onClick={() => {
-                setShowPermissionModal(false);
-                setShowManualLoginModal(true);
-              }}
-            >
-              Not working? Try manual sign-in
-            </button>
-          </div>
-        </Modal>
-
-        {/* Manual Login & Forgot Password Modal */}
-        <Modal isOpen={showManualLoginModal} onClose={() => { setShowManualLoginModal(false); setIsForgotMode(false); }}>
-          <div>
-            {!isForgotMode ? (
-              <div>
-                <h2 style={{ fontSize: 20, marginBottom: 8, textAlign: 'center' }}>Alternative Sign In</h2>
-                <p style={{ fontSize: 13, color: '#888', marginBottom: 20, textAlign: 'center' }}>
-                  Sign in with your account credentials
-                </p>
-
-                {/* Clerk Authentication Buttons */}
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 16 }}>
-                  <Show when={(user) => !user}>
-                    <SignInButton mode="modal">
-                      <button style={{
-                        background: 'linear-gradient(135deg, #a855f7, #6366f1)',
-                        color: '#fff',
-                        padding: '12px 20px',
-                        borderRadius: 12,
-                        fontWeight: 'bold',
-                        fontSize: 13,
-                        border: 'none',
-                        cursor: 'pointer',
-                        flex: 1,
-                      }}>
-                        Sign In
-                      </button>
-                    </SignInButton>
-                    <SignUpButton mode="modal">
-                      <button style={{
-                        background: 'linear-gradient(135deg, #06b6d4, #0ea5e9)',
-                        color: '#fff',
-                        padding: '12px 20px',
-                        borderRadius: 12,
-                        fontWeight: 'bold',
-                        fontSize: 13,
-                        border: 'none',
-                        cursor: 'pointer',
-                        flex: 1,
-                      }}>
-                        Sign Up
-                      </button>
-                    </SignUpButton>
-                  </Show>
-                  <Show when={(user) => !!user}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <UserButton afterSignOutUrl="/scan" />
-                      <span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>✓ Signed In</span>
-                    </div>
-                  </Show>
-                </div>
-
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 16, marginBottom: 4 }}>
-                  <p style={{ fontSize: 11, color: '#666', textAlign: 'center', marginBottom: 12 }}>Or sign in with email</p>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid #333',
-                      padding: 12,
-                      borderRadius: 10,
-                      color: '#fff',
-                    }}
-                  />
-                  <input
-                    type="password"
-                    placeholder="Passcode"
-                    value={loginPasscode}
-                    onChange={(e) => setLoginPasscode(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid #333',
-                      padding: 12,
-                      borderRadius: 10,
-                      color: '#fff',
-                    }}
-                  />
-                  {loginError && <p style={{ color: '#ff4d4d', fontSize: 12 }}>{loginError}</p>}
-
-                  <button
-                    style={{
-                      background: '#ffffff',
-                      color: '#000',
-                      padding: 14,
-                      borderRadius: 12,
-                      fontWeight: 'bold',
-                      marginTop: 4,
-                      cursor: 'pointer',
-                    }}
-                    onClick={handleManualLoginSubmit}
-                  >
-                    Sign In & Load Profile
-                  </button>
-
-                  <button
-                    style={{
-                      background: 'transparent',
-                      color: '#00e5ff',
-                      border: 'none',
-                      fontSize: 12,
-                      marginTop: 8,
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                    }}
-                    onClick={() => {
-                      setIsForgotMode(true);
-                      setResetStep(1);
-                      setResetError(null);
-                    }}
-                  >
-                    🔑 Forgot Password? Reset via SMS OTP
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <h2 style={{ fontSize: 20, marginBottom: 8, textAlign: 'center' }}>Reset Password</h2>
-                <p style={{ fontSize: 13, color: '#888', marginBottom: 20, textAlign: 'center' }}>
-                  {resetStep === 1
-                    ? 'Enter your 10-digit phone number to receive a 6-digit SMS OTP code'
-                    : 'Enter the 6-digit reset code and your new password'}
-                </p>
-
-                {resetStep === 1 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <input
-                      type="text"
-                      placeholder="Enter 10-digit phone number"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid #333',
-                        padding: 12,
-                        borderRadius: 10,
-                        color: '#fff',
-                      }}
-                    />
-                    {resetError && <p style={{ color: '#ff4d4d', fontSize: 12 }}>{resetError}</p>}
-
-                    <button
-                      style={{
-                        background: '#00e5ff',
-                        color: '#000',
-                        padding: 14,
-                        borderRadius: 12,
-                        fontWeight: 'bold',
-                        marginTop: 4,
-                        cursor: 'pointer',
-                      }}
-                      onClick={handleSendResetEmail}
-                      disabled={isResetSending}
-                    >
-                      {isResetSending ? 'Sending Code...' : 'Send SMS Reset Code →'}
-                    </button>
-
-                    <button
-                      style={{
-                        background: 'transparent',
-                        color: '#aaa',
-                        border: 'none',
-                        fontSize: 12,
-                        marginTop: 8,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                      onClick={() => setIsForgotMode(false)}
-                    >
-                      ← Back to Sign In
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <input
-                      type="text"
-                      placeholder="6-Digit Reset Code (OTP)"
-                      value={resetOTPInput}
-                      onChange={(e) => setResetOTPInput(e.target.value)}
-                      maxLength={6}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid #333',
-                        padding: 12,
-                        borderRadius: 10,
-                        color: '#fff',
-                        letterSpacing: '2px',
-                        textAlign: 'center',
-                      }}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Enter New Password (Min 6 chars)"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(255,255,255,0.05)',
-                        border: '1px solid #333',
-                        padding: 12,
-                        borderRadius: 10,
-                        color: '#fff',
-                      }}
-                    />
-                    {resetError && <p style={{ color: '#ff4d4d', fontSize: 12 }}>{resetError}</p>}
-
-                    <button
-                      style={{
-                        background: '#10b981',
-                        color: '#fff',
-                        padding: 14,
-                        borderRadius: 12,
-                        fontWeight: 'bold',
-                        marginTop: 4,
-                        cursor: 'pointer',
-                      }}
-                      onClick={handleResetPasswordSubmit}
-                    >
-                      Reset Password & Sign In ✓
-                    </button>
-
-                    <button
-                      style={{
-                        background: 'transparent',
-                        color: '#aaa',
-                        border: 'none',
-                        fontSize: 12,
-                        marginTop: 8,
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                      onClick={() => setResetStep(1)}
-                    >
-                      ← Change Email
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </Modal>
 

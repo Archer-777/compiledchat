@@ -12,6 +12,7 @@ import SuperchargePage from './pages/SuperchargePage';
 import RegisterPage from './pages/RegisterPage';
 import DigitalTwinChatScreen from './pages/DigitalTwinChatScreen';
 import GlobalNavbar from './components/layout/GlobalNavbar';
+import { getChatAppUrl } from './config/urls';
 import './styles/index.css';
 
 // Helper to check if a valid user session exists in localStorage
@@ -135,7 +136,7 @@ function ChatRedirect() {
     if (firstName) params.set('firstName', firstName);
     const qStr = params.toString();
     const query = qStr ? `?${qStr}` : '';
-    window.location.href = `https://chat.sai.nextarcher.com/${query}`;
+    window.location.href = getChatAppUrl(query);
   }, []);
 
   return (

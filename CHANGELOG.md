@@ -1,5 +1,13 @@
 # Change Log
 
+## [Localhost Redirection & Services Launch] - 2026-08-14
+
+- **Full Localhost Redirection Transition**: Replaced all hardcoded production domains (`https://sai.nextarcher.com`, `https://chat.sai.nextarcher.com`, `https://compiledchat-production.up.railway.app`) with dynamic and configurable localhost URLs (`http://localhost:5173`, `http://localhost:8081`, `http://localhost:4000`).
+- **Centralized URL Configuration**: Created [`src/config/urls.js`](file:///d:/Raj/compiledchat/src/config/urls.js) and [`chatscreen/src/config/urls.js`](file:///d:/Raj/compiledchat/chatscreen/src/config/urls.js) providing `getMainAppUrl()`, `getChatAppUrl()`, and `getBackendUrl()` helpers.
+- **Cross-App Navigation Fixes**: Updated `App.jsx`, `GlobalNavbar.jsx`, `AuraScannerPage.jsx`, `SuperchargePage.jsx`, `ChatScreenPage.jsx`, `AIChatLightScreen.js`, `AIChatDarkScreen.js`, and `DesktopSidebar.js` to route cleanly between ports 5173, 8081, and 4000.
+- **Environment Files Setup**: Created and configured `.env` files for backend, frontend client, and chatscreen with live API credentials and local development settings.
+- **New Active Changelog Created**: Initiated [`CHANGELOG_NEW.md`](file:///d:/Raj/compiledchat/CHANGELOG_NEW.md) to record all future changes.
+
 ---
 
 ## [Unreleased] - 2026-08-09

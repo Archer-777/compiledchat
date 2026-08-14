@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Fonts } from '../theme/fonts';
 
 import { getChatSessions } from '../utils/storage';
+import { getMainAppUrl } from '../config/urls';
 
 export function DesktopSidebar({
   isDark = true,
@@ -67,7 +68,7 @@ export function DesktopSidebar({
 
   const handleProfileClick = () => {
     if (typeof window !== 'undefined') {
-      window.location.href = 'https://sai.nextarcher.com/soul-matrix';
+      window.location.href = getMainAppUrl('/soul-matrix');
     }
   };
 
@@ -105,7 +106,7 @@ export function DesktopSidebar({
         style={[styles.newChatBtn, { backgroundColor: 'rgba(168, 85, 247, 0.18)', borderColor: 'rgba(168, 85, 247, 0.4)', marginBottom: 20 }]}
         onPress={() => {
           if (typeof window !== 'undefined') {
-            window.location.href = 'https://sai.nextarcher.com/twin-chat';
+            window.location.href = getMainAppUrl('/twin-chat');
           }
         }}
         activeOpacity={0.7}

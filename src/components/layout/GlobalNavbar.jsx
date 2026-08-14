@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useClerk } from '@clerk/react';
 import { getUserData } from '@/utils/storage';
+import { getChatAppUrl } from '@/config/urls';
 
 const NAV_ITEMS = [
   { path: '/chat', label: '💬 Chat-SAI' },
@@ -49,7 +50,7 @@ export default function GlobalNavbar() {
       if (firstName) params.set('firstName', firstName);
       const qStr = params.toString();
       const query = qStr ? `?${qStr}` : '';
-      window.location.href = `https://chat.sai.nextarcher.com/${query}`;
+      window.location.href = getChatAppUrl(query);
     } else {
       navigate(item.path);
     }

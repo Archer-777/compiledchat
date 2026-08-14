@@ -26,6 +26,7 @@ import { Fonts } from '../theme/fonts';
 import { saveChatSession, getChatSessions, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import { sendToSAIStream } from '../utils/saiApi';
 import { FormattedMarkdown } from '../components/FormattedMarkdown';
+import { getMainAppUrl, getBackendUrl } from '../config/urls';
 import auroraGlitchImg from '../../assets/aurora_glitch.jpeg';
 import aiLogoSvg from '../../assets/2.svg';
 import userIconSvg from '../../assets/user_icon.svg';
@@ -85,73 +86,22 @@ const AIChatLightScreen = ({ navigation, route }) => {
     let isMounted = true;
 
     const fetchLatestAccount = async () => {
-      let targetEmail = '';
-      let targetName = '';
       try {
-        if (typeof window !== 'undefined' && window.location) {
-          const urlParams = new URLSearchParams(window.location.search);
-          targetEmail = urlParams.get('email') || '';
-          targetName = urlParams.get('firstName') || urlParams.get('username') || urlParams.get('name') || '';
+        const user = await getUserData();
+        if (!isMounted) return;
+        if (user && user.email) {
+          const displayName = user.firstName || (user.fullName ? user.fullName.split(' ')[0] : 'User');
+          setUserProfileName(displayName);
+          setIsGuest(false);
+        } else {
+          setUserProfileName('Archer');
+          setIsGuest(true);
         }
-      } catch (e) {}
-
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (!targetEmail) targetEmail = parsed.email || '';
-            if (!targetName) targetName = parsed.firstName || parsed.first_name || '';
-          }
+      } catch (e) {
+        if (isMounted) {
+          setUserProfileName('Archer');
+          setIsGuest(true);
         }
-      } catch (e) {}
-
-      if (targetEmail && typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.setItem('@active_auth_session', JSON.stringify({
-          email: targetEmail,
-          firstName: targetName || 'User',
-          isGuest: false
-        }));
-      }
-
-      if (targetName && isMounted) {
-        setUserProfileName(targetName.trim());
-        setIsGuest(false);
-      }
-
-      if (targetEmail) {
-        try {
-          const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3bW55b21sZmNoYXphcGtvaGZ5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NTU1MTgzNCwiZXhwIjoyMTAxMTI3ODM0fQ.n-t9bJZ3juSlIK2OrJRrsSRQhZkbaLZFfNs_Zu8ELuY';
-          const endpoint = `https://qwmnyomlfchazapkohfy.supabase.co/rest/v1/users?email=eq.${encodeURIComponent(targetEmail.toLowerCase().trim())}&select=first_name,full_name,email`;
-          const res = await fetch(endpoint, {
-            headers: {
-              'apikey': serviceKey,
-              'Authorization': `Bearer ${serviceKey}`,
-            },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.length > 0 && isMounted) {
-              const dbName = data[0].first_name || (data[0].full_name ? data[0].full_name.split(' ')[0] : '');
-              if (dbName) {
-                setUserProfileName(dbName.trim());
-                setIsGuest(false);
-              }
-            }
-          }
-        } catch (e) {}
-        return;
-      }
-
-      if (isMounted) {
-        try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.removeItem('@spiritual_register_user');
-            window.localStorage.removeItem('@active_auth_session');
-          }
-        } catch (e) {}
-        setUserProfileName('Archer');
-        setIsGuest(true);
       }
     };
 
@@ -455,7 +405,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
       try {
         const uData = await getUserData();
         const email = uData?.email || '';
-        const res = await fetch('https://compiledchat-production.up.railway.app/api/v1/chat/sai/analyze', {
+        const res = await fetch(getBackendUrl('/api/v1/chat/sai/analyze'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages, email }),
@@ -472,9 +422,9 @@ const AIChatLightScreen = ({ navigation, route }) => {
       }
 
       if (isGuest) {
-        window.location.href = 'https://sai.nextarcher.com/register';
+        window.location.href = getMainAppUrl('/register');
       } else {
-        window.location.href = `https://sai.nextarcher.com/soul-matrix${telemetryParam}`;
+        window.location.href = getMainAppUrl(`/soul-matrix${telemetryParam}`);
       }
     } catch (e) {
       console.error("End session error", e);
@@ -756,7 +706,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/twin-chat';
+                  if (typeof window !== 'undefined') window.location.href = getMainAppUrl('/twin-chat');
                 }}
               >
                 <Ionicons name="hardware-chip-outline" size={20} color="#a855f7" />
@@ -767,7 +717,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/soul-matrix';
+                  if (typeof window !== 'undefined') window.location.href = getMainAppUrl('/soul-matrix');
                 }}
               >
                 <Ionicons name="person-outline" size={20} color="#ffffff" />
@@ -778,7 +728,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
                 style={styles.drawerBtn}
                 onPress={() => {
                   setShowMobileDrawer(false);
-                  if (typeof window !== 'undefined') window.location.href = 'https://sai.nextarcher.com/healing';
+                  if (typeof window !== 'undefined') window.location.href = getMainAppUrl('/healing');
                 }}
               >
                 <Ionicons name="heart-outline" size={20} color="#00ffcc" />
@@ -854,7 +804,7 @@ const AIChatLightScreen = ({ navigation, route }) => {
               onPress={() => {
                 setShowTenMinModal(false);
                 if (typeof window !== 'undefined') {
-                  window.location.href = 'https://sai.nextarcher.com/heal-me';
+                  window.location.href = getMainAppUrl('/heal-me');
                 } else if (navigation && navigation.navigate) {
                   navigation.navigate('HealMe');
                 }
