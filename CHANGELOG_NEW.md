@@ -281,6 +281,26 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
   - Clicking `[ + New Chat ]` spins up a clean `session_id` UUID for a fresh conversation thread.
   - The backend's Vector Memory engine (`SaveMemory` & `SearchMemory`) continues to store and recall user facts, profile details, and preferences globally across sessions.
 
+---
+
+## [State Lag Fix & Precise Per-Run File Matching] - 2026-08-14
+
+### 1. Eliminated 1-Step UI State Lag
+- **Functional State Updaters**:
+  - Refactored `handleSend` in [`DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx) to eliminate stale closures.
+  - Added user message immediately with functional setter `setMessages(prev => [...prev, newMsg])`.
+  - Appends the completed AI response directly to the latest state upon run completion, preventing stale message overrides.
+- **Extended Polling Duration & Input Guard**:
+  - Extended polling loop to 300 cycles (up to 10 minutes) so deep research & document generation tasks (120–160s) complete reliably without dropping the polling connection.
+  - Disabled input and added dedicated visual submit button with spinning state during active runs to prevent race conditions.
+
+### 2. Precise Per-Run File Correlation
+- **Snapshot Diffing**:
+  - Snapshots existing session file names before initiating a new run.
+  - When the backend returns the historical `files` array for the session, filters out script artifacts (`.py`, `.sh`, `.bat`, `.tmp`) and compares against the pre-run snapshot to isolate **only the files created in that specific run**.
+  - Includes intelligent text-mention fallback to ensure each message bubble displays exclusively the exact file intended for that prompt.
+
+
 
 
 

@@ -583,14 +583,26 @@ export default function DigitalTwinChatScreen() {
     }
 
     const textToSend = inputText.trim();
+    const userMsgId = 'user_' + Date.now();
     const newMsg = {
-      id: Date.now().toString(),
+      id: userMsgId,
       sender: 'user',
       text: textToSend,
+      sessionId: currentSessionId,
     };
 
-    const updatedUserMsgs = [...messages, newMsg];
-    setMessages(updatedUserMsgs);
+    // Snapshot existing session files before this run begins
+    const existingSessionFiles = new Set();
+    messages.forEach(m => {
+      if (Array.isArray(m.files)) {
+        m.files.forEach(f => {
+          const fn = typeof f === 'string' ? f : (f.name || f.filename || '');
+          if (fn) existingSessionFiles.add(fn.toLowerCase());
+        });
+      }
+    });
+
+    setMessages(prev => [...prev, newMsg]);
     setInputText('');
     setIsThinking(true);
 
@@ -676,7 +688,7 @@ export default function DigitalTwinChatScreen() {
     }, 100);
 
     let aiText = 'Sorry, I could not process your request. Please try again.';
-    let aiMsgId = (Date.now() + 1).toString();
+    let aiMsgId = 'twin_' + (Date.now() + 1).toString();
     let aiFiles = [];
     let completedWorksData = null;
 
@@ -713,7 +725,7 @@ export default function DigitalTwinChatScreen() {
             logs: [...prev.logs, { time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }), text: `Run ID initialized: ${runId}`, type: 'info' }]
           } : prev);
 
-          // 2. Stream events (SSE) if available in parallel
+          // 2. Stream events (SSE) in background if available
           let eventStreamActive = true;
           try {
             fetch(`${TWIN_API_BASE}/runs/${runId}/events`, {
@@ -759,11 +771,11 @@ export default function DigitalTwinChatScreen() {
             }).catch(() => {});
           } catch (streamErr) {}
 
-          // 3. Poll for completion with up to 240 intervals (8 minutes headroom for 2-5+ min runs)
+          // 3. Poll for completion for up to 300 intervals (up to 10 minutes)
           let completed = false;
-          const maxPollIterations = 240;
+          const maxPollIterations = 300;
           for (let i = 0; i < maxPollIterations; i++) {
-            const pollDelay = i < 20 ? 1800 : (i < 60 ? 2200 : 2600);
+            const pollDelay = i < 15 ? 1800 : (i < 50 ? 2200 : 2500);
             await new Promise(r => setTimeout(r, pollDelay));
             try {
               const pollRes = await fetch(`${TWIN_API_BASE}/runs/${runId}`, {
@@ -783,24 +795,33 @@ export default function DigitalTwinChatScreen() {
                   eventStreamActive = false;
                   aiText = pollData.text || pollData.result || pollData.output || pollData.response || pollData.message || pollData.answer || 'Task completed.';
                   if (typeof aiText === 'object') aiText = JSON.stringify(aiText, null, 2);
-                  aiMsgId = pollData.id || runId;
+                  aiMsgId = 'twin_' + (pollData.id || runId);
 
-                  // Capture only NEW files (filter out files already shown in previous messages)
+                  // Extract ONLY the newly created files or files directly referenced in this run
                   if (pollData.files && Array.isArray(pollData.files) && pollData.files.length > 0) {
-                    const previousFileNames = new Set();
-                    updatedUserMsgs.forEach(m => {
-                      if (m.files && Array.isArray(m.files)) {
-                        m.files.forEach(f => {
-                          const n = typeof f === 'string' ? f : (f.name || f.filename || '');
-                          if (n) previousFileNames.add(n);
-                        });
+                    const nonScriptFiles = pollData.files.filter(f => {
+                      const n = (typeof f === 'string' ? f : (f.name || f.filename || '')).toLowerCase();
+                      return !n.endsWith('.py') && !n.endsWith('.sh') && !n.endsWith('.bat') && !n.endsWith('.tmp');
+                    });
+
+                    // Match new files generated in this run
+                    const newFiles = nonScriptFiles.filter(f => {
+                      const n = (typeof f === 'string' ? f : (f.name || f.filename || '')).toLowerCase();
+                      return !existingSessionFiles.has(n);
+                    });
+
+                    if (newFiles.length > 0) {
+                      aiFiles = newFiles;
+                    } else {
+                      // Fallback: match files explicitly cited in AI response text
+                      const citedFiles = nonScriptFiles.filter(f => {
+                        const n = typeof f === 'string' ? f : (f.name || f.filename || '');
+                        return n && aiText.toLowerCase().includes(n.toLowerCase());
+                      });
+                      if (citedFiles.length > 0) {
+                        aiFiles = citedFiles;
                       }
-                    });
-                    aiFiles = pollData.files.filter(f => {
-                      const n = typeof f === 'string' ? f : (f.name || f.filename || '');
-                      if (n.endsWith('.py')) return false;
-                      return !previousFileNames.has(n);
-                    });
+                    }
                   }
 
                   const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
@@ -859,38 +880,42 @@ export default function DigitalTwinChatScreen() {
     setIsThinking(false);
     setActiveRun(null);
 
-    const finalMsgs = [
-      ...updatedUserMsgs,
-      { 
-        id: aiMsgId, 
-        sender: 'twin', 
-        text: aiText, 
-        files: aiFiles, 
-        sessionId: currentSessionId,
-        works: completedWorksData || {
-          duration: ((Date.now() - startTime) / 1000).toFixed(1) + 's',
-          stepsCount: 4,
-          steps: [
-            { label: 'Prompt Ingestion & Context Mapping' },
-            { label: 'Agent Reasoning & Tool Selection' },
-            { label: 'Tool Invocation & Neural Execution' },
-            { label: 'Artifact Compilation & Output Generation' },
-          ],
-          tools: [
-            { name: 'neural_reasoning_core' },
-            { name: 'python_workspace_sandbox' }
-          ],
-          iterations: 1,
-        }
+    const aiMessage = { 
+      id: aiMsgId, 
+      sender: 'twin', 
+      text: aiText, 
+      files: aiFiles, 
+      sessionId: currentSessionId,
+      works: completedWorksData || {
+        duration: ((Date.now() - startTime) / 1000).toFixed(1) + 's',
+        stepsCount: 4,
+        steps: [
+          { label: 'Prompt Ingestion & Context Mapping' },
+          { label: 'Agent Reasoning & Tool Selection' },
+          { label: 'Tool Invocation & Neural Execution' },
+          { label: 'Artifact Compilation & Output Generation' },
+        ],
+        tools: [
+          { name: 'neural_reasoning_core' },
+          { name: 'python_workspace_sandbox' }
+        ],
+        iterations: 1,
       }
-    ];
-    setMessages(finalMsgs);
+    };
 
-    saveChatSession({
-      id: currentSessionId,
-      title: updatedUserMsgs.find(m => m.sender === 'user')?.text || textToSend,
-      messages: finalMsgs
-    }, 'twin');
+    setMessages(prev => {
+      // Avoid duplicate AI message additions
+      if (prev.some(m => m.id === aiMessage.id)) {
+        return prev;
+      }
+      const updated = [...prev, aiMessage];
+      saveChatSession({
+        id: currentSessionId,
+        title: updated.find(m => m.sender === 'user')?.text || textToSend,
+        messages: updated
+      }, 'twin');
+      return updated;
+    });
   };
 
   const handleMicPress = () => {
@@ -1192,20 +1217,43 @@ export default function DigitalTwinChatScreen() {
             <input
               type="text"
               className="input-field"
-              placeholder="Message..."
+              placeholder={isThinking ? "Digital Twin is synthesizing your task..." : "Message..."}
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               value={inputText}
+              disabled={isThinking}
               onChange={(e) => setInputText(e.target.value)}
             />
             <button
               type="button"
               className="mic-btn"
               onClick={handleMicPress}
+              disabled={isThinking}
               style={isListening ? { color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)', borderRadius: '18px' } : {}}
             >
               <Mic size={20} />
+            </button>
+            <button
+              type="submit"
+              className="send-btn"
+              disabled={isThinking || !inputText.trim()}
+              style={{
+                background: inputText.trim() && !isThinking ? 'linear-gradient(135deg, #00e5ff, #a855f7)' : 'rgba(255, 255, 255, 0.08)',
+                color: inputText.trim() && !isThinking ? '#000000' : 'rgba(255, 255, 255, 0.3)',
+                border: 'none',
+                borderRadius: '50%',
+                width: '34px',
+                height: '34px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: inputText.trim() && !isThinking ? 'pointer' : 'default',
+                transition: 'all 0.2s ease',
+                flexShrink: 0,
+              }}
+            >
+              {isThinking ? <Loader2 size={16} className="spinner-icon" /> : <Send size={16} />}
             </button>
           </form>
 
