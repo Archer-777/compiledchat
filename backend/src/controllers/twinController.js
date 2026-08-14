@@ -12,7 +12,7 @@ const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
  * is prepared for all upstream Digital Twin API calls.
  */
 function getOrGenerateTwinJwt(req) {
-  let authHeader = req.headers['authorization'] || '';
+  let authHeader = req.headers['authorization'] || req.query?.token || '';
   let token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader.trim();
   const nowSec = Math.floor(Date.now() / 1000);
 

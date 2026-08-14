@@ -315,6 +315,22 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
   - Rendered files directly through `.file-download-card` components attached beneath the AI message bubble with file icon, name, file size, and direct secure blob download.
   - Eliminates exposed backend links or file paths from the chat text.
 
+---
+
+## [Direct Blob Download & Token Query Auth Fix] - 2026-08-14
+
+### 1. Eliminated Raw API Error Tabs on File Download
+- **In-Memory Blob Download Stream ([`DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx))**:
+  - Replaced unauthenticated `window.open(url, '_blank')` fallback with direct client-side blob streaming via authenticated `fetch(url, { headers: { 'Authorization': 'Bearer ...' } })`.
+  - Added dynamic loading indicator (`<Loader2 className="spinner-icon" />`) on file download cards during active transfer.
+  - Automatically triggers silent browser file save (`a.download`) without navigating or opening error JSON tabs.
+
+### 2. Supported Token Query Parameter in Backend
+- **Query Parameter Auth Support ([`twinController.js`](file:///d:/Raj/compiledchat/backend/src/controllers/twinController.js))**:
+  - Enhanced `getOrGenerateTwinJwt` to accept `req.query.token` in addition to `req.headers.authorization`.
+  - Guarantees valid authentication even if download URLs are opened in new browser windows.
+
+
 
 
 

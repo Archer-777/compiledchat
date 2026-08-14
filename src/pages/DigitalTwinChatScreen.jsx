@@ -409,6 +409,7 @@ export default function DigitalTwinChatScreen() {
   const [twinName, setTwinName] = useState('Digital Twin');
   const [userAuthKey, setUserAuthKey] = useState('guest');
   const [isThinking, setIsThinking] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState(null);
   const [activeRun, setActiveRun] = useState(null);
   const [showLiveLogs, setShowLiveLogs] = useState(false);
   const [showTopNotifBanner, setShowTopNotifBanner] = useState(true);
@@ -577,18 +578,33 @@ export default function DigitalTwinChatScreen() {
     ]);
   };
 
-  const handleFileDownload = async (e, url, fileName) => {
-    e.preventDefault();
+  const handleFileDownload = async (fileObj, fallbackSessionId) => {
+    const fileName = typeof fileObj === 'string' ? fileObj : (fileObj?.name || fileObj?.filename || 'downloaded_document.pdf');
+    const sessionId = (typeof fileObj === 'object' && fileObj?.sessionId) || fallbackSessionId || currentSessionId;
+    
+    // Construct clean proxy download URL
+    let url = (typeof fileObj === 'object' && fileObj?.download_url)
+      ? `${TWIN_API_BASE}${fileObj.download_url}`
+      : `${TWIN_API_BASE}/sessions/${sessionId}/files/${encodeURIComponent(fileName)}`;
+
+    setDownloadingFile(fileName);
+
     try {
       let activeToken = userAuthKey;
       if (!activeToken || !activeToken.includes('.')) {
         const user = await getUserData();
         activeToken = await generateTwinJwt(user || { firstName: userProfileName });
+        setUserAuthKey(activeToken);
       }
+
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${activeToken}` }
       });
-      if (!response.ok) throw new Error('Download failed');
+
+      if (!response.ok) {
+        throw new Error(`Download HTTP error ${response.status}`);
+      }
+
       const blob = await response.blob();
       const objectUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -597,10 +613,29 @@ export default function DigitalTwinChatScreen() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(objectUrl);
+      setTimeout(() => window.URL.revokeObjectURL(objectUrl), 2000);
     } catch (err) {
-      console.error('Blob download failed, falling back:', err);
-      window.open(url, '_blank');
+      console.error('Direct file download error:', err);
+      // Fallback: Use tokenized direct link to trigger browser download without opening blank error JSON page
+      try {
+        let activeToken = userAuthKey;
+        if (!activeToken || !activeToken.includes('.')) {
+          const user = await getUserData();
+          activeToken = await generateTwinJwt(user || { firstName: userProfileName });
+        }
+        const authDownloadUrl = `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(activeToken)}`;
+        const a = document.createElement('a');
+        a.href = authDownloadUrl;
+        a.download = fileName;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (fallbackErr) {
+        alert('Could not download file. Please check your connection.');
+      }
+    } finally {
+      setTimeout(() => setDownloadingFile(null), 1200);
     }
   };
 
@@ -1189,25 +1224,29 @@ export default function DigitalTwinChatScreen() {
                   {isTwin && msg.files && msg.files.length > 0 && (
                     <div className="file-download-cards">
                       {msg.files.map((file, idx) => {
-                        const fileName = typeof file === 'string' ? file : (file.name || file.filename || `file_${idx}`);
+                        const fileName = typeof file === 'string' ? file : (file.name || file.filename || `document_${idx + 1}.pdf`);
                         const fileSize = typeof file === 'object' ? file.size : null;
-                        const downloadUrl = (typeof file === 'object' && file.download_url)
-                          ? `${TWIN_API_BASE}${file.download_url}`
-                          : `${TWIN_API_BASE}/sessions/${msg.sessionId || currentSessionId}/files/${encodeURIComponent(fileName)}`;
+                        const isThisDownloading = downloadingFile === fileName;
                         return (
-                          <a
+                          <button
                             key={idx}
-                            href={downloadUrl}
-                            onClick={(e) => handleFileDownload(e, downloadUrl, fileName)}
+                            type="button"
+                            onClick={() => handleFileDownload(file, msg.sessionId)}
                             className="file-download-card"
+                            style={{ background: 'none', border: 'none', textAlign: 'left', width: '100%', cursor: isThisDownloading ? 'wait' : 'pointer' }}
+                            disabled={isThisDownloading}
                           >
                             <FileText size={18} className="file-icon" />
                             <div className="file-info">
                               <span className="file-name">{fileName}</span>
                               {fileSize && <span className="file-size">{fileSize}</span>}
                             </div>
-                            <Download size={16} className="download-icon" />
-                          </a>
+                            {isThisDownloading ? (
+                              <Loader2 size={16} className="download-icon spinner-icon" color="#00e5ff" />
+                            ) : (
+                              <Download size={16} className="download-icon" />
+                            )}
+                          </button>
                         );
                       })}
                     </div>
