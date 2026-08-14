@@ -334,10 +334,10 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ## [UI Terminology Update: Platform Karma Rating] - 2026-08-14
 
-### 1. Updated Metric Header
-- **Replaced "Current Life Score" with "Platform Karma Rating"**:
-  - [`DashboardMetrics.jsx`](file:///d:/Raj/compiledchat/src/components/features/anish/DashboardMetrics.jsx): Updated real-time metrics widget header to display **"Platform Karma Rating"**.
-  - [`SoulMatrixPage.jsx`](file:///d:/Raj/compiledchat/src/pages/SoulMatrixPage.jsx): Updated overview section card title to display **"Platform Karma Rating"**.
+### 1. Updated Metric Headers
+- **Top Overview Card**: Retained **"Current Life Score"** (showing `74 / 100`) in [`SoulMatrixPage.jsx`](file:///d:/Raj/compiledchat/src/pages/SoulMatrixPage.jsx).
+- **Bottom Real-Time Metrics Widget**: Set to **"Platform Karma Rating"** (Truth / Consciousness / Energy) in [`DashboardMetrics.jsx`](file:///d:/Raj/compiledchat/src/components/features/anish/DashboardMetrics.jsx).
+
 
 
 
