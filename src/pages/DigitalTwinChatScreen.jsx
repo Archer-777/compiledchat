@@ -113,15 +113,46 @@ function notifyTaskComplete(taskTitle, durationStr, runId) {
   }
 }
 
-// Full GitHub-Flavored Markdown to HTML parser
+// Strips raw backend server URLs/endpoints and normalizes document references
+function cleanTwinOutputText(text) {
+  if (!text) return '';
+  if (typeof text !== 'string') text = String(text);
+
+  let cleaned = text;
+
+  // 1. Replace Markdown links pointing to backend files with bold clean filename
+  cleaned = cleaned.replace(/\[([^\]]+)\]\((?:https?:\/\/[^\/]+|\/api\/v1\/twin)?\/sessions\/[^\/]+\/files\/([^\)\s]+)\)/gi, (match, label, fileName) => {
+    const cleanName = decodeURIComponent(fileName || label);
+    return `**${cleanName}**`;
+  });
+
+  // 2. Replace raw backend session file URLs with bold clean filename
+  cleaned = cleaned.replace(/(?:https?:\/\/[^\s\)\>]+|\/api\/v1\/twin)?\/sessions\/[^\/\s\)\>]+\/files\/([^\s\)\>]+)/gi, (match, fileName) => {
+    const cleanName = decodeURIComponent(fileName.replace(/[,.;]+$/, ''));
+    return `**${cleanName}**`;
+  });
+
+  // 3. Remove raw backend server origin references
+  cleaned = cleaned.replace(/https?:\/\/65\.2\.37\.177:8000[^\s\)\>]*/gi, '');
+  cleaned = cleaned.replace(/https?:\/\/localhost:4000\/api\/v1\/twin[^\s\)\>]*/gi, '');
+
+  // 4. Normalize spacing and punctuation
+  cleaned = cleaned.replace(/\bat\s+\*\*/gi, 'at **');
+  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+
+  return cleaned.trim();
+}
+
+// Full GitHub-Flavored Markdown to HTML parser with URL sanitization
 function renderMarkdown(text) {
   if (!text) return '';
   if (typeof text !== 'string') text = String(text);
+  const sanitized = cleanTwinOutputText(text);
   try {
-    return marked.parse(text);
+    return marked.parse(sanitized);
   } catch (e) {
     console.warn('Markdown parsing error:', e);
-    return text;
+    return sanitized;
   }
 }
 
@@ -793,8 +824,8 @@ export default function DigitalTwinChatScreen() {
 
                 if (status === 'completed' || status === 'success' || status === 'succeeded') {
                   eventStreamActive = false;
-                  aiText = pollData.text || pollData.result || pollData.output || pollData.response || pollData.message || pollData.answer || 'Task completed.';
-                  if (typeof aiText === 'object') aiText = JSON.stringify(aiText, null, 2);
+                  const rawAiText = pollData.text || pollData.result || pollData.output || pollData.response || pollData.message || pollData.answer || 'Task completed.';
+                  aiText = cleanTwinOutputText(typeof rawAiText === 'object' ? JSON.stringify(rawAiText, null, 2) : rawAiText);
                   aiMsgId = 'twin_' + (pollData.id || runId);
 
                   // Extract ONLY the newly created files or files directly referenced in this run

@@ -300,6 +300,22 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
   - When the backend returns the historical `files` array for the session, filters out script artifacts (`.py`, `.sh`, `.bat`, `.tmp`) and compares against the pre-run snapshot to isolate **only the files created in that specific run**.
   - Includes intelligent text-mention fallback to ensure each message bubble displays exclusively the exact file intended for that prompt.
 
+---
+
+## [Backend URL Sanitization & Document Presentation] - 2026-08-14
+
+### 1. Stripped Backend URLs from AI Responses
+- **Integrated `cleanTwinOutputText` ([`DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx))**:
+  - Replaced raw backend server endpoints (e.g. `http://65.2.37.177:8000/sessions/.../files/...` and `/sessions/.../files/...`) with clean, bold document names (e.g. `**Apple_Shares_Detailed_Report.pdf**`).
+  - Stripped internal server origins (`http://65.2.37.177:8000`, `http://localhost:4000/api/v1/twin`).
+  - Integrated into both `renderMarkdown` and the run completion handler before message storage.
+
+### 2. Direct Document Card Presentation
+- **Clean Interactive Document Cards**:
+  - Rendered files directly through `.file-download-card` components attached beneath the AI message bubble with file icon, name, file size, and direct secure blob download.
+  - Eliminates exposed backend links or file paths from the chat text.
+
+
 
 
 
