@@ -330,6 +330,16 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
   - Enhanced `getOrGenerateTwinJwt` to accept `req.query.token` in addition to `req.headers.authorization`.
   - Guarantees valid authentication even if download URLs are opened in new browser windows.
 
+---
+
+## [UI Terminology Update: Platform Karma Rating] - 2026-08-14
+
+### 1. Updated Metric Header
+- **Replaced "Current Life Score" with "Platform Karma Rating"**:
+  - [`DashboardMetrics.jsx`](file:///d:/Raj/compiledchat/src/components/features/anish/DashboardMetrics.jsx): Updated real-time metrics widget header to display **"Platform Karma Rating"**.
+  - [`SoulMatrixPage.jsx`](file:///d:/Raj/compiledchat/src/pages/SoulMatrixPage.jsx): Updated overview section card title to display **"Platform Karma Rating"**.
+
+
 
 
 

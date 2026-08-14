@@ -199,7 +199,7 @@ export default function SoulMatrixPage() {
                   </div>
                   <div>
                     <h2 className="text-base font-extrabold text-white tracking-tight font-['Poppins']">
-                      Current Life Score
+                      Platform Karma Rating
                     </h2>
                   </div>
                 </div>
