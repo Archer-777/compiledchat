@@ -456,20 +456,33 @@ export default function DigitalTwinChatScreen() {
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   const recognitionRef = useRef(null);
   const chatEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const isNearBottomRef = useRef(true);
+  const initialAutoRestoreDone = useRef(false);
 
-  const loadSessions = async () => {
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    isNearBottomRef.current = distanceFromBottom < 120;
+  };
+
+  const loadSessions = async (isInitial = false) => {
     try {
       const sessions = await getChatSessions(null, 'twin');
       if (Array.isArray(sessions)) {
         setRecentSessions(sessions);
 
-        // Auto-restore previous active conversation if no pending run is active
-        const hasPendingRun = typeof window !== 'undefined' && window.localStorage.getItem('@twin_active_run');
-        if (!hasPendingRun && sessions.length > 0) {
-          const lastActiveId = typeof window !== 'undefined' ? window.localStorage.getItem('@twin_last_active_session_id') : null;
-          const targetSession = sessions.find(s => s.id === lastActiveId) || sessions[0];
-          if (targetSession) {
-            handleSelectSession(targetSession);
+        // Auto-restore previous active conversation ONLY on initial page load if no pending run is active
+        if (isInitial && !initialAutoRestoreDone.current) {
+          initialAutoRestoreDone.current = true;
+          const hasPendingRun = typeof window !== 'undefined' && window.localStorage.getItem('@twin_active_run');
+          if (!hasPendingRun && sessions.length > 0) {
+            const lastActiveId = typeof window !== 'undefined' ? window.localStorage.getItem('@twin_last_active_session_id') : null;
+            const targetSession = sessions.find(s => s.id === lastActiveId) || sessions[0];
+            if (targetSession) {
+              handleSelectSession(targetSession);
+            }
           }
         }
       }
@@ -550,16 +563,16 @@ export default function DigitalTwinChatScreen() {
           setUserAuthKey(fallbackToken);
         }
       }
-      loadSessions();
+      loadSessions(true);
     };
 
     fetchLatestAccount();
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('chat-sessions-changed', loadSessions);
+      window.addEventListener('chat-sessions-changed', () => loadSessions(false));
       return () => {
         isMounted = false;
-        window.removeEventListener('chat-sessions-changed', loadSessions);
+        window.removeEventListener('chat-sessions-changed', () => loadSessions(false));
       };
     }
 
@@ -708,9 +721,11 @@ export default function DigitalTwinChatScreen() {
     }
   }, [showMobileDrawer]);
 
-  // Auto-scroll chat
+  // Auto-scroll chat only when user is near bottom
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (isNearBottomRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleSelectSession = async (sessionItem) => {
@@ -879,6 +894,10 @@ export default function DigitalTwinChatScreen() {
     });
     setInputText('');
     setIsThinking(true);
+    isNearBottomRef.current = true;
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
 
     const startTime = Date.now();
     const initialSteps = [
@@ -1373,7 +1392,7 @@ export default function DigitalTwinChatScreen() {
         </header>
 
         {/* Scrollable Messages Panel */}
-        <main className="messages-scroll-area">
+        <main className="messages-scroll-area" ref={scrollContainerRef} onScroll={handleScroll}>
           {/* Proactive Pre-Flight Notification Permission Prompt */}
           {notifPermission === 'default' && showTopNotifBanner && (
             <div className="twin-top-notif-banner">

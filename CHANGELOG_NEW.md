@@ -4,6 +4,20 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: User Scroll Lock & Smart Auto-Scroll Fix] - 2026-08-20
+
+### Problem
+When typing or waiting for AI task responses, any upward scroll by the user to read previous chats was being hijacked and pulled back down repeatedly due to unconstrained `scrollIntoView` triggers on state ticks and session listener events.
+
+### Changes
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **Scroll Boundary Detection (`isNearBottomRef`)** — Track user scroll distance from bottom. Only auto-scrolls down if user is within 120px of the bottom.
+2. **Smooth Upward Scrolling** — If user scrolls up to review history, auto-scroll is completely paused so they can read freely.
+3. **Guarded Session Auto-Restore** — `loadSessions(true)` runs auto-select only once on initial mount (`initialAutoRestoreDone.current`), preventing background events from resetting chat scroll.
+
+---
+
 ## [Digital Twin: Chat History Self-Healing & Auto-Restoration] - 2026-08-20
 
 ### Problem
