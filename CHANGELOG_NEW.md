@@ -4,6 +4,23 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: Chat History Self-Healing & Auto-Restoration] - 2026-08-20
+
+### Problem
+When navigating away from Digital Twin to other pages (HealMe/Dashboard) and returning, previous chat history was not auto-loaded, and clicking older sessions showed missing user prompts (only showing AI answers) due to remote session list overwriting local message caches.
+
+### Changes
+
+#### Storage: [`src/utils/storage.js`](file:///d:/Raj/compiledchat/src/utils/storage.js)
+1. **Cache-Preserving Remote Merge in `getChatSessions`** — When updating session lists from the backend, merged with local cached `messages` so rich payloads (files, works data) are not wiped out.
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **Self-Healing Prompt Reconstruction in `handleSelectSession`** — If a loaded session has missing user prompts, it automatically reconstructs the user message from the session title and inserts it ahead of the AI response.
+2. **Auto-Restoring Previous Active Session on Mount** — If no active task run is currently in flight, `loadSessions` automatically restores the user's latest conversation (`@twin_last_active_session_id` or `recentSessions[0]`) instead of showing an empty greeting screen.
+3. **Immediate Pre-Save on Send** — User message is saved immediately to session storage before dispatching the API run.
+
+---
+
 ## [Digital Twin: Navigate-Away Output Recovery] - 2026-08-20
 
 ### Problem

@@ -462,6 +462,16 @@ export default function DigitalTwinChatScreen() {
       const sessions = await getChatSessions(null, 'twin');
       if (Array.isArray(sessions)) {
         setRecentSessions(sessions);
+
+        // Auto-restore previous active conversation if no pending run is active
+        const hasPendingRun = typeof window !== 'undefined' && window.localStorage.getItem('@twin_active_run');
+        if (!hasPendingRun && sessions.length > 0) {
+          const lastActiveId = typeof window !== 'undefined' ? window.localStorage.getItem('@twin_last_active_session_id') : null;
+          const targetSession = sessions.find(s => s.id === lastActiveId) || sessions[0];
+          if (targetSession) {
+            handleSelectSession(targetSession);
+          }
+        }
       }
     } catch (e) {}
   };
@@ -569,11 +579,24 @@ export default function DigitalTwinChatScreen() {
         // Restore session messages first
         const sessions = await getChatSessions(null, 'twin');
         const match = Array.isArray(sessions) && sessions.find(s => s.id === pending.sessionId);
-        if (match) {
-          let msgs = match.messages;
-          if (!msgs || msgs.length === 0) msgs = await getChatMessagesForSession(pending.sessionId);
-          if (msgs && msgs.length > 0 && !cancelled) setMessages(msgs);
+        let baseMsgs = match?.messages || [];
+        if (!baseMsgs || baseMsgs.length === 0) {
+          baseMsgs = await getChatMessagesForSession(pending.sessionId);
         }
+        if (!baseMsgs || baseMsgs.length === 0) {
+          baseMsgs = [
+            { id: '1', sender: 'twin', text: "Hello! I'm your Digital Twin. Ask me anything — I can create files, write code, analyze data, and more." }
+          ];
+        }
+        if (pending.userPrompt && !baseMsgs.some(m => m.sender === 'user' && m.text === pending.userPrompt)) {
+          baseMsgs = [...baseMsgs, {
+            id: 'user_' + (pending.startedAt || Date.now()),
+            sender: 'user',
+            text: pending.userPrompt,
+            sessionId: pending.sessionId
+          }];
+        }
+        if (baseMsgs.length > 0 && !cancelled) setMessages(baseMsgs);
 
         // Get auth token
         let token = userAuthKey;
@@ -693,18 +716,63 @@ export default function DigitalTwinChatScreen() {
   const handleSelectSession = async (sessionItem) => {
     if (!sessionItem || !sessionItem.id) return;
     setCurrentSessionId(sessionItem.id);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('@twin_last_active_session_id', sessionItem.id);
+      }
+    } catch (e) {}
+
     let msgs = sessionItem.messages;
     if (!msgs || msgs.length === 0) {
       msgs = await getChatMessagesForSession(sessionItem.id);
     }
-    if (msgs && msgs.length > 0) {
-      setMessages(msgs);
+    
+    let resolvedMsgs = Array.isArray(msgs) ? [...msgs] : [];
+
+    // 1. Ensure greeting message exists at the start
+    if (!resolvedMsgs.some(m => m.id === '1' || (typeof m.text === 'string' && m.text.includes("I'm your Digital Twin")))) {
+      resolvedMsgs.unshift({
+        id: '1',
+        sender: 'twin',
+        text: "Hello! I'm your Digital Twin. Ask me anything — I can create files, write code, analyze data, and more."
+      });
+    }
+
+    // 2. Self-healing: If user prompt is missing but session has a valid prompt/title
+    if (sessionItem.title && sessionItem.title !== 'New Chat' && sessionItem.title !== 'Digital Twin Chat') {
+      const hasUserMsg = resolvedMsgs.some(m => m.sender === 'user');
+      if (!hasUserMsg) {
+        const greetingIdx = resolvedMsgs.findIndex(m => m.id === '1' || (typeof m.text === 'string' && m.text.includes("I'm your Digital Twin")));
+        const insertIdx = greetingIdx >= 0 ? greetingIdx + 1 : 0;
+        const restoredUserMsg = {
+          id: 'user_' + sessionItem.id,
+          sender: 'user',
+          text: sessionItem.title,
+          sessionId: sessionItem.id
+        };
+        resolvedMsgs.splice(insertIdx, 0, restoredUserMsg);
+      }
+    }
+
+    if (resolvedMsgs.length > 0) {
+      setMessages(resolvedMsgs);
+      // Save healed session back into cache
+      saveChatSession({
+        id: sessionItem.id,
+        title: sessionItem.title,
+        messages: resolvedMsgs
+      }, 'twin');
     }
   };
 
   const handleNewChatSession = () => {
     const newId = generateUUID();
     setCurrentSessionId(newId);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('@twin_last_active_session_id', newId);
+      }
+    } catch (e) {}
     setMessages([
       { id: '1', sender: 'twin', text: 'Hello! Welcome to your Digital Twin Workspace. How can I assist you today?' },
     ]);
@@ -800,7 +868,15 @@ export default function DigitalTwinChatScreen() {
       }
     });
 
-    setMessages(prev => [...prev, newMsg]);
+    setMessages(prev => {
+      const updated = [...prev, newMsg];
+      saveChatSession({
+        id: currentSessionId,
+        title: prev.find(m => m.sender === 'user')?.text || textToSend,
+        messages: updated
+      }, 'twin');
+      return updated;
+    });
     setInputText('');
     setIsThinking(true);
 

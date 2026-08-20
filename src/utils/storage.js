@@ -438,22 +438,26 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const remoteList = data.map((row) => ({
-          id: row.id,
-          chatType: row.session_type || row.status || 'spiritual',
-          title: row.title || 'Chat Session',
-          time: new Date(row.created_at || row.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          createdAt: row.created_at || row.updated_at,
-        }));
+        const mergedList = remoteList.map((row) => {
+          const cachedMatch = cachedList.find(c => c.id === row.id);
+          return {
+            id: row.id,
+            chatType: row.session_type || row.status || 'spiritual',
+            title: row.title || 'Chat Session',
+            time: new Date(row.created_at || row.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            createdAt: row.created_at || row.updated_at,
+            messages: cachedMatch?.messages || null,
+          };
+        });
 
-        // Update local cache
+        // Update local cache without wiping messages
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem(cacheKey, JSON.stringify(remoteList.slice(0, 50)));
+            window.localStorage.setItem(cacheKey, JSON.stringify(mergedList.slice(0, 50)));
           }
         } catch (e) {}
 
-        return remoteList;
+        return mergedList;
       }
     }
   } catch (e) {
