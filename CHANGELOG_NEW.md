@@ -4,6 +4,25 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: Navigate-Away Output Recovery] - 2026-08-20
+
+### Problem
+If user navigates to Dashboard (or any other page) while Digital Twin AI is processing, the output is lost because React unmounts the component and kills the polling loop. Coming back starts a fresh blank session.
+
+### Changes
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **`@twin_active_run` localStorage persistence** — On run start, saves `{runId, sessionId, userPrompt}` to localStorage. Cleared on completion/error.
+2. **Auto-resume on mount** — New `useEffect` checks for pending run on component mount. Restores session messages, checks run status, and either shows completed output immediately or resumes live polling.
+3. **Session ID restoration** — Initial `currentSessionId` state reads from localStorage pending run instead of always generating a new UUID.
+
+### Revert Instructions
+```bash
+git revert <commit-hash>
+```
+
+---
+
 ## [Digital Twin Connection Resilience Fix] - 2026-08-20
 
 ### Problem

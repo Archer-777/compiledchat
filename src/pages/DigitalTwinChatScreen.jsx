@@ -400,7 +400,16 @@ function CompletedWorksSummary({ works }) {
 
 export default function DigitalTwinChatScreen() {
   const navigate = useNavigate();
-  const [currentSessionId, setCurrentSessionId] = useState(() => generateUUID());
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    try {
+      const pending = window.localStorage.getItem('@twin_active_run');
+      if (pending) {
+        const p = JSON.parse(pending);
+        if (p.sessionId) return p.sessionId;
+      }
+    } catch (e) {}
+    return generateUUID();
+  });
   const [recentSessions, setRecentSessions] = useState([]);
   const [userProfileName, setUserProfileName] = useState('Archer');
   const [twinAvatarPhoto, setTwinAvatarPhoto] = useState(null);
@@ -545,6 +554,129 @@ export default function DigitalTwinChatScreen() {
     }
 
     return () => { isMounted = false; };
+  }, []);
+
+  // Resume pending run if user navigated away and came back
+  useEffect(() => {
+    let cancelled = false;
+    const resumePendingRun = async () => {
+      try {
+        const raw = window.localStorage.getItem('@twin_active_run');
+        if (!raw) return;
+        const pending = JSON.parse(raw);
+        if (!pending.runId || !pending.sessionId) return;
+
+        // Restore session messages first
+        const sessions = await getChatSessions(null, 'twin');
+        const match = Array.isArray(sessions) && sessions.find(s => s.id === pending.sessionId);
+        if (match) {
+          let msgs = match.messages;
+          if (!msgs || msgs.length === 0) msgs = await getChatMessagesForSession(pending.sessionId);
+          if (msgs && msgs.length > 0 && !cancelled) setMessages(msgs);
+        }
+
+        // Get auth token
+        let token = userAuthKey;
+        if (!token || !token.includes('.')) {
+          const user = await getUserData();
+          token = await generateTwinJwt(user || { firstName: 'User' });
+        }
+
+        // Check run status
+        const res = await fetch(`${TWIN_API_BASE}/runs/${pending.runId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const status = data.status || '';
+
+        if (status === 'completed' || status === 'success' || status === 'succeeded') {
+          // Run already finished — show its output
+          const rawText = data.text || data.result || data.output || data.response || data.message || 'Task completed.';
+          const aiText = cleanTwinOutputText(typeof rawText === 'object' ? JSON.stringify(rawText, null, 2) : rawText);
+          let aiFiles = [];
+          if (data.files && Array.isArray(data.files) && data.files.length > 0) {
+            aiFiles = data.files.filter(f => {
+              const n = (typeof f === 'string' ? f : (f.name || f.filename || '')).toLowerCase();
+              return !n.endsWith('.py') && !n.endsWith('.sh') && !n.endsWith('.bat') && !n.endsWith('.tmp');
+            });
+          }
+          const aiMsg = {
+            id: 'twin_' + (data.id || pending.runId),
+            sender: 'twin', text: aiText, files: aiFiles,
+            sessionId: pending.sessionId,
+            works: { duration: 'resumed', stepsCount: 4, steps: [{ label: 'Completed while away' }], tools: [], iterations: data.iterations || 1 }
+          };
+          if (!cancelled) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === aiMsg.id)) return prev;
+              const updated = [...prev, aiMsg];
+              saveChatSession({ id: pending.sessionId, title: pending.userPrompt || 'Twin Task', messages: updated }, 'twin');
+              return updated;
+            });
+            notifyTaskComplete(pending.userPrompt, 'resumed', pending.runId);
+          }
+          window.localStorage.removeItem('@twin_active_run');
+        } else if (status === 'failed' || status === 'error') {
+          window.localStorage.removeItem('@twin_active_run');
+        } else {
+          // Still running — resume polling
+          if (cancelled) return;
+          setIsThinking(true);
+          const startTime = Date.now();
+          setActiveRun({ isActive: true, runId: pending.runId, percent: 50, statusMessage: 'Resuming task tracking...', currentTool: null, toolsInvoked: [], steps: [{ id: '1', label: 'Resumed execution', status: 'active' }], logs: [], startTime, elapsedMs: 0, iterations: 1 });
+
+          for (let i = 0; i < 300; i++) {
+            await new Promise(r => setTimeout(r, 2200));
+            if (cancelled) break;
+            try {
+              const pollRes = await fetch(`${TWIN_API_BASE}/runs/${pending.runId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+              if (!pollRes.ok) continue;
+              const pollData = await pollRes.json();
+              const st = pollData.status || '';
+              if (st === 'completed' || st === 'success' || st === 'succeeded') {
+                const rawText = pollData.text || pollData.result || pollData.output || pollData.response || pollData.message || 'Task completed.';
+                const aiText = cleanTwinOutputText(typeof rawText === 'object' ? JSON.stringify(rawText, null, 2) : rawText);
+                let aiFiles = [];
+                if (pollData.files && Array.isArray(pollData.files) && pollData.files.length > 0) {
+                  aiFiles = pollData.files.filter(f => {
+                    const n = (typeof f === 'string' ? f : (f.name || f.filename || '')).toLowerCase();
+                    return !n.endsWith('.py') && !n.endsWith('.sh') && !n.endsWith('.bat') && !n.endsWith('.tmp');
+                  });
+                }
+                const totalDuration = ((Date.now() - startTime) / 1000).toFixed(1) + 's';
+                const aiMsg = {
+                  id: 'twin_' + (pollData.id || pending.runId),
+                  sender: 'twin', text: aiText, files: aiFiles,
+                  sessionId: pending.sessionId,
+                  works: { duration: totalDuration, stepsCount: 4, steps: [{ label: 'Completed' }], tools: [], iterations: pollData.iterations || 1 }
+                };
+                if (!cancelled) {
+                  setMessages(prev => {
+                    if (prev.some(m => m.id === aiMsg.id)) return prev;
+                    const updated = [...prev, aiMsg];
+                    saveChatSession({ id: pending.sessionId, title: pending.userPrompt || 'Twin Task', messages: updated }, 'twin');
+                    return updated;
+                  });
+                  setActiveRun(p => p ? { ...p, percent: 100, statusMessage: '✓ Task executed successfully!' } : p);
+                  notifyTaskComplete(pending.userPrompt, totalDuration, pending.runId);
+                }
+                window.localStorage.removeItem('@twin_active_run');
+                break;
+              } else if (st === 'failed' || st === 'error') {
+                window.localStorage.removeItem('@twin_active_run');
+                break;
+              }
+            } catch (e) {}
+          }
+          if (!cancelled) { setIsThinking(false); setActiveRun(null); }
+        }
+      } catch (e) {
+        console.warn('Resume pending run error:', e);
+      }
+    };
+    resumePendingRun();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -797,6 +929,11 @@ export default function DigitalTwinChatScreen() {
         const runId = createData.run_id;
 
         if (runId) {
+          // Persist active run so navigating away can resume on return
+          try {
+            window.localStorage.setItem('@twin_active_run', JSON.stringify({ runId, sessionId: currentSessionId, userPrompt: textToSend, startedAt: Date.now() }));
+          } catch (e) {}
+
           setActiveRun(prev => prev ? { 
             ...prev, 
             runId,
@@ -957,6 +1094,7 @@ export default function DigitalTwinChatScreen() {
     clearInterval(timerInterval);
     setIsThinking(false);
     setActiveRun(null);
+    try { window.localStorage.removeItem('@twin_active_run'); } catch (e) {}
 
     const aiMessage = { 
       id: aiMsgId, 
