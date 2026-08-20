@@ -477,7 +477,7 @@ export default function DigitalTwinChatScreen() {
         if (isInitial && !initialAutoRestoreDone.current) {
           initialAutoRestoreDone.current = true;
           const hasPendingRun = typeof window !== 'undefined' && window.localStorage.getItem('@twin_active_run');
-          if (!hasPendingRun && sessions.length > 0) {
+          if (!hasPendingRun && !isThinking && sessions.length > 0) {
             const lastActiveId = typeof window !== 'undefined' ? window.localStorage.getItem('@twin_last_active_session_id') : null;
             const targetSession = sessions.find(s => s.id === lastActiveId) || sessions[0];
             if (targetSession) {
@@ -768,6 +768,16 @@ export default function DigitalTwinChatScreen() {
         resolvedMsgs.splice(insertIdx, 0, restoredUserMsg);
       }
     }
+
+    // 3. Deduplicate: remove any duplicate user messages with same text
+    const seenUserTexts = new Set();
+    resolvedMsgs = resolvedMsgs.filter(m => {
+      if (m.sender === 'user') {
+        if (seenUserTexts.has(m.text)) return false;
+        seenUserTexts.add(m.text);
+      }
+      return true;
+    });
 
     if (resolvedMsgs.length > 0) {
       setMessages(resolvedMsgs);
@@ -1273,6 +1283,23 @@ export default function DigitalTwinChatScreen() {
     navigate('/digital-twin');
   };
 
+  const displayMessages = React.useMemo(() => {
+    const seenIds = new Set();
+    const list = [];
+    for (const m of messages) {
+      if (!m) continue;
+      // Filter out duplicate user prompt if exact same text and sender appear consecutively
+      const last = list[list.length - 1];
+      if (last && last.sender === m.sender && last.text === m.text && m.sender === 'user') {
+        continue;
+      }
+      if (m.id && seenIds.has(m.id)) continue;
+      if (m.id) seenIds.add(m.id);
+      list.push(m);
+    }
+    return list;
+  }, [messages]);
+
   return (
     <div className="twin-chat-container">
       {/* Soft Twinkling Stars Background across complete screen */}
@@ -1426,7 +1453,7 @@ export default function DigitalTwinChatScreen() {
             </div>
           )}
 
-          {messages.map((msg) => {
+          {displayMessages.map((msg) => {
             if (msg.type === 'badge') {
               return (
                 <div key={msg.id} className="streak-badge-container">

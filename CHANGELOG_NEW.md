@@ -4,6 +4,22 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: Duplicate Message Bubble Deduplication & Storage Fix] - 2026-08-20
+
+### Problem
+In some scenarios, identical user prompt bubbles were duplicated ("Create a pdf in which hi is written" shown twice), and `getChatSessions` had a variable reference error on `data.map`.
+
+### Changes
+
+#### Storage: [`src/utils/storage.js`](file:///d:/Raj/compiledchat/src/utils/storage.js)
+1. **Fixed Variable Name in `getChatSessions`** — Corrected `remoteList` reference to `data.map(...)` when merging backend rows with local cache.
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **`displayMessages` Deduplication Memo** — Filters out consecutive duplicate user prompt bubbles with identical text and duplicate IDs before rendering to UI.
+2. **Active Task Guard in `loadSessions`** — Prevents auto-restore from firing when a task is currently in progress (`isThinking`).
+
+---
+
 ## [Digital Twin: User Scroll Lock & Smart Auto-Scroll Fix] - 2026-08-20
 
 ### Problem

@@ -438,7 +438,7 @@ export const getChatSessions = async (emailOverride = null, filterType = null) =
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const mergedList = remoteList.map((row) => {
+        const mergedList = data.map((row) => {
           const cachedMatch = cachedList.find(c => c.id === row.id);
           return {
             id: row.id,
