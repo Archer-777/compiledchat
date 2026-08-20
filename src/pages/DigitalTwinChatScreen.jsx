@@ -767,18 +767,30 @@ export default function DigitalTwinChatScreen() {
         setUserAuthKey(activeToken);
       }
 
-      // 1. Create a run
-      const createRes = await fetch(`${TWIN_API_BASE}/runs`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${activeToken}`
-        },
-        body: JSON.stringify({
-          session_id: currentSessionId,
-          message: textToSend,
-        }),
-      });
+      // 1. Create a run (with 1 silent retry for transient network drops)
+      let createRes;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          createRes = await fetch(`${TWIN_API_BASE}/runs`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${activeToken}`
+            },
+            body: JSON.stringify({
+              session_id: currentSessionId,
+              message: textToSend,
+            }),
+          });
+          if (createRes.ok || createRes.status === 202) break;
+        } catch (fetchErr) {
+          if (attempt === 0) {
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          throw fetchErr;
+        }
+      }
 
       if (createRes.ok || createRes.status === 202) {
         const createData = await createRes.json();

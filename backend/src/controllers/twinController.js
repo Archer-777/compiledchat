@@ -3,8 +3,30 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
 const TWIN_JWT_SECRET = process.env.TWIN_JWT_SECRET || 'twin-local-test-secret-key-32-chars-long';
+const TWIN_UPSTREAM = process.env.TWIN_UPSTREAM_URL || 'http://65.2.37.177:8000';
 
 const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+/**
+ * Fetch with automatic retry & backoff for upstream Twin API.
+ * Retries on network errors (ECONNRESET, socket hangup, fetch failed) up to maxRetries times.
+ */
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+  const delays = [300, 800, 1500];
+  // Force fresh TCP socket per request to avoid stale keep-alive reuse
+  options.headers = { ...options.headers, 'Connection': 'close' };
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      return res;
+    } catch (err) {
+      const isRetryable = /ECONNRESET|ECONNREFUSED|socket hang up|fetch failed|ETIMEDOUT|UND_ERR/i.test(err.message);
+      if (!isRetryable || attempt >= maxRetries) throw err;
+      console.warn(`[Twin Upstream] Attempt ${attempt + 1} failed: ${err.message}. Retrying in ${delays[attempt]}ms...`);
+      await new Promise(r => setTimeout(r, delays[attempt]));
+    }
+  }
+}
 
 /**
  * Ensures a valid signed JWT token containing human-readable claims:
@@ -163,8 +185,7 @@ const enqueueAgentRun = async (req, res) => {
     const { session_id, message } = req.body;
     const jwtToken = getOrGenerateTwinJwt(req);
     
-    // Forward to the actual Digital Twin Python API with verified JWT
-    const twinApiRes = await fetch('http://65.2.37.177:8000/runs', {
+    const twinApiRes = await fetchWithRetry(`${TWIN_UPSTREAM}/runs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -181,8 +202,8 @@ const enqueueAgentRun = async (req, res) => {
     const data = await twinApiRes.json();
     return res.status(200).json(data);
   } catch (error) {
-    console.error('enqueueAgentRun error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to enqueue run' });
+    console.error('enqueueAgentRun error:', error.message);
+    return res.status(502).json({ success: false, message: 'Upstream Twin engine unreachable. Please retry.' });
   }
 };
 
@@ -195,7 +216,7 @@ const getAgentRun = async (req, res) => {
     const { runId } = req.params;
     const jwtToken = getOrGenerateTwinJwt(req);
 
-    const twinApiRes = await fetch(`http://65.2.37.177:8000/runs/${runId}`, {
+    const twinApiRes = await fetchWithRetry(`${TWIN_UPSTREAM}/runs/${runId}`, {
       headers: {
         'Authorization': `Bearer ${jwtToken}`
       }
@@ -209,8 +230,8 @@ const getAgentRun = async (req, res) => {
     const data = await twinApiRes.json();
     return res.status(200).json(data);
   } catch (error) {
-    console.error('getAgentRun error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to fetch run status' });
+    console.error('getAgentRun error:', error.message);
+    return res.status(502).json({ success: false, message: 'Upstream Twin engine unreachable' });
   }
 };
 
@@ -223,7 +244,7 @@ const downloadTwinFile = async (req, res) => {
     const { sessionId, fileName } = req.params;
     const jwtToken = getOrGenerateTwinJwt(req);
     
-    const twinApiRes = await fetch(`http://65.2.37.177:8000/sessions/${sessionId}/files/${encodeURIComponent(fileName)}`, {
+    const twinApiRes = await fetchWithRetry(`${TWIN_UPSTREAM}/sessions/${sessionId}/files/${encodeURIComponent(fileName)}`, {
       headers: {
         'Authorization': `Bearer ${jwtToken}`
       }
@@ -262,19 +283,21 @@ const downloadTwinFile = async (req, res) => {
  * GET /api/v1/twin/runs/:runId/events
  */
 const streamAgentEvents = async (req, res) => {
+  let upstreamStream = null;
   try {
     const { runId } = req.params;
     const jwtToken = getOrGenerateTwinJwt(req);
     const lastEventId = req.headers['last-event-id'] || '';
 
     const headers = {
-      'Authorization': `Bearer ${jwtToken}`
+      'Authorization': `Bearer ${jwtToken}`,
+      'Connection': 'close'
     };
     if (lastEventId) {
       headers['Last-Event-ID'] = lastEventId;
     }
 
-    const twinApiRes = await fetch(`http://65.2.37.177:8000/runs/${runId}/events`, {
+    const twinApiRes = await fetch(`${TWIN_UPSTREAM}/runs/${runId}/events`, {
       headers
     });
 
@@ -288,17 +311,25 @@ const streamAgentEvents = async (req, res) => {
 
     const { Readable } = require('stream');
     if (twinApiRes.body) {
-      const webStream = Readable.fromWeb(twinApiRes.body);
-      webStream.on('error', (err) => {
+      upstreamStream = Readable.fromWeb(twinApiRes.body);
+      upstreamStream.on('error', (err) => {
         console.warn('streamAgentEvents stream error:', err.message);
         if (!res.writableEnded) res.end();
       });
-      webStream.pipe(res);
+      upstreamStream.pipe(res);
+
+      // Immediately destroy upstream socket when client disconnects (tab close, navigation, etc.)
+      req.on('close', () => {
+        if (upstreamStream && !upstreamStream.destroyed) {
+          upstreamStream.destroy();
+        }
+      });
     } else {
       res.end();
     }
   } catch (error) {
-    console.error('streamAgentEvents error:', error);
+    console.error('streamAgentEvents error:', error.message);
+    if (upstreamStream && !upstreamStream.destroyed) upstreamStream.destroy();
     if (!res.headersSent) {
       return res.status(500).json({ success: false, message: 'Failed to stream events' });
     }

@@ -4,6 +4,35 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin Connection Resilience Fix] - 2026-08-20
+
+### Problem
+Intermittent "Could not connect to the Digital Twin backend" errors on some devices. Root cause: stale keep-alive sockets between Railway Node.js proxy and upstream Python API (`65.2.37.177:8000`), plus leaked SSE connections exhausting server socket limits.
+
+### Changes
+
+#### Backend: [`backend/src/controllers/twinController.js`](file:///d:/Raj/compiledchat/backend/src/controllers/twinController.js)
+1. **`fetchWithRetry()` helper** — 3 retries with exponential backoff (300/800/1500ms) on transient network errors (ECONNRESET, socket hang up, fetch failed, ETIMEDOUT).
+2. **`Connection: close` header** on all upstream requests — forces fresh TCP socket per request, preventing stale keep-alive reuse.
+3. **`TWIN_UPSTREAM` env var** — upstream URL centralized in `TWIN_UPSTREAM_URL` env var (default: `http://65.2.37.177:8000`), replacing 5 hardcoded occurrences.
+4. **SSE stream auto-cleanup** — `req.on('close')` in `streamAgentEvents` immediately destroys upstream socket when client disconnects.
+5. **502 status codes** — `enqueueAgentRun` and `getAgentRun` now return 502 (Bad Gateway) instead of 500 on upstream failures.
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **Silent 1-retry** on `POST /runs` with 1s delay before showing error to user.
+
+### Revert Instructions
+To revert this change:
+```bash
+git diff HEAD~1 -- backend/src/controllers/twinController.js src/pages/DigitalTwinChatScreen.jsx | git apply -R
+```
+Or revert the specific commit:
+```bash
+git revert <commit-hash>
+```
+
+---
+
 ## [Local Development & Redirection Transition] - 2026-08-14
 
 ### 1. Environment Configuration & Secrets Provisioning
