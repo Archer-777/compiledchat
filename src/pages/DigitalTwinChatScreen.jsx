@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Terminal, Wrench, Clock, Sparkles, Check, 
   Play, Loader2, Code, Activity, Layers, CornerDownRight, Bell, BellRing, BellOff 
 } from 'lucide-react';
-import { getChatSessions, saveChatSession, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
+import { getChatSessions, getLocalChatSessions, saveChatSession, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import { generateTwinJwt } from '../utils/twinJwt';
 import Modal from '../components/common/Modal';
 import './DigitalTwinChatScreen.css';
@@ -248,104 +248,90 @@ function LiveProgressCard({ activeRun, showLogs, setShowLogs, notifPermission, o
               ⏳ Extended Multi-Step Task ({Math.floor(elapsedSec / 60)}m {(elapsedSec % 60).toFixed(0)}s elapsed)
             </div>
             <div className="twin-extended-desc">
-              Deep tool execution, data analysis, and report generation typically take 2 to 5+ minutes. You can safely switch tabs or minimize; we will send you a desktop notification and audio chime the second it finishes!
+              Multi-page report, presentation, or code execution in progress. You can minimize or switch tabs. We will chime & notify you on completion.
             </div>
-            {notifPermission === 'default' && (
-              <button 
-                type="button" 
-                className="twin-extended-enable-btn"
-                onClick={onRequestNotif}
-              >
-                <BellRing size={12} />
-                <span>Enable Completion Alert</span>
-              </button>
-            )}
-            {notifPermission === 'granted' && (
-              <div className="twin-extended-granted-tag">
-                <Check size={12} color="#10b981" />
-                <span>Desktop notification armed • Ready to alert you</span>
-              </div>
-            )}
           </div>
         </div>
       ) : elapsedSec > 45 ? (
-        <div className="twin-long-task-notice">
-          <Clock size={14} className="notice-icon" />
-          <div>
-            <strong>Deep Neural Synthesis in Progress:</strong> Multi-step tool runs and document builds typically take 2–5 minutes. Your task is executing smoothly in the background.
+        <div className="twin-extended-task-notice">
+          <div className="twin-extended-icon-pulse">
+            <Sparkles size={15} color="#a855f7" />
+          </div>
+          <div className="twin-extended-text">
+            <div className="twin-extended-title">
+              ⚡ Deep Agent Reasoning & Tool Invocation
+            </div>
+            <div className="twin-extended-desc">
+              Executing Python sandbox, web retrieval, and compiling file artifacts...
+            </div>
           </div>
         </div>
       ) : null}
 
-      {/* Active Tool Calling Banner */}
+      {/* Live Tool Execution Box */}
       {activeRun.currentTool && (
-        <div className="twin-active-tool-banner">
-          <div className="twin-active-tool-header">
-            <div className="twin-tool-name-tag">
-              <Wrench size={13} color="#c084fc" />
-              <span>Tool: {activeRun.currentTool.name || 'neural_executor'}</span>
+        <div className="twin-live-tool-container">
+          <div className="twin-tool-header">
+            <div className="twin-tool-title-row">
+              <Wrench size={13} color="#a855f7" />
+              <span className="twin-tool-label">Tool:</span>
+              <span className="twin-tool-name">{activeRun.currentTool.name}</span>
             </div>
-            <div className="twin-tool-status-badge">
-              {activeRun.currentTool.status || 'Executing'}
-            </div>
+            <span className="twin-tool-status-pill">{activeRun.currentTool.status || 'Active'}</span>
           </div>
           {activeRun.currentTool.input && (
-            <div className="twin-tool-preview">
-              <code>{activeRun.currentTool.input}</code>
+            <div className="twin-tool-input-snippet">
+              <Code size={11} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span className="twin-tool-input-text">{activeRun.currentTool.input}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Milestone Step Checklist */}
+      {/* Multi-Step Pipeline Checklist */}
       <div className="twin-steps-pipeline">
-        {activeRun.steps && activeRun.steps.map((step) => (
-          <div key={step.id} className={`twin-step-item step-${step.status}`}>
-            <div className={`step-icon-badge badge-${step.status}`}>
-              {step.status === 'completed' ? (
-                <Check size={11} strokeWidth={3} />
-              ) : step.status === 'active' ? (
-                <Loader2 size={11} strokeWidth={3} />
-              ) : (
-                <span style={{ fontSize: '9px' }}>○</span>
-              )}
+        {activeRun.steps.map((st) => (
+          <div key={st.id} className={`twin-step-row step-${st.status}`}>
+            <div className="twin-step-icon">
+              {st.status === 'completed' && <CheckCircle2 size={13} color="#10b981" />}
+              {st.status === 'active' && <Loader2 size={13} color="#00e5ff" className="spinner-icon" />}
+              {st.status === 'pending' && <div className="twin-step-dot-pending" />}
             </div>
-            <span>{step.label}</span>
+            <span className="twin-step-text">{st.label}</span>
           </div>
         ))}
       </div>
 
-      {/* Collapsible Activity Logs Drawer */}
-      {activeRun.logs && activeRun.logs.length > 0 && (
-        <div>
-          <button 
-            type="button" 
-            className="twin-logs-toggle-btn" 
-            onClick={() => setShowLogs(!showLogs)}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Terminal size={12} color="#00e5ff" />
-              <span>Activity Logs & Tool Events ({activeRun.logs.length})</span>
-            </span>
-            {showLogs ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-          {showLogs && (
-            <div className="twin-logs-terminal" style={{ marginTop: '6px' }}>
-              {activeRun.logs.map((log, idx) => (
-                <div key={idx} className="twin-log-line">
-                  <span className="twin-log-time">[{log.time}]</span>
-                  <span className={`twin-log-text log-${log.type || 'info'}`}>{log.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Collapsible Live Execution Terminal Logs */}
+      <div className="twin-logs-collapsible">
+        <button 
+          type="button" 
+          className="twin-logs-toggle-btn"
+          onClick={() => setShowLogs(!showLogs)}
+        >
+          <div className="twin-logs-toggle-left">
+            <Terminal size={12} color="#00ffcc" />
+            <span>Live Agent Logs ({activeRun.logs.length})</span>
+          </div>
+          {showLogs ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+
+        {showLogs && (
+          <div className="twin-logs-terminal">
+            {activeRun.logs.map((lg, idx) => (
+              <div key={idx} className={`twin-log-line log-type-${lg.type || 'info'}`}>
+                <span className="twin-log-time">[{lg.time}]</span>
+                <span className="twin-log-msg">{lg.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-// --- Completed Works Summary Card (Attached to Completed Message) ---
+// Completed Works & Tool Accordion Dropdown
 function CompletedWorksSummary({ works }) {
   const [isOpen, setIsOpen] = useState(false);
   if (!works) return null;
@@ -407,10 +393,14 @@ export default function DigitalTwinChatScreen() {
         const p = JSON.parse(pending);
         if (p.sessionId) return p.sessionId;
       }
+      const lastActiveId = window.localStorage.getItem('@twin_last_active_session_id');
+      if (lastActiveId) return lastActiveId;
+      const localList = getLocalChatSessions('twin');
+      if (localList.length > 0 && localList[0].id) return localList[0].id;
     } catch (e) {}
     return generateUUID();
   });
-  const [recentSessions, setRecentSessions] = useState([]);
+  const [recentSessions, setRecentSessions] = useState(() => getLocalChatSessions('twin'));
   const [userProfileName, setUserProfileName] = useState('Archer');
   const [twinAvatarPhoto, setTwinAvatarPhoto] = useState(null);
   const [isGuest, setIsGuest] = useState(true);
@@ -447,9 +437,24 @@ export default function DigitalTwinChatScreen() {
       }
     }
   };
-  const [messages, setMessages] = useState([
-    { id: '1', sender: 'twin', text: "Hello! I'm your Digital Twin. Ask me anything — I can create files, write code, analyze data, and more." },
-  ]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const lastActiveId = typeof window !== 'undefined' ? window.localStorage.getItem('@twin_last_active_session_id') : null;
+      const localList = getLocalChatSessions('twin');
+      const target = (lastActiveId && localList.find(s => s.id === lastActiveId)) || (localList.length > 0 ? localList[0] : null);
+      if (target) {
+        const cached = window.localStorage.getItem(`@chat_session_msgs_${target.id}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+        if (Array.isArray(target.messages) && target.messages.length > 0) return target.messages;
+      }
+    } catch (e) {}
+    return [
+      { id: '1', sender: 'twin', text: "Hello! I'm your Digital Twin. Ask me anything — I can create files, write code, analyze data, and more." },
+    ];
+  });
   const [stars, setStars] = useState([]);
   const [showMobileDrawer, setShowMobileDrawer] = useState(false);
   const [isListening, setIsListening] = useState(false);

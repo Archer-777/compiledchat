@@ -4,6 +4,22 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: 0ms Instant Local-First Chat History Loading] - 2026-08-20
+
+### Problem
+Chat history was taking 3–5 seconds to appear because initial state waited for sequential remote network calls (`getUserData` ➔ `sync-user` ➔ `getChatSessions` ➔ `getChatMessagesForSession`).
+
+### Changes
+
+#### Storage: [`src/utils/storage.js`](file:///d:/Raj/compiledchat/src/utils/storage.js)
+1. **`getLocalChatSessions` Synchronous Reader** — Instant 0ms synchronous local cache reader for recent sessions list and cached messages.
+
+#### Frontend: [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **Synchronous React State Initializers** — `currentSessionId`, `recentSessions`, and `messages` are initialized synchronously in 0ms from localStorage upon component mounting.
+2. **Non-Blocking Background Revalidation** — Remote user/session sync runs silently in the background without delaying UI render.
+
+---
+
 ## [Digital Twin: Duplicate Message Bubble Deduplication & Storage Fix] - 2026-08-20
 
 ### Problem

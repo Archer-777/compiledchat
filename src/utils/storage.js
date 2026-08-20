@@ -412,6 +412,27 @@ export const saveChatSession = async (session, chatType = 'spiritual') => {
  * - Filters by logged-in user account
  * - Returns cached immediately and updates from DB
  */
+/**
+ * Fast synchronous local cache reader for 0ms instant chat loading
+ */
+export const getLocalChatSessions = (filterType = 'twin') => {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return [];
+    // 1. Try specific user keys
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (k && k.startsWith(`@chat_sessions_${filterType}`)) {
+        const raw = window.localStorage.getItem(k);
+        if (raw) {
+          const list = JSON.parse(raw);
+          if (Array.isArray(list) && list.length > 0) return list;
+        }
+      }
+    }
+  } catch (e) {}
+  return [];
+};
+
 export const getChatSessions = async (emailOverride = null, filterType = null) => {
   let cachedList = [];
   try {
