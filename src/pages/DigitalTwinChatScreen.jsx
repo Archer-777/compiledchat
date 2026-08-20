@@ -1583,24 +1583,11 @@ export default function DigitalTwinChatScreen() {
             </button>
             <button
               type="submit"
-              className="send-btn"
+              className={`send-btn ${inputText.trim() && !isThinking ? 'active' : 'disabled'}`}
               disabled={isThinking || !inputText.trim()}
-              style={{
-                background: inputText.trim() && !isThinking ? 'linear-gradient(135deg, #00e5ff, #a855f7)' : 'rgba(255, 255, 255, 0.08)',
-                color: inputText.trim() && !isThinking ? '#000000' : 'rgba(255, 255, 255, 0.3)',
-                border: 'none',
-                borderRadius: '50%',
-                width: '34px',
-                height: '34px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: inputText.trim() && !isThinking ? 'pointer' : 'default',
-                transition: 'all 0.2s ease',
-                flexShrink: 0,
-              }}
+              title="Send Message"
             >
-              {isThinking ? <Loader2 size={16} className="spinner-icon" /> : <Send size={16} />}
+              {isThinking ? <Loader2 size={16} className="spinner-icon" color="#ffffff" /> : <Send size={16} />}
             </button>
           </form>
 

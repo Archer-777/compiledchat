@@ -4,6 +4,20 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Digital Twin: Visible Always-On Send Button in Chatbar] - 2026-08-20
+
+### Problem
+The Send button was blending into the white input capsule (`rgba(255,255,255,0.08)` on `#ffffff` background), making it completely invisible on mobile and desktop until text was typed.
+
+### Changes
+
+#### Styling & Component: [`src/pages/DigitalTwinChatScreen.css`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.css) & [`src/pages/DigitalTwinChatScreen.jsx`](file:///d:/Raj/compiledchat/src/pages/DigitalTwinChatScreen.jsx)
+1. **Always-Visible Send Button** — High-contrast dark circular pill button (`#0f172a` with `#94a3b8` arrow) when empty.
+2. **Vibrant Glowing Gradient on Input** — Lights up with animated cyan-to-purple gradient (`linear-gradient(135deg, #00d4ff, #a855f7)`) and subtle glow shadow when prompt text is typed.
+3. **Spinner Indicator** — Displays animated loading spinner when a task run is executing.
+
+---
+
 ## [Digital Twin: 0ms Instant Local-First Chat History Loading] - 2026-08-20
 
 ### Problem
