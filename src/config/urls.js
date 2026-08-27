@@ -3,12 +3,46 @@
  * Centralizes all frontend routing & cross-app URLs for localhost development and deployment.
  */
 
-export const getChatAppUrl = (path = '') => {
+export const getChatAppUrl = (path = '', userTarget = null) => {
   const cleanPath = path ? (path.startsWith('/') || path.startsWith('?') ? path : `/${path}`) : '';
   const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_CHAT_APP_URL)
     ? import.meta.env.VITE_CHAT_APP_URL.replace(/\/+$/, '')
     : 'https://chat.sai.nextarcher.com';
-  return `${baseUrl}${cleanPath}`;
+  let finalUrl = `${baseUrl}${cleanPath}`;
+
+  // Automatically attach active user session query parameters to prevent cross-subdomain auth drops
+  try {
+    let email = userTarget?.email || '';
+    let firstName = userTarget?.firstName || userTarget?.fullName || '';
+
+    if (!email && typeof window !== 'undefined' && window.localStorage) {
+      const activeAuth = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
+      if (activeAuth) {
+        try {
+          const parsed = JSON.parse(activeAuth);
+          email = parsed.email || '';
+          firstName = parsed.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : '');
+        } catch (e) {}
+      }
+    }
+
+    if (!email && typeof window !== 'undefined' && window.location) {
+      const urlParams = new URLSearchParams(window.location.search);
+      email = urlParams.get('email') || '';
+      firstName = urlParams.get('firstName') || '';
+    }
+
+    if (email) {
+      const separator = finalUrl.includes('?') ? '&' : '?';
+      const cleanEmail = encodeURIComponent(email);
+      const cleanFirst = encodeURIComponent(firstName || 'Archer');
+      if (!finalUrl.includes('email=')) {
+        finalUrl += `${separator}email=${cleanEmail}&firstName=${cleanFirst}`;
+      }
+    }
+  } catch (err) {}
+
+  return finalUrl;
 };
 
 export const getMainAppUrl = (path = '') => {

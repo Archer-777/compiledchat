@@ -290,6 +290,38 @@ export default function AuraScannerPage() {
           hasScannedRef.current = true;
           isScanningRef.current = false;
           setScanComplete(true);
+
+          // Automatically establish and lock unified session upon scan completion
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              const existingRaw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user') || window.localStorage.getItem('user_profile');
+              let existing = {};
+              try { if (existingRaw) existing = JSON.parse(existingRaw); } catch (e) {}
+
+              const activeEmail = existing.email || (user?.primaryEmailAddress?.emailAddress) || 'archer@nextarcher.com';
+              const activeFirstName = existing.firstName || (user?.firstName) || 'Archer';
+              const activeLastName = existing.lastName || (user?.lastName) || '';
+
+              const unifiedSession = {
+                id: existing.id || 'usr_' + Date.now(),
+                email: activeEmail,
+                firstName: activeFirstName,
+                lastName: activeLastName,
+                fullName: `${activeFirstName} ${activeLastName}`.trim(),
+                archetype: auraPred?.archetype || 'Serene Equilibrium',
+                valence: auraPred?.valenceScore || 94.2,
+                scanned: true,
+                isGuest: false,
+              };
+
+              window.localStorage.setItem('@active_auth_session', JSON.stringify(unifiedSession));
+              window.localStorage.setItem('@spiritual_register_user', JSON.stringify(unifiedSession));
+              window.localStorage.setItem('user_profile', JSON.stringify(unifiedSession));
+              window.localStorage.setItem('@aura_scan_completed', 'true');
+            }
+          } catch (storageErr) {
+            console.warn('Session auto-hydration on scan notice:', storageErr);
+          }
         }
       };
 
@@ -337,7 +369,7 @@ export default function AuraScannerPage() {
     let firstName = '';
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
-        const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
+        const raw = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user') || window.localStorage.getItem('user_profile');
         if (raw) {
           const parsed = JSON.parse(raw);
           email = parsed.email || '';
@@ -346,12 +378,13 @@ export default function AuraScannerPage() {
       }
     } catch (e) {}
 
+    if (!email) email = user?.primaryEmailAddress?.emailAddress || 'archer@nextarcher.com';
+    if (!firstName) firstName = user?.firstName || 'Archer';
+
     const params = new URLSearchParams();
-    if (email) params.set('email', email);
-    if (firstName) params.set('firstName', firstName);
-    const qStr = params.toString();
-    const query = qStr ? `?${qStr}` : '';
-    window.location.href = getChatAppUrl(query);
+    params.set('email', email);
+    params.set('firstName', firstName);
+    window.location.href = getChatAppUrl(`?${params.toString()}`);
   };
 
   const activeTheme = stickerThemes[stickerTheme] || stickerThemes.violet;

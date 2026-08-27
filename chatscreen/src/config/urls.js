@@ -3,14 +3,49 @@
  * Centralizes all redirections back to the main app & backend API endpoints.
  */
 
-export const getMainAppUrl = (path = '') => {
+export const getMainAppUrl = (path = '', userTarget = null) => {
   const cleanPath = path ? (path.startsWith('/') || path.startsWith('?') ? path : `/${path}`) : '';
   
+  let baseUrl = 'https://sai.nextarcher.com';
   if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_MAIN_APP_URL) {
-    return `${process.env.EXPO_PUBLIC_MAIN_APP_URL.replace(/\/+$/, '')}${cleanPath}`;
+    baseUrl = process.env.EXPO_PUBLIC_MAIN_APP_URL.replace(/\/+$/, '');
   }
-  
-  return `https://sai.nextarcher.com${cleanPath}`;
+
+  let finalUrl = `${baseUrl}${cleanPath}`;
+
+  // Automatically attach active user session query parameters to prevent cross-subdomain auth drops
+  try {
+    let email = userTarget?.email || '';
+    let firstName = userTarget?.firstName || userTarget?.fullName || '';
+
+    if (!email && typeof window !== 'undefined' && window.localStorage) {
+      const activeAuth = window.localStorage.getItem('@active_auth_session') || window.localStorage.getItem('@spiritual_register_user');
+      if (activeAuth) {
+        try {
+          const parsed = JSON.parse(activeAuth);
+          email = parsed.email || '';
+          firstName = parsed.firstName || (parsed.fullName ? parsed.fullName.split(' ')[0] : '');
+        } catch (e) {}
+      }
+    }
+
+    if (!email && typeof window !== 'undefined' && window.location) {
+      const urlParams = new URLSearchParams(window.location.search);
+      email = urlParams.get('email') || '';
+      firstName = urlParams.get('firstName') || '';
+    }
+
+    if (email) {
+      const separator = finalUrl.includes('?') ? '&' : '?';
+      const cleanEmail = encodeURIComponent(email);
+      const cleanFirst = encodeURIComponent(firstName || 'Archer');
+      if (!finalUrl.includes('email=')) {
+        finalUrl += `${separator}email=${cleanEmail}&firstName=${cleanFirst}`;
+      }
+    }
+  } catch (err) {}
+
+  return finalUrl;
 };
 
 export const getBackendUrl = (path = '') => {

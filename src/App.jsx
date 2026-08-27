@@ -16,14 +16,50 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import { getChatAppUrl } from './config/urls';
 import './styles/index.css';
 
-// Helper to check if a valid user session exists in localStorage
+// Helper to check if a valid user session exists in localStorage or URL handoff
 export const checkIsAuthenticated = () => {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const raw = window.localStorage.getItem('@active_auth_session');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && parsed.email) {
+    if (typeof window !== 'undefined') {
+      // 1. Cross-subdomain handoff: Hydrate identity from URL if switching between chat and main apps
+      if (window.location && window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const urlEmail = params.get('email');
+        const urlFirst = params.get('firstName') || params.get('name') || '';
+        if (urlEmail && urlEmail.includes('@')) {
+          const cleanEmail = urlEmail.trim();
+          const cleanFirst = urlFirst.trim() || 'Archer';
+          const sessionObj = {
+            email: cleanEmail,
+            firstName: cleanFirst,
+            fullName: cleanFirst,
+            isGuest: false,
+          };
+          try {
+            window.localStorage.setItem('@active_auth_session', JSON.stringify(sessionObj));
+            window.localStorage.setItem('@spiritual_register_user', JSON.stringify(sessionObj));
+            window.localStorage.setItem('user_profile', JSON.stringify(sessionObj));
+          } catch (e) {}
+          return true;
+        }
+      }
+
+      // 2. Multi-key session check: Accept active session, registered profile, or verified scan
+      if (window.localStorage) {
+        const keys = ['@active_auth_session', '@spiritual_register_user', 'user_profile'];
+        for (const key of keys) {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed && (parsed.email || parsed.scanned || parsed.firstName || parsed.isGuest === false)) {
+                return true;
+              }
+            } catch (e) {}
+          }
+        }
+
+        // Also check if an aura scan or telemetry session was completed
+        if (window.localStorage.getItem('@telemetry_analysis_result') || window.localStorage.getItem('@aura_scan_completed')) {
           return true;
         }
       }

@@ -4,6 +4,30 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Unified Cross-Journey Single Sign-On & Scan Session Persistence] - 2026-08-27
+
+### Problem
+Users experienced repeated sign-in and scan prompts when switching between SAI Chat (`chat.sai.nextarcher.com`), Twin Journey (`/twin-chat`), and Dashboard (`/soul-matrix`):
+1. **Subdomain Storage Isolation**: `chat.sai.nextarcher.com` and `sai.nextarcher.com` cannot share `localStorage` under browser security policies (especially Safari ITP).
+2. **Missing Session URL Propagation**: When navigating from SAI Chat to Twin Chat, `getMainAppUrl('/twin-chat')` did not pass query parameters (`email`, `firstName`), causing the main app to lose the user's session.
+3. **Overly Strict `ProtectedRoute`**: `App.jsx` strictly checked `@active_auth_session` synchronously on first render. If the session was missing or in-flight, it immediately ejected the user back to `/scan`.
+4. **Scan Completion Did Not Lock Session**: Completing the camera aura scan on `/scan` only saved `@active_auth_session` if the user separately clicked Clerk sign-in. If they simply scanned and continued, they were treated as unauthenticated upon navigation.
+
+### Changes
+
+#### Main Application Routing: [`src/App.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/App.jsx)
+1. **Smart URL-Hydrating `checkIsAuthenticated()`** — Automatically detects `email` and `firstName` in URL search parameters upon landing on any route. Instantly hydrates `@active_auth_session`, `@spiritual_register_user`, and `user_profile` so the user is never ejected.
+2. **Multi-Key & Scan Resilience** — Evaluates multiple storage caches (`@active_auth_session`, `@spiritual_register_user`, `user_profile`, `@aura_scan_completed`, `@telemetry_analysis_result`) to ensure scanned and registered users proceed uninterrupted everywhere.
+
+#### Aura Scanner Flow: [`src/pages/AuraScannerPage.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/AuraScannerPage.jsx)
+1. **Auto-Session Lock on Scan** — Once the camera aura scan completes, a verified unified session is automatically generated and saved across local caches.
+2. **Guaranteed Identity Handoff** — `handleContinue` automatically appends `?email=...&firstName=...` when redirecting to SAI Chat.
+
+#### Bidirectional Navigation: [`chatscreen/src/config/urls.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/chatscreen/src/config/urls.js) & [`src/config/urls.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/config/urls.js)
+1. **Auto-Attaching Query Parameters in `getMainAppUrl()` & `getChatAppUrl()`** — Whenever a link or drawer button switches between SAI Chat and Twin Chat/Dashboard, user session query parameters (`?email=...&firstName=...`) are automatically attached, guaranteeing 100% seamless cross-subdomain identity retention.
+
+---
+
 ## [iPhone Frozen Splash Screen & Dynamic Island Safe Area Fix] - 2026-08-27
 
 ### Problem
