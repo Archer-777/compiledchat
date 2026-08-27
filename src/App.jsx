@@ -12,6 +12,7 @@ import SuperchargePage from './pages/SuperchargePage';
 import RegisterPage from './pages/RegisterPage';
 import DigitalTwinChatScreen from './pages/DigitalTwinChatScreen';
 import GlobalNavbar from './components/layout/GlobalNavbar';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { getChatAppUrl } from './config/urls';
 import './styles/index.css';
 
@@ -200,6 +201,10 @@ function AppLayout() {
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
 
+  const handleSplashFinish = React.useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
   return (
     <BrowserRouter>
       {showSplash && (
@@ -208,11 +213,15 @@ export default function App() {
           inset: 0,
           zIndex: 999999,
           backgroundColor: '#000000',
+          width: '100%',
+          height: '100%',
         }}>
-          <SplashPage isOverlay={true} onFinish={() => setShowSplash(false)} />
+          <SplashPage isOverlay={true} onFinish={handleSplashFinish} />
         </div>
       )}
-      <AppLayout />
+      <ErrorBoundary>
+        <AppLayout />
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

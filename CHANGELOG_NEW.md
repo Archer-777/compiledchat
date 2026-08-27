@@ -4,6 +4,34 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [iPhone Frozen Splash Screen & Dynamic Island Safe Area Fix] - 2026-08-27
+
+### Problem
+On iPhone (Safari / Mobile WebKit), users opening the site were permanently stuck on the splash screen:
+1. **Re-render Timer Reset Bug**: In `App.jsx`, `onFinish={() => setShowSplash(false)}` was passed as an inline function. As Clerk and Supabase authenticated in the background, `App` re-rendered frequently, causing `useEffect` in `SplashPage` to repeatedly cancel the 2.8s timer (`clearTimeout`). The timer never finished, trapping iPhone users on the splash screen indefinitely.
+2. **Touch/Tap Failure on iOS Safari**: The splash screen had an `onClick` on a generic `<div>`, which Mobile WebKit ignores on touch devices. Tapping the screen did not dismiss the splash.
+3. **Notch & Dynamic Island Clipping**: The splash container used `min-height: 100vh;` and fixed top margins without respecting `env(safe-area-inset-top)` or `env(safe-area-inset-bottom)`, causing the logo to press directly into the iPhone Dynamic Island / notch and clipping behind the bottom Safari bar.
+
+### Changes
+
+#### Splash Screen Component: [`src/pages/SplashPage.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/SplashPage.jsx)
+1. **Stable Ref-Guarded Dismissal** — Stored `onFinish` and `navigate` in `useRef` and initiated the auto-dismiss timer strictly on initial mount (`[]`). Re-renders of `App` or underlying auth providers can no longer reset or delay the timer.
+2. **Double-Safety Timer** — Added a primary 2.2s auto-dismiss with an absolute 3.2s fallback timer to guarantee transition under any mobile condition.
+3. **WebKit Touch Support** — Added native `onTouchEnd` alongside `onClick` and `role="button"` to ensure tapping anywhere immediately dismisses the splash screen.
+4. **Smooth Exit Transition** — Added a 350ms subtle fade-out and scale transition (`isFadingOut`) for a seamless entrance into the application.
+
+#### Splash Styling & Layout: [`src/pages/SplashPage.css`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/SplashPage.css)
+1. **Safe Area Inset Padding** — Added `max(24px, env(safe-area-inset-top))` and `max(24px, env(safe-area-inset-bottom))` to prevent Dynamic Island and Safari navigation bar overlap.
+2. **Mobile Viewport (`100dvh`)** — Replaced rigid `100vh` with `100dvh` and `-webkit-fill-available` to prevent mobile vertical overflow and toolbar jumping.
+3. **Responsive Clamp Sizing** — Used `clamp()` for logo height (`min(240px, 65vw)`), margins, and typography so branding scales cleanly on smaller mobile screens.
+4. **Interactive Skip Hint** — Added a subtle pulsating `"Tap anywhere to continue"` indicator for mobile users.
+
+#### Application Root: [`src/App.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/App.jsx) & [`src/components/common/ErrorBoundary.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/components/common/ErrorBoundary.jsx)
+1. **Memoized Splash Callback** — Wrapped `handleSplashFinish` in `React.useCallback([], ...)` in `App.jsx`.
+2. **Mobile Error Boundary** — Created and wrapped `AppLayout` in `<ErrorBoundary>` to guard against any uncaught component/camera runtime errors freezing the mobile screen.
+
+---
+
 ## [Safari / iOS / Mac Chat & Twin Request Connectivity Fix] - 2026-08-27
 
 ### Problem
