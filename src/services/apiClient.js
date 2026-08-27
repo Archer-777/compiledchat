@@ -4,9 +4,9 @@
  * with graceful fallback to client-side localStorage for guest users.
  */
 
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-  ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')}/api`
-  : 'http://localhost:4000/api';
+import { getBackendUrl } from '../config/urls';
+
+const API_BASE_URL = getBackendUrl('/api');
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('jwt_token') : null;

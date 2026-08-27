@@ -10,8 +10,6 @@
  */
 import { getBackendUrl } from '../config/urls';
 
-const BACKEND_STREAM_URL = getBackendUrl('/api/v1/chat/sai/stream');
-
 /**
  * Stream SAI response tokens smoothly to the caller via callbacks.
  * @param {Array} messages - [{ sender: 'user'|'ai', text: string }]
@@ -40,7 +38,8 @@ export async function sendToSAIStream(messages, onChunk, onDone, onError) {
       }
     }, 20);
 
-    const response = await fetch(BACKEND_STREAM_URL, {
+    const streamUrl = getBackendUrl('/api/v1/chat/sai/stream');
+    const response = await fetch(streamUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages }),
@@ -49,6 +48,24 @@ export async function sendToSAIStream(messages, onChunk, onDone, onError) {
     if (!response.ok) {
       if (timer) clearInterval(timer);
       throw new Error(`Backend error ${response.status}`);
+    }
+
+    // WebKit / Safari fallback if getReader is not available
+    if (!response.body || typeof response.body.getReader !== 'function') {
+      const fullPayload = await response.text();
+      const lines = fullPayload.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const raw = line.slice(5).trim();
+        if (raw === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(raw);
+          const token = parsed?.choices?.[0]?.delta?.content ?? '';
+          if (token) targetText += token;
+        } catch {}
+      }
+      isNetworkDone = true;
+      return;
     }
 
     const reader = response.body.getReader();

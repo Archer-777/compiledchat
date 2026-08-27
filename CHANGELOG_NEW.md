@@ -4,6 +4,60 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [Safari / iOS / Mac Chat & Twin Request Connectivity Fix] - 2026-08-27
+
+### Problem
+Requests for AI Chat and Twin Chat from iPhone and Mac (Safari) users were not reaching the backend:
+1. **Mixed Content Blocking on Safari**: Frontend apps hosted on HTTPS fell back to `http://localhost:4000`, causing Apple WebKit to silently block requests at browser-level as mixed active content.
+2. **`localhost` Mobile Trap**: On iPhones, requests targeting `http://localhost:4000` failed immediately because `localhost` resolved to the phone itself rather than the server machine or production backend.
+3. **CORS Origin Trailing Slashes**: `CORS_ORIGINS` contained trailing slashes (`https://sai.nextarcher.com/`), causing strict WebKit preflight `OPTIONS` checks to fail and abort subsequent POST requests.
+4. **Restricted Preflight Headers & Iframe Framing**: Safari requested headers (`Accept`, `Cache-Control`, `Origin`, `Pragma`) not listed in CORS `allowedHeaders`, and Helmet's default `X-Frame-Options: SAMEORIGIN` interfered with the chat iframe embedding.
+
+### Changes
+
+#### Backend Configuration: [`backend/src/config/cors.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/backend/src/config/cors.js) & [`backend/.env`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/backend/.env)
+1. **Normalized Allowed Origins** — Automatically strips trailing slashes from all environment and default origins.
+2. **Exact Origin Echo for Credentials** — Directly echoes cleaned origin in `Access-Control-Allow-Origin` to satisfy WebKit's strict `credentials: true` requirement.
+3. **Expanded Preflight Allowed Headers** — Added `Accept`, `Cache-Control`, `Origin`, `Pragma`, `User-Agent`, and `Keep-Alive`.
+4. **Preflight Optimization** — Set `optionsSuccessStatus: 200` (for legacy Safari/WebKit) and `maxAge: 86400` to cache preflights for 24 hours.
+
+#### Backend Server: [`backend/src/index.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/backend/src/index.js)
+1. **Explicit Preflight Routing** — Added `app.options('*', corsMiddleware)` to handle CORS preflights uniformly across all endpoints.
+2. **Helmet Frameguard Relaxed** — Configured `frameguard: false` and `crossOriginOpenerPolicy: false` to allow chatscreen iframe embedding across Next Archer domains.
+
+#### Frontend Dynamic Routing: [`src/config/urls.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/config/urls.js) & [`chatscreen/src/config/urls.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/chatscreen/src/config/urls.js)
+1. **Smart Runtime Environment Detection in `getBackendUrl()`**:
+   - **Production / HTTPS**: Automatically targets live SSL backend (`https://compiledchat-production.up.railway.app`) when deployed or loaded over HTTPS, eliminating Safari Mixed Content blocking.
+   - **Local Network / LAN**: Automatically detects host IP (`http://${hostname}:4000`) when testing on iPhone / iPad over Wi-Fi.
+   - **Localhost Desktop**: Defaults to `http://localhost:4000` only on actual localhost machines.
+
+#### Frontend Components & Services
+1. **[`src/pages/DigitalTwinChatScreen.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/DigitalTwinChatScreen.jsx)** — Uses `getBackendUrl('/api/v1/twin')` instead of hardcoded `http://localhost:4000`.
+2. **[`src/pages/SoulMatrixPage.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/SoulMatrixPage.jsx)** & **[`src/pages/ChatScreenPage.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/ChatScreenPage.jsx)** — Switched from hardcoded fallback to `getBackendUrl()`.
+3. **[`src/services/apiClient.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/services/apiClient.js)** — Standardized on `getBackendUrl('/api')`.
+4. **[`chatscreen/src/utils/saiApi.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/chatscreen/src/utils/saiApi.js)** — Evaluates stream URL dynamically and added a fallback for browsers without WHATWG stream `getReader` support.
+
+---
+
+## [Backend Root Route & Production Environment Initialization] - 2026-08-27
+
+### Problem
+1. Visiting backend root (`http://localhost:4000/`) returned `{"success":false,"message":"API Endpoint Not Found"}` due to missing root route handler.
+2. Backend, desktop frontend, and chatscreen dependencies and environments needed clean setup and verification with production credentials.
+
+### Changes
+
+#### Backend: [`backend/src/index.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/backend/src/index.js)
+1. **Root `GET /` Route Handler** — Added a friendly JSON endpoint map returning `success: true`, service status, version, and endpoints list (`/health`, `/api/v1/auth`, `/api/v1/chat`, `/api/v1/otp`, `/api/v1/twin`).
+
+#### Configuration: [`backend/.env`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/backend/.env)
+1. **Production Environment Configuration** — Configured `backend/.env` with Supabase credentials, SAI API credentials (`deepseek-v4-flash-0731`), Grok fallback API key, JWT secrets, Fast2SMS key, and production CORS origins.
+
+#### Git Configuration
+1. **Local Repository Credentials** — Configured local user `Archer-777`, `raj@nextarcher.com`, and remote repository authentication token for `Archer-777/compiledchat.git` with strict zero-push policy.
+
+---
+
 ## [Digital Twin: Visible Always-On Send Button in Chatbar] - 2026-08-20
 
 ### Problem

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getChatAppUrl } from '@/config/urls';
+import { getChatAppUrl, getBackendUrl } from '@/config/urls';
 import './ChatScreenPage.css';
 
 export default function ChatScreenPage() {
@@ -34,9 +34,7 @@ export default function ChatScreenPage() {
           <button
             onClick={async () => {
               try {
-                const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL) 
-                  ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '') 
-                  : 'http://localhost:4000';
+                const baseUrl = getBackendUrl();
 
                 // Read actual chat messages from localStorage
                 let realMessages = [];

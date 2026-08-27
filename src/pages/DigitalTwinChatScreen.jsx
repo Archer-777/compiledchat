@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getChatSessions, getLocalChatSessions, saveChatSession, getChatMessagesForSession, generateUUID, getUserData } from '../utils/storage';
 import { generateTwinJwt } from '../utils/twinJwt';
+import { getBackendUrl } from '../config/urls';
 import Modal from '../components/common/Modal';
 import './DigitalTwinChatScreen.css';
 
@@ -18,9 +19,7 @@ marked.setOptions({
   breaks: true,
 });
 
-const TWIN_API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-  ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')}/api/v1/twin`
-  : 'http://localhost:4000/api/v1/twin';
+const TWIN_API_BASE = getBackendUrl('/api/v1/twin');
 
 // Audio chime using standard Web Audio API (No external audio file dependencies)
 function playTaskCompleteChime() {

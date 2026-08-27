@@ -6,6 +6,7 @@ import MyWorldSliders from '@/components/features/anish/MyWorldSliders';
 import DashboardMetrics from '@/components/features/anish/DashboardMetrics';
 import { FALLBACK_SOUL_MATRIX_PROFILE } from '@/data/soulMatrixData';
 import { getUserData } from '@/utils/storage';
+import { getBackendUrl } from '@/config/urls';
 
 export default function SoulMatrixPage() {
   const navigate = useNavigate();
@@ -37,9 +38,7 @@ export default function SoulMatrixPage() {
         // Fetch latest telemetry directly from Backend DB Endpoint if missing
         if (!storedTelemetry) {
           try {
-            const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-              ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
-              : 'http://localhost:4000';
+            const baseUrl = getBackendUrl();
             const dbRes = await fetch(`${baseUrl}/api/v1/chat/sai/telemetry${data?.email ? `?email=${encodeURIComponent(data.email)}` : ''}`);
             const dbData = await dbRes.json();
             if (dbData && dbData.telemetry) {
@@ -159,9 +158,7 @@ export default function SoulMatrixPage() {
                   <button
                     onClick={async () => {
                       try {
-                        const baseUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_BACKEND_URL)
-                          ? import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, '')
-                          : 'http://localhost:4000';
+                        const baseUrl = getBackendUrl();
                         const uData = await getUserData();
                         const email = uData?.email || '';
                         const res = await fetch(`${baseUrl}/api/v1/chat/sai/analyze`, {
