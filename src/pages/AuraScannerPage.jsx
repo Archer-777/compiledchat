@@ -347,7 +347,21 @@ export default function AuraScannerPage() {
   const requestPermissions = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        let stream = null;
+        try {
+          // Primary: Front camera with mobile-optimized resolution
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            },
+            audio: false
+          });
+        } catch (mobileErr) {
+          // Fallback: General video constraint
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
         setCameraGranted(true);
         setCameraStream(stream);
         setPermissionError(null);

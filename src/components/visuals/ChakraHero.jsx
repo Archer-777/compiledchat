@@ -29,19 +29,17 @@ export default function ChakraHero({ chakra, isPlaying }) {
 
         <div 
           className="relative flex items-center justify-center p-0 z-10"
-          style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}
+          style={{ background: 'transparent' }}
         >
           <img
             src={imagePath}
             alt={chakra?.name}
-            className="w-52 h-52 md:w-60 md:h-60 object-contain drop-shadow-[0_0_25px_rgba(255,255,255,0.3)]"
+            className="w-52 h-52 md:w-60 md:h-60 object-contain"
             style={{
-              mixBlendMode: 'screen',
-              WebkitMaskImage: 'radial-gradient(circle at center, black 65%, transparent 95%)',
-              maskImage: 'radial-gradient(circle at center, black 65%, transparent 95%)',
+              filter: 'drop-shadow(0 0 16px rgba(255, 255, 255, 0.35))',
+              WebkitMaskImage: 'radial-gradient(circle at center, black 70%, transparent 98%)',
+              maskImage: 'radial-gradient(circle at center, black 70%, transparent 98%)',
               background: 'transparent',
-              border: 'none',
-              boxShadow: 'none',
             }}
           />
         </div>

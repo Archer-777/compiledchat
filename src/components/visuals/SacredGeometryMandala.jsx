@@ -7,18 +7,25 @@ export default function SacredGeometryMandala({ color }) {
     <div 
       className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
       style={{
-        transform: 'perspective(600px) rotateX(20deg)',
-        transformStyle: 'preserve-3d',
-        opacity: 0.85,
-        mixBlendMode: 'screen',
+        opacity: 0.9,
       }}
     >
+      {/* Soft Ambient Radial Glow behind the Mandala (Zero GPU Filter Cost) */}
+      <div
+        className="absolute w-[320px] h-[320px] md:w-[420px] md:h-[420px] rounded-full pointer-events-none transition-all duration-700"
+        style={{
+          background: `radial-gradient(circle, ${activeColor}33 0%, ${activeColor}12 55%, transparent 75%)`,
+          boxShadow: `0 0 45px ${activeColor}25`,
+        }}
+      />
+
       <svg 
         className="w-[340px] h-[340px] md:w-[440px] md:h-[440px] overflow-visible pointer-events-none" 
         viewBox="0 0 400 400" 
         fill="none" 
-        style={{ 
-          filter: `drop-shadow(0 0 25px ${activeColor}) drop-shadow(0 0 50px ${activeColor}88)` 
+        style={{
+          transform: 'scaleY(0.94)',
+          willChange: 'transform',
         }}
       >
         {/* Outer Layer: Slowly Rotates COUNTER-CLOCKWISE over 40s */}

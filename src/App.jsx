@@ -6,6 +6,7 @@ import SplashPage from './pages/SplashPage';
 import AuraScannerPage from './pages/AuraScannerPage';
 import HealMePage from './pages/HealMePage';
 import HealingPage from './pages/HealingPage';
+import TravelModePage from './pages/TravelModePage';
 import DigitalTwinPage from './pages/DigitalTwinPage';
 import SoulMatrixPage from './pages/SoulMatrixPage';
 import SuperchargePage from './pages/SuperchargePage';
@@ -226,6 +227,7 @@ function AppLayout() {
         <Route path="/chat" element={<ChatRedirect />} />
         <Route path="/heal-me" element={<HealMePage />} />
         <Route path="/healing" element={<HealingPage />} />
+        <Route path="/travel" element={<TravelModePage />} />
         <Route path="/supercharge" element={<SuperchargePage />} />
         
         <Route path="*" element={<Navigate to="/scan" replace />} />

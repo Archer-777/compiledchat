@@ -4,7 +4,6 @@ export default function EnterHealingButton({ onClick }) {
   return (
     <div 
       className="relative group w-full max-w-sm mx-auto my-4 flex items-center justify-center text-center" 
-      style={{ perspective: '1000px', transformStyle: 'preserve-3d' }}
     >
       {/* Orbit Container strictly hugging the button */}
       <div 
@@ -13,7 +12,6 @@ export default function EnterHealingButton({ onClick }) {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          transformStyle: 'preserve-3d',
         }}
       >
         {/* Track 1: Cyan Energy Track */}
@@ -21,7 +19,7 @@ export default function EnterHealingButton({ onClick }) {
           className="absolute inset-0 pointer-events-none flex items-center justify-center"
           style={{
             transform: 'rotateX(72deg) rotateZ(-22deg)',
-            transformStyle: 'preserve-3d',
+            willChange: 'transform',
           }}
         >
           <svg className="w-full h-full overflow-visible" viewBox="0 0 360 100">
@@ -32,8 +30,8 @@ export default function EnterHealingButton({ onClick }) {
                 <stop offset="100%" stopColor="#00f3ff" stopOpacity="0" />
               </linearGradient>
             </defs>
-            <ellipse cx="180" cy="50" rx="170" ry="42" fill="none" stroke="rgba(0, 243, 255, 0.15)" strokeWidth="1.5" />
-            <ellipse cx="180" cy="50" rx="170" ry="42" fill="none" stroke="url(#cyanBeamGrad)" strokeWidth="3" strokeDasharray="110 630" strokeLinecap="round" className="travel-beam-1" style={{ filter: 'drop-shadow(0 0 6px #00f3ff)' }} />
+            <ellipse cx="180" cy="50" rx="170" ry="42" fill="none" stroke="rgba(0, 243, 255, 0.2)" strokeWidth="1.5" />
+            <ellipse cx="180" cy="50" rx="170" ry="42" fill="none" stroke="url(#cyanBeamGrad)" strokeWidth="3" strokeDasharray="110 630" strokeLinecap="round" className="travel-beam-1" />
           </svg>
         </div>
 
@@ -42,7 +40,7 @@ export default function EnterHealingButton({ onClick }) {
           className="absolute inset-0 pointer-events-none flex items-center justify-center"
           style={{
             transform: 'rotateX(64deg) rotateZ(32deg)',
-            transformStyle: 'preserve-3d',
+            willChange: 'transform',
           }}
         >
           <svg className="w-full h-full overflow-visible" viewBox="0 0 360 100">
@@ -53,8 +51,8 @@ export default function EnterHealingButton({ onClick }) {
                 <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
               </linearGradient>
             </defs>
-            <ellipse cx="180" cy="50" rx="172" ry="44" fill="none" stroke="rgba(192, 132, 252, 0.15)" strokeWidth="1.5" />
-            <ellipse cx="180" cy="50" rx="172" ry="44" fill="none" stroke="url(#purpleBeamGrad)" strokeWidth="3" strokeDasharray="95 645" strokeLinecap="round" className="travel-beam-2" style={{ filter: 'drop-shadow(0 0 8px #c084fc)' }} />
+            <ellipse cx="180" cy="50" rx="172" ry="44" fill="none" stroke="rgba(192, 132, 252, 0.2)" strokeWidth="1.5" />
+            <ellipse cx="180" cy="50" rx="172" ry="44" fill="none" stroke="url(#purpleBeamGrad)" strokeWidth="3" strokeDasharray="95 645" strokeLinecap="round" className="travel-beam-2" />
           </svg>
         </div>
 
@@ -63,7 +61,7 @@ export default function EnterHealingButton({ onClick }) {
           className="absolute inset-0 pointer-events-none flex items-center justify-center"
           style={{
             transform: 'rotateX(78deg) rotateZ(6deg)',
-            transformStyle: 'preserve-3d',
+            willChange: 'transform',
           }}
         >
           <svg className="w-full h-full overflow-visible" viewBox="0 0 360 100">
@@ -74,8 +72,8 @@ export default function EnterHealingButton({ onClick }) {
                 <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </linearGradient>
             </defs>
-            <ellipse cx="180" cy="50" rx="165" ry="40" fill="none" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1.5" />
-            <ellipse cx="180" cy="50" rx="165" ry="40" fill="none" stroke="url(#whiteBeamGrad)" strokeWidth="2.5" strokeDasharray="85 640" strokeLinecap="round" className="travel-beam-3" style={{ filter: 'drop-shadow(0 0 6px #ffffff)' }} />
+            <ellipse cx="180" cy="50" rx="165" ry="40" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="1.5" />
+            <ellipse cx="180" cy="50" rx="165" ry="40" fill="none" stroke="url(#whiteBeamGrad)" strokeWidth="2.5" strokeDasharray="85 640" strokeLinecap="round" className="travel-beam-3" />
           </svg>
         </div>
       </div>
@@ -84,7 +82,6 @@ export default function EnterHealingButton({ onClick }) {
       <button
         onClick={onClick}
         className="relative w-full py-4 px-6 rounded-full bg-gradient-to-r from-[#130b2c]/90 via-[#27154d]/90 to-[#130b2c]/90 border border-white/80 backdrop-blur-xl shadow-[0_0_25px_rgba(168,85,247,0.4),inset_0_0_15px_rgba(255,255,255,0.25)] flex items-center justify-center gap-3 text-white font-bold tracking-tight text-xs sm:text-sm uppercase transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_35px_rgba(192,132,252,0.6),inset_0_0_20px_rgba(255,255,255,0.4)] cursor-pointer font-['Poppins']"
-        style={{ transform: 'translateZ(10px)', transformStyle: 'preserve-3d' }}
       >
         {/* Left Side Cosmic Orbital Sparkle Icon */}
         <div className="flex-shrink-0 flex items-center justify-center text-cyan-300 drop-shadow-[0_0_8px_#00f3ff]">

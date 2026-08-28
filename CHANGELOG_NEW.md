@@ -4,6 +4,32 @@ All new enhancements, refactors, configuration updates, and bug fixes made from 
 
 ---
 
+## [iPhone Safari WebProcess Crash Fix & Act-Heal Me Optimization] - 2026-08-28
+
+### Problem
+On iPhone (Mobile Safari / WebKit), opening `/healing` or clicking **"Act-Heal Me"** caused Safari to crash repeatedly with the native error: `A problem repeatedly occurred on "https://sai.nextarcher.com/healing"`:
+1. **WebKit GPU Process Memory Exhaustion**: 120 animated pulsating star DOM nodes with blurred `box-shadow` in `WebsiteLayout.jsx` combined with `blur-[160px]` and `blur-[180px]` Gaussian blurs triggered excessive compositor layer allocations on iOS Retina screens.
+2. **SVG 3D Filter Crash**: `SacredGeometryMandala.jsx` combined `perspective(600px)`, `transformStyle: preserve-3d`, `mixBlendMode: screen`, and chained `drop-shadow(50px)` filters on an infinitely rotating SVG, triggering a known WebKit RenderLayerBacking crash.
+3. **Orbital 3D Tracks**: `EnterHealingButton.jsx` ran 3 simultaneous 3D-rotated SVG paths with chained drop shadows, saturating GPU memory.
+4. **AudioContext Instance Exhaustion**: `audio.js` re-instantiated `new AudioContext()` on every tone trigger, exceeding iOS Safari's hard limit of 4–6 active/suspended audio contexts.
+5. **Mobile Camera Default**: `/scan` requested `{ video: true }` without specifying `facingMode: 'user'`.
+6. **Missing Route**: `/travel` sanctuary mode was referenced in `HealMeScreen` but unrouted in `App.jsx`.
+
+### Changes
+
+#### Visual Layer & Layout Performance
+1. **[`src/components/layout/WebsiteLayout.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/components/layout/WebsiteLayout.jsx)** — Replaced 120 DOM nodes with a single lightweight 2D `<canvas>` cosmic starfield. Replaced `blur(180px)` elements with native CSS radial gradients, maintaining the rich aesthetic with 0ms blur convolution cost.
+2. **[`src/components/visuals/SacredGeometryMandala.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/components/visuals/SacredGeometryMandala.jsx)** — Removed `preserve-3d`, `perspective`, and chained `drop-shadow` on the rotating SVG. Replaced with an ambient radial backplate glow and hardware-accelerated transforms.
+3. **[`src/components/visuals/ChakraHero.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/components/visuals/ChakraHero.jsx)** — Streamlined PNG masking and drop shadow to eliminate offscreen buffer recreation in WebKit.
+4. **[`src/components/common/EnterHealingButton.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/components/common/EnterHealingButton.jsx)** — Streamlined orbital SVG tracks to use standard hardware-accelerated planar transforms.
+
+#### Audio, Camera & Navigation
+1. **[`src/utils/audio.js`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/utils/audio.js)** — Implemented singleton `AudioContext` reuse to prevent iOS WebKit instance ceiling crashes.
+2. **[`src/pages/AuraScannerPage.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/pages/AuraScannerPage.jsx)** — Configured `{ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } }` for reliable front camera activation on mobile.
+3. **[`src/App.jsx`](file:///c:/Users/Ananya%20Kalia/Downloads/newarch/compiledchat/src/App.jsx)** — Imported `TravelModePage` and registered `<Route path="/travel" element={<TravelModePage />} />`.
+
+---
+
 ## [Unified Cross-Journey Single Sign-On & Scan Session Persistence] - 2026-08-27
 
 ### Problem
