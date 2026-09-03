@@ -50,10 +50,11 @@
 }
 
 .splash-logo-img {
-  width: min(240px, 65vw);
+  width: min(260px, 68vw);
   height: auto;
-  max-height: min(220px, 32vh);
+  max-height: clamp(210px, 32vh, 280px);
   object-fit: contain;
+  display: block;
 }
 
 .splash-halo-wrapper {
