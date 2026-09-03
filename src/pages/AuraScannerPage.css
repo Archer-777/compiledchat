@@ -1,90 +1,58 @@
+/* ==========================================================================
+   NEXT ARCHER — AI SENTIMENT & AURA SCANNER
+   Pure Black & White Minimalist Luxury Theme
+   Fully Responsive (Mobile, Tablet, Laptop, Desktop)
+   ========================================================================== */
+
+/* Root Container */
 .scanner-page-container {
-  max-width: 1280px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 30px 24px;
+  padding: 32px 24px;
   width: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.scanner-header-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.scanner-brand-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.scanner-brand-logo {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-
-.scanner-brand-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: var(--text-white);
-}
-
-.scanner-status-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  box-sizing: border-box;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* Two Column Desktop Grid Layout */
 .scanner-main-grid {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 32px;
-  align-items: start;
+  grid-template-columns: 1fr 390px;
+  gap: 28px;
+  align-items: stretch;
+  width: 100%;
 }
 
-@media (max-width: 992px) {
-  .scanner-main-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Left Column: Live Scanner Box */
+/* --------------------------------------------------------------------------
+   Left Column: Camera Viewport Card
+   -------------------------------------------------------------------------- */
 .scanner-viewport-card {
   background: #000000;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
   padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9);
+  min-height: 520px;
+  box-sizing: border-box;
 }
 
 .scanner-camera-frame {
   width: 100%;
-  max-width: 540px;
-  height: 440px;
-  border-radius: var(--radius-lg);
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  height: 100%;
+  min-height: 460px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   position: relative;
   overflow: hidden;
-  background: #000000;
+  background: #050507;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -111,175 +79,558 @@
   z-index: 15;
 }
 
-.scanner-aura-field-overlay {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 2;
-  border: 3px solid #ffffff;
-  box-shadow: inset 0 0 50px rgba(255, 255, 255, 0.2), 0 0 30px rgba(255, 255, 255, 0.3);
-  transition: all 0.5s ease;
-}
-
+/* High-Tech Pure White Laser Scan Line */
 .scanner-laser-line {
   position: absolute;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: #ffffff;
-  box-shadow: 0 0 15px #ffffff, 0 0 30px #ffffff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.9), 0 0 24px rgba(255, 255, 255, 0.5);
   z-index: 10;
   animation: laserScan 2.4s ease-in-out infinite alternate;
 }
 
 @keyframes laserScan {
-  0% { top: 10px; }
-  100% { top: calc(100% - 10px); }
+  0% { top: 12px; }
+  100% { top: calc(100% - 12px); }
 }
 
-/* Biometric Reticle Corners */
+/* Biometric HUD Corner Brackets */
 .hud-corner {
   position: absolute;
-  width: 28px;
-  height: 28px;
-  border-color: var(--text-white);
+  width: 22px;
+  height: 22px;
+  border-color: rgba(255, 255, 255, 0.45);
   z-index: 8;
   pointer-events: none;
+  transition: border-color 0.3s ease;
 }
 
-.hud-top-left { top: 16px; left: 16px; border-top: 3px solid; border-left: 3px solid; border-top-left-radius: 6px; }
-.hud-top-right { top: 16px; right: 16px; border-top: 3px solid; border-right: 3px solid; border-top-right-radius: 6px; }
-.hud-bottom-left { bottom: 16px; left: 16px; border-bottom: 3px solid; border-left: 3px solid; border-bottom-left-radius: 6px; }
-.hud-bottom-right { bottom: 16px; right: 16px; border-bottom: 3px solid; border-right: 3px solid; border-bottom-right-radius: 6px; }
+.hud-top-left { top: 14px; left: 14px; border-top: 2px solid; border-left: 2px solid; border-top-left-radius: 4px; }
+.hud-top-right { top: 14px; right: 14px; border-top: 2px solid; border-right: 2px solid; border-top-right-radius: 4px; }
+.hud-bottom-left { bottom: 14px; left: 14px; border-bottom: 2px solid; border-left: 2px solid; border-bottom-left-radius: 4px; }
+.hud-bottom-right { bottom: 14px; right: 14px; border-bottom: 2px solid; border-right: 2px solid; border-bottom-right-radius: 4px; }
 
-/* Right Column: Control & Results Panel */
-.scanner-control-panel {
+/* In-Viewport Authentication Locked State */
+.scanner-auth-lock-overlay {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 24px;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  box-sizing: border-box;
 }
 
-.scanner-log-card {
-  background: var(--card-darker);
-  border: 1.5px solid var(--purple-glow);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--glow-purple);
-}
-
-.scanner-log-header {
+.scanner-lock-badge {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: var(--purple-glow);
-  margin-bottom: 10px;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.06);
 }
 
-.scanner-log-line {
-  font-family: 'Poppins', sans-serif;
-  font-size: 12px;
+.scanner-auth-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
   color: #a1a1aa;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
-.scanner-log-line.active {
-  color: #ffffff;
-  font-weight: 700;
-}
-
-.scanner-prediction-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.scanner-archetype-title {
+.scanner-auth-title {
   font-size: 20px;
   font-weight: 700;
   color: #ffffff;
-  font-family: 'Poppins', sans-serif;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.2px;
 }
 
-.scanner-score-badge {
+.scanner-auth-subtitle {
+  font-size: 13px;
+  color: #71717a;
+  max-width: 320px;
+  line-height: 1.5;
+  margin: 0 0 18px 0;
+}
+
+.scanner-auth-helper {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid #10b981;
-  color: #10b981;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+/* Enable Webcam Prompt State */
+.scanner-enable-cam-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 28px;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.scanner-cam-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.scanner-cam-subtitle {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin: 0 0 20px 0;
+}
+
+.scanner-enable-cam-btn {
+  background: #ffffff;
+  color: #000000;
+  padding: 12px 26px;
+  border-radius: 24px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.15);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.scanner-enable-cam-btn:hover {
+  transform: translateY(-1px);
+  background: #f4f4f5;
+}
+
+/* In-HUD Rescan Button */
+.scanner-rescan-btn {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(10px);
+  z-index: 15;
+  transition: all 0.2s ease;
+}
+
+.scanner-rescan-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Right Column: Control & Results Panel
+   -------------------------------------------------------------------------- */
+.scanner-control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+/* Generic Monochrome Card */
+.scanner-card {
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.scanner-card:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* Section Header Label */
+.scanner-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+}
+
+/* Prediction Card */
+.scanner-prediction-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.scanner-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.scanner-badge-outline {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e4e4e7;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
   padding: 4px 12px;
-  border-radius: var(--radius-full);
+}
+
+.scanner-archetype-heading {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 12px 0 6px 0;
+  letter-spacing: -0.2px;
+}
+
+.scanner-archetype-desc {
+  color: #a1a1aa;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Diagnostic Logs Card */
+.scanner-logs-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.scanner-logs-body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: #71717a;
+  max-height: 110px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scanner-log-item {
+  display: flex;
+  gap: 6px;
+  opacity: 0.7;
+}
+
+.scanner-log-item.latest {
+  color: #ffffff;
+  opacity: 1;
+  font-weight: 500;
+}
+
+.scanner-log-prefix {
+  color: #52525b;
+}
+
+/* Authentication Card */
+.scanner-auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scanner-auth-btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+/* Pure Black & White Sign In & Sign Up Buttons */
+.scanner-signin-btn {
+  flex: 1;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+  transition: all 0.15s ease;
+}
+
+.scanner-signin-btn:hover {
+  background: #e4e4e7;
+  transform: translateY(-1px);
+}
+
+.scanner-signup-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: all 0.15s ease;
+}
+
+.scanner-signup-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Signed-in Status Pill */
+.scanner-signedin-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+}
+
+.scanner-signedin-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.scanner-signedin-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
 }
 
-.scanner-action-btn-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 10px;
+.scanner-signedin-email {
+  color: #a1a1aa;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.scanner-sticker-btn {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1, #06b6d4);
-  color: #ffffff;
-  border-radius: var(--radius-full);
+/* Bottom Action Button */
+.scanner-bottom-action-btn {
+  width: 100%;
   padding: 14px 24px;
-  font-size: 15px;
+  border-radius: 30px;
   font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
-  transition: all 0.2s ease;
-}
-
-.scanner-sticker-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(139, 92, 246, 0.6);
-}
-
-.scanner-continue-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1.5px solid #ffffff;
-  color: #ffffff;
-  border-radius: var(--radius-full);
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
-.scanner-continue-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+.scanner-bottom-action-btn.active {
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  color: #000000;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.25);
 }
 
-/* Modal Inner Layout */
-.sticker-modal-grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
+.scanner-bottom-action-btn.active:hover {
+  background: #e4e4e7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(255, 255, 255, 0.35);
 }
 
-@media (max-width: 768px) {
-  .sticker-modal-grid {
+.scanner-bottom-action-btn.disabled {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #52525b;
+  cursor: not-allowed;
+}
+
+/* Utility Animations */
+.spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (TABLET & MOBILE)
+   -------------------------------------------------------------------------- */
+
+/* Tablet (Max 1024px) */
+@media (max-width: 1024px) {
+  .scanner-page-container {
+    padding: 24px 20px;
+  }
+
+  .scanner-main-grid {
     grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .scanner-viewport-card {
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: 440px;
+    padding: 20px;
+  }
+
+  .scanner-camera-frame {
+    min-height: 400px;
+  }
+
+  .scanner-control-panel {
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+    gap: 14px;
+  }
+}
+
+/* Mobile Devices (Max 768px) */
+@media (max-width: 768px) {
+  .scanner-page-container {
+    padding: 16px 14px;
+  }
+
+  .scanner-main-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .scanner-viewport-card {
+    padding: 14px;
+    min-height: 340px;
+    border-radius: 16px;
+  }
+
+  .scanner-camera-frame {
+    min-height: 300px;
+    height: 320px;
+    border-radius: 12px;
+  }
+
+  .hud-corner {
+    width: 16px;
+    height: 16px;
+  }
+
+  .hud-top-left { top: 10px; left: 10px; }
+  .hud-top-right { top: 10px; right: 10px; }
+  .hud-bottom-left { bottom: 10px; left: 10px; }
+  .hud-bottom-right { bottom: 10px; right: 10px; }
+
+  .scanner-auth-lock-overlay {
+    padding: 20px 14px;
+  }
+
+  .scanner-lock-badge {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+  }
+
+  .scanner-auth-title {
+    font-size: 17px;
+  }
+
+  .scanner-auth-subtitle {
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .scanner-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+  }
+
+  .scanner-archetype-heading {
+    font-size: 18px;
+  }
+
+  .scanner-auth-btn-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .scanner-signin-btn,
+  .scanner-signup-btn {
+    width: 100%;
+    padding: 13px 16px;
+  }
+
+  .scanner-bottom-action-btn {
+    padding: 13px 20px;
+    font-size: 13px;
+  }
+}
+
+/* Extra Small Phones (Max 480px) */
+@media (max-width: 480px) {
+  .scanner-camera-frame {
+    height: 270px;
+    min-height: 270px;
+  }
+
+  .scanner-logs-body {
+    max-height: 90px;
+    font-size: 10px;
   }
 }

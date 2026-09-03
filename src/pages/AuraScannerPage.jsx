@@ -12,6 +12,17 @@ import {
   IoLogoTwitter,
   IoRefreshOutline,
 } from 'react-icons/io5';
+import {
+  Lock,
+  LogIn,
+  UserPlus,
+  CheckCircle2,
+  ArrowRight,
+  RefreshCw,
+  Cpu,
+  Camera,
+  Shield,
+} from 'lucide-react';
 import AmbientBackground from '@/components/visuals/AmbientBackground';
 import Modal from '@/components/common/Modal';
 import Toast from '@/components/common/Toast';
@@ -81,13 +92,41 @@ const stickerThemes = {
 
 export default function AuraScannerPage() {
   const navigate = useNavigate();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, isLoaded } = useUser();
+
+  // Helper to determine if user is authenticated (via Clerk or non-guest registered profile)
+  const getIsUserAuthenticated = () => {
+    if (isSignedIn) return true;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const keys = ['@active_auth_session', '@spiritual_register_user', 'user_profile'];
+        for (const key of keys) {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.email && parsed.isGuest !== true) {
+              return true;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    return false;
+  };
+
+  const [isAuthenticated, setIsAuthenticated] = useState(getIsUserAuthenticated);
+
+  // Keep authentication state strictly in sync with Clerk and session cache
+  useEffect(() => {
+    const authed = getIsUserAuthenticated();
+    setIsAuthenticated(authed);
+  }, [isSignedIn, user, isLoaded]);
 
   // Database status
   const [dbInfo, setDbInfo] = useState({ connected: false, mode: 'checking', message: 'Connecting to DB...' });
 
-  // Permissions Modal
-  const [showPermissionModal, setShowPermissionModal] = useState(true);
+  // Permissions Modal — strictly false by default for unknown users
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   // Camera & Location
   const [cameraGranted, setCameraGranted] = useState(false);
@@ -96,7 +135,16 @@ export default function AuraScannerPage() {
   const [permissionError, setPermissionError] = useState(null);
 
   // Diagnostic Logs
-  const [analysisLogs, setAnalysisLogs] = useState(["Initializing sentiment analysis scanner..."]);
+  const [analysisLogs, setAnalysisLogs] = useState(() => {
+    const authed = getIsUserAuthenticated();
+    return authed
+      ? ["Initializing sentiment analysis scanner...", "Awaiting camera activation..."]
+      : [
+          "Sentiment analysis scanner initialized.",
+          "Identity verification required.",
+          "Please Sign In or Sign Up to unlock camera & scan.",
+        ];
+  });
   const setSemanticAnalysis = (msg) => {
     if (msg) setAnalysisLogs((prev) => [...prev, msg]);
   };
@@ -116,6 +164,13 @@ export default function AuraScannerPage() {
   const [scanComplete, setScanComplete] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [currentPrediction, setCurrentPrediction] = useState(null);
+
+  // Trigger camera permission request only AFTER the user is signed in/up
+  useEffect(() => {
+    if (isAuthenticated && !cameraGranted && !cameraStream && !scanComplete) {
+      setShowPermissionModal(true);
+    }
+  }, [isAuthenticated, cameraGranted, cameraStream, scanComplete]);
 
   // Sticker Studio States
   const [showStickerModal, setShowStickerModal] = useState(false);
@@ -199,9 +254,9 @@ export default function AuraScannerPage() {
     }
   }, [cameraStream, cameraGranted]);
 
-  // 5. Face Recognition Loop — Runs strictly ONCE when logging in / opening scanner
+  // 5. Face Recognition Loop — Runs strictly ONCE after user authentication & camera activation
   useEffect(() => {
-    if (cameraGranted && cameraStream && calibrationConfirmed && modelsLoaded && !hasScannedRef.current && !isScanningRef.current && !scanComplete) {
+    if (isAuthenticated && cameraGranted && cameraStream && calibrationConfirmed && modelsLoaded && !hasScannedRef.current && !isScanningRef.current && !scanComplete) {
       let isSubscribed = true;
       isScanningRef.current = true;
 
@@ -331,7 +386,7 @@ export default function AuraScannerPage() {
         isScanningRef.current = false;
       };
     }
-  }, [cameraGranted, cameraStream, calibrationConfirmed, modelsLoaded, scanComplete]);
+  }, [isAuthenticated, cameraGranted, cameraStream, calibrationConfirmed, modelsLoaded, scanComplete]);
 
   // Optional manual rescan
   const handleRescan = () => {
@@ -439,64 +494,41 @@ export default function AuraScannerPage() {
 
               <canvas ref={canvasRef} style={{ display: 'none' }} width="480" height="380" />
 
-              {(!cameraGranted || !cameraStream) && (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  padding: 20,
-                  width: '100%',
-                  height: '100%',
-                  zIndex: 10
-                }}>
-                  <IoCamera size={64} color="#ffffff" style={{ marginBottom: 16 }} />
-                  <h3 style={{ fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 8 }}>Webcam Scanner Required</h3>
-                  <p style={{ fontSize: 13, color: '#aaaaaa', marginBottom: 20 }}>Enable camera to run neural aura alignment</p>
-                  <button
-                    style={{
-                      background: '#ffffff',
-                      color: '#000000',
-                      padding: '12px 28px',
-                      borderRadius: 24,
-                      fontWeight: 'bold',
-                      fontSize: 14,
-                      cursor: 'pointer',
-                      border: 'none',
-                      boxShadow: '0 4px 14px rgba(255, 255, 255, 0.2)',
-                    }}
-                    onClick={requestPermissions}
-                  >
-                    Enable Webcam
+              {!isAuthenticated ? (
+                <div className="scanner-auth-lock-overlay">
+                  <div className="scanner-lock-badge">
+                    <Lock size={26} strokeWidth={1.6} color="#ffffff" />
+                  </div>
+                  <div className="scanner-auth-tag">
+                    AUTHENTICATION REQUIRED
+                  </div>
+                  <h3 className="scanner-auth-title">
+                    Sign In to Unlock AI Scan
+                  </h3>
+                  <p className="scanner-auth-subtitle">
+                    Camera access and biometric sentiment scanning will activate automatically once you sign in.
+                  </p>
+                  <div className="scanner-auth-helper">
+                    <Shield size={12} strokeWidth={2} />
+                    <span>Please use the account panel to Sign In or Sign Up</span>
+                  </div>
+                </div>
+              ) : (!cameraGranted || !cameraStream) && (
+                <div className="scanner-enable-cam-overlay">
+                  <Camera size={52} strokeWidth={1.5} color="#ffffff" style={{ marginBottom: 16 }} />
+                  <h3 className="scanner-cam-title">Webcam Access Required</h3>
+                  <p className="scanner-cam-subtitle">Enable camera to run neural aura alignment</p>
+                  <button className="scanner-enable-cam-btn" onClick={requestPermissions}>
+                    <Camera size={16} strokeWidth={2} />
+                    <span>Enable Webcam</span>
                   </button>
                 </div>
               )}
 
               {/* Manual Rescan Trigger Button in HUD */}
               {scanComplete && (
-                <button
-                  onClick={handleRescan}
-                  style={{
-                    position: 'absolute',
-                    bottom: '16px',
-                    left: '16px',
-                    background: 'rgba(0, 0, 0, 0.7)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    color: '#ffffff',
-                    padding: '8px 14px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    backdropFilter: 'blur(8px)',
-                    zIndex: 15,
-                  }}
-                >
-                  <IoRefreshOutline size={14} />
+                <button onClick={handleRescan} className="scanner-rescan-btn">
+                  <RefreshCw size={13} strokeWidth={2} />
                   <span>Rescan Aura</span>
                 </button>
               )}
@@ -506,164 +538,77 @@ export default function AuraScannerPage() {
           {/* Right Column: Control & Results Panel */}
           <div className="scanner-control-panel">
             {/* Prediction Card */}
-            <div style={{
-              background: '#000000',
-              border: '1.5px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '20px',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '20px',
-                  padding: '4px 12px',
-                  letterSpacing: '0.5px',
-                }}>
-                  {currentPrediction?.categoryTag || '+ NEURAL RESONANCE'}
+            <div className="scanner-card scanner-prediction-card">
+              <div className="scanner-prediction-meta">
+                <span className="scanner-badge">
+                  {currentPrediction?.categoryTag?.replace(/^[+✦\s]+/, '') || 'NEURAL RESONANCE'}
                 </span>
-                <span style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  borderRadius: '20px',
-                  padding: '4px 14px',
-                }}>
+                <span className="scanner-badge-outline">
                   {currentPrediction?.valenceScore || 94.2}% Valence
                 </span>
               </div>
 
-              <h2 style={{
-                color: '#ffffff',
-                fontSize: 20,
-                fontWeight: 700,
-                margin: '14px 0 8px 0',
-              }}>
+              <h2 className="scanner-archetype-heading">
                 {currentPrediction?.archetype || 'Serene Equilibrium'}
               </h2>
 
-              <p style={{
-                color: '#aaaaaa',
-                fontSize: 13,
-                lineHeight: 1.5,
-                margin: 0,
-              }}>
+              <p className="scanner-archetype-desc">
                 {currentPrediction?.summary || 'Calm, centered emotional state and crystalline mental clarity.'}
               </p>
             </div>
 
             {/* Neural Sentiment Diagnostic Logs */}
-            <div style={{
-              background: '#000000',
-              border: '1.5px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '16px 20px',
-              fontFamily: 'monospace',
-              fontSize: '11px',
-              color: '#94a3b8',
-              maxHeight: '120px',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}>
-              <div style={{ color: '#00e5ff', fontWeight: 'bold', marginBottom: '2px', fontSize: '10px', letterSpacing: '1px' }}>
-                // NEURAL SENTIMENT LOGS
+            <div className="scanner-card scanner-logs-card">
+              <div className="scanner-logs-header">
+                <Cpu size={13} strokeWidth={2} />
+                <span>NEURAL SENTIMENT LOGS</span>
               </div>
-              {analysisLogs.map((log, index) => (
-                <div key={index} style={{ opacity: index === analysisLogs.length - 1 ? 1 : 0.65 }}>
-                  &gt; {log}
-                </div>
-              ))}
+              <div className="scanner-logs-body">
+                {analysisLogs.map((log, index) => (
+                  <div
+                    key={index}
+                    className={`scanner-log-item ${index === analysisLogs.length - 1 ? 'latest' : ''}`}
+                  >
+                    <span className="scanner-log-prefix">&gt;</span>
+                    <span className="scanner-log-text">{log.replace(/^[✦⚡✓🔒\s]+/, '')}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* User Authentication Card — Pure Clerk Authentication */}
-            <div style={{
-              background: '#000000',
-              border: '1.5px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '16px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-            }}>
-              <div style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '1px',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}>
-                ✦ CLERK AUTHENTICATION
+            {/* User Authentication Card */}
+            <div className="scanner-card scanner-auth-card">
+              <div className="scanner-section-label">
+                <Shield size={13} strokeWidth={2} />
+                <span>ACCOUNT AUTHENTICATION</span>
               </div>
 
               {/* Clerk Sign In / Sign Up Buttons */}
               {!isSignedIn ? (
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="scanner-auth-btn-group">
                   <SignInButton mode="modal">
-                    <button style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #a855f7, #6366f1)',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      fontWeight: 'bold',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 15px rgba(168, 85, 247, 0.3)',
-                    }}>
-                      ⚡ Sign In
+                    <button className="scanner-signin-btn">
+                      <LogIn size={15} strokeWidth={2} />
+                      <span>Sign In</span>
                     </button>
                   </SignInButton>
 
                   <SignUpButton mode="modal">
-                    <button style={{
-                      flex: 1,
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      color: '#ffffff',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      fontWeight: 'bold',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}>
-                      + Sign Up
+                    <button className="scanner-signup-btn">
+                      <UserPlus size={15} strokeWidth={2} />
+                      <span>Sign Up</span>
                     </button>
                   </SignUpButton>
                 </div>
               ) : (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  borderRadius: '12px',
-                }}>
+                <div className="scanner-signedin-pill">
                   <UserButton afterSignOutUrl="/scan" />
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: '#10b981', fontSize: '13px', fontWeight: '700' }}>
-                      ✓ Signed In via Clerk
-                    </span>
-                    <span style={{ color: '#94a3b8', fontSize: '11px' }}>
+                  <div className="scanner-signedin-info">
+                    <div className="scanner-signedin-status">
+                      <CheckCircle2 size={14} strokeWidth={2.2} />
+                      <span>Signed In via Clerk</span>
+                    </div>
+                    <span className="scanner-signedin-email">
                       {user?.primaryEmailAddress?.emailAddress || user?.fullName || 'Active Session'}
                     </span>
                   </div>
@@ -673,59 +618,72 @@ export default function AuraScannerPage() {
 
             {/* Bottom Action Pill Button */}
             <button
-              className="scanner-continue-btn"
-              disabled={!scanComplete}
+              className={`scanner-bottom-action-btn ${scanComplete ? 'active' : 'disabled'}`}
+              disabled={!isAuthenticated || !scanComplete}
               onClick={handleContinue}
-              style={{
-                width: '100%',
-                background: scanComplete
-                  ? 'linear-gradient(135deg, #00e5ff, #a855f7)'
-                  : 'rgba(255, 255, 255, 0.08)',
-                border: scanComplete
-                  ? 'none'
-                  : '1.5px solid rgba(255, 255, 255, 0.3)',
-                color: scanComplete ? '#000000' : '#ffffff',
-                padding: '14px 28px',
-                borderRadius: '30px',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                cursor: scanComplete ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: scanComplete ? '0 0 20px rgba(0, 229, 255, 0.4)' : 'none',
-                transition: 'all 0.3s ease',
-              }}
             >
-              <span>{scanComplete ? 'Continue to Chat →' : 'Analyzing Sentiment... →'}</span>
+              {!isAuthenticated ? (
+                <>
+                  <Lock size={15} strokeWidth={2} />
+                  <span>Sign In to Begin AI Scan</span>
+                </>
+              ) : scanComplete ? (
+                <>
+                  <span>Continue to Chat</span>
+                  <ArrowRight size={16} strokeWidth={2.2} />
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={15} strokeWidth={2} className="spin-slow" />
+                  <span>Analyzing Sentiment...</span>
+                </>
+              )}
             </button>
           </div>
         </div>
 
         {/* Permission Modal */}
         <Modal isOpen={showPermissionModal} onClose={() => setShowPermissionModal(false)}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: 20, marginBottom: 8, color: '#ffffff' }}>Enable Permissions</h2>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-              To scan your aura, Next Archer requests camera and location access.
+          <div style={{ textAlign: 'center', padding: '10px 4px' }}>
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <Camera size={22} strokeWidth={1.8} color="#ffffff" />
+            </div>
+            <h2 style={{ fontSize: 18, fontWeight: '700', marginBottom: 8, color: '#ffffff' }}>Camera Access Required</h2>
+            <p style={{ fontSize: 13, color: '#a1a1aa', marginBottom: 24, lineHeight: 1.5 }}>
+              To calibrate biometric facial sentiment, Next Archer requests front camera access.
             </p>
 
             <button
               style={{
                 width: '100%',
                 background: '#ffffff',
-                color: '#000',
-                padding: 14,
-                borderRadius: 14,
-                fontWeight: 'bold',
+                color: '#000000',
+                padding: '13px 20px',
+                borderRadius: 12,
+                fontWeight: '700',
                 fontSize: 14,
                 cursor: 'pointer',
                 border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 14px rgba(255, 255, 255, 0.15)',
               }}
               onClick={requestPermissions}
             >
-              Allow Camera & Location
+              <Camera size={16} strokeWidth={2} />
+              <span>Allow Camera Access</span>
             </button>
           </div>
         </Modal>
