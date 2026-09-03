@@ -41,7 +41,11 @@ export async function sendToSAIStream(messages, onChunk, onDone, onError) {
     const streamUrl = getBackendUrl('/api/v1/chat/sai/stream');
     const response = await fetch(streamUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream, application/json'
+      },
+      mode: 'cors',
       body: JSON.stringify({ messages }),
     });
 

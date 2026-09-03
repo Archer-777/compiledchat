@@ -59,15 +59,21 @@ export const getBackendUrl = (path = '') => {
   if (typeof window !== 'undefined' && window.location) {
     const { hostname, protocol } = window.location;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    const isLanIp = /^192\.168\.\d+\.\d+$|^10\.\d+\.\d+\.\d+$|^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(hostname);
 
-    // A. If running on HTTPS or deployed on production domain, use live SSL backend
-    if (!isLocalhost || protocol === 'https:') {
-      return `https://compiledchat-production.up.railway.app${cleanPath}`;
+    // A. Local network testing (e.g. testing from iPhone or other device on same WiFi)
+    if (isLanIp) {
+      return `${protocol}//${hostname}:4000${cleanPath}`;
     }
 
-    // B. If testing over LAN from iPhone / other device on same WiFi (192.168.x.x)
-    if (hostname && !isLocalhost) {
-      return `${protocol}//${hostname}:4000${cleanPath}`;
+    // B. Localhost desktop browser
+    if (isLocalhost) {
+      return `http://localhost:4000${cleanPath}`;
+    }
+
+    // C. If running on HTTPS or deployed on production domain (e.g. *.vercel.app, *.nextarcher.com)
+    if (protocol === 'https:' || hostname.endsWith('.vercel.app') || hostname.endsWith('.nextarcher.com')) {
+      return `https://nextarcher-backend.onrender.com${cleanPath}`;
     }
   }
   

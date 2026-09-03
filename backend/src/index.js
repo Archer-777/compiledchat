@@ -15,9 +15,11 @@ const PORT = process.env.PORT || 4000;
 
 // Security & Parsing Middlewares
 app.use(helmet({ 
+  contentSecurityPolicy: false, // Prevents CSP conflicts & upgrade-insecure-requests on API endpoints
   crossOriginResourcePolicy: false,
   crossOriginOpenerPolicy: false,
-  frameguard: false // Permits chatscreen iframe embedding
+  frameguard: false, // Permits chatscreen iframe embedding
+  hsts: false // Prevents WebKit/Safari from enforcing HTTPS upgrades on local/IP calls
 }));
 app.use(corsMiddleware);
 app.options('*', corsMiddleware);

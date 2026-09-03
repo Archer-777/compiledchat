@@ -188,12 +188,14 @@ const saiStream = async (req, res) => {
       })),
     ];
 
-    // Set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    // Set SSE headers (Safari WebKit & Mobile friendly)
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
+    // Immediate ping comment to kickstart Safari WebKit stream pipeline without buffering
+    res.write(': stream-start\n\n');
 
     let upstreamSuccess = false;
 

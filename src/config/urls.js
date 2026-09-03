@@ -66,20 +66,25 @@ export const getBackendUrl = (path = '') => {
   if (typeof window !== 'undefined' && window.location) {
     const { hostname, protocol } = window.location;
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    const isLanIp = /^192\.168\.\d+\.\d+$|^10\.\d+\.\d+\.\d+$|^172\.(1[6-9]|2\d|3[01])\.\d+\.\d+$/.test(hostname);
 
-    // A. If on HTTPS or deployed on production domain (e.g. *.nextarcher.com, *.vercel.app)
-    // Always use the live production backend over HTTPS to prevent Safari Mixed Content blocking
-    if (!isLocalhost || protocol === 'https:') {
-      return `https://compiledchat-production.up.railway.app${cleanPath}`;
+    // A. Local network testing (e.g. testing from iPhone or Mac on LAN via 192.168.x.x)
+    if (isLanIp) {
+      return `${protocol}//${hostname}:4000${cleanPath}`;
     }
 
-    // B. Local network testing (e.g. testing from iPhone or Mac on LAN via 192.168.x.x)
-    if (hostname && !isLocalhost) {
-      return `${protocol}//${hostname}:4000${cleanPath}`;
+    // B. Localhost desktop browser
+    if (isLocalhost) {
+      return `http://localhost:4000${cleanPath}`;
+    }
+
+    // C. If on HTTPS or deployed on production domain (e.g. *.nextarcher.com, *.vercel.app)
+    if (protocol === 'https:' || hostname.endsWith('.vercel.app') || hostname.endsWith('.nextarcher.com')) {
+      return `https://nextarcher-backend.onrender.com${cleanPath}`;
     }
   }
 
-  // 3. Local machine desktop fallback
+  // 3. Fallback
   return `http://localhost:4000${cleanPath}`;
 };
 
