@@ -78,9 +78,11 @@ export const getBackendUrl = (path = '') => {
       return `http://localhost:4000${cleanPath}`;
     }
 
-    // C. If on HTTPS or deployed on production domain (e.g. *.nextarcher.com, *.vercel.app)
+    // C. Production deployment (sai.nextarcher.com, *.vercel.app, etc.)
+    // Uses same-origin reverse proxy (/api/...) via vercel.json rewrites to Railway.
+    // This completely eliminates Indian ISP DNS blocks (NXDOMAIN) on *.up.railway.app.
     if (protocol === 'https:' || hostname.endsWith('.vercel.app') || hostname.endsWith('.nextarcher.com')) {
-      return `https://nextarcher-backend.onrender.com${cleanPath}`;
+      return `${window.location.origin}${cleanPath}`;
     }
   }
 

@@ -80,10 +80,10 @@ export default function SplashPage({ isOverlay = false, onFinish }) {
         aria-label="Enter Next Archer"
       >
         <div className="splash-centered-content">
-          {/* Main Logo Image (2.svg) */}
+          {/* Main Logo Image (Matching D:\Raj\Splash screen correct.jpeg) */}
           <div className="splash-logo-container">
             <img
-              src="/2.svg"
+              src="/splash_logo.png"
               alt="Spiritualize AI Logo"
               className="splash-logo-img"
             />

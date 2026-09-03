@@ -19,8 +19,8 @@ This repository contains the standalone production backend API server for **Next
                ▼                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                 PRODUCTION BACKEND SERVER                   │
-│         (Hosted on Render / Railway / AWS / VPS)            │
-│         URL: https://nextarcher-backend.onrender.com        │
+│         (Hosted on Railway / AWS / VPS)                     │
+│         URL: https://compiledchat-production.up.railway.app │
 │                                                             │
 │  • Express.js Node API (Port 4000)                          │
 │  • Configured CORS allowing Vercel deployed origins         │
@@ -37,16 +37,16 @@ This repository contains the standalone production backend API server for **Next
 
 When deploying both frontend projects on **Vercel**, set the following environment variables in their respective Vercel project dashboards:
 
-### Frontend 1: Next Archer Main Web App (`https://nextarcher.vercel.app`)
+### Frontend 1: Next Archer Main Web App (`https://nextarcher.vercel.app` / `https://sai.nextarcher.com`)
 ```bash
-VITE_BACKEND_URL=https://nextarcher-backend.onrender.com
+VITE_BACKEND_URL=https://compiledchat-production.up.railway.app
 VITE_SUPABASE_URL=https://qwmnyomlfchazapkohfy.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv
 ```
 
-### Frontend 2: AI Chat Screen App (`https://nextarcher-chat.vercel.app`)
+### Frontend 2: AI Chat Screen App (`https://chat.sai.nextarcher.com`)
 ```bash
-EXPO_PUBLIC_BACKEND_URL=https://nextarcher-backend.onrender.com
+EXPO_PUBLIC_BACKEND_URL=https://compiledchat-production.up.railway.app
 EXPO_PUBLIC_SUPABASE_URL=https://qwmnyomlfchazapkohfy.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_C0TgaPZQ0Y88i1oJkx9HTA_VqtDnJUv
 ```
